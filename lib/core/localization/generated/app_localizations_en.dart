@@ -358,4 +358,257 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settings_author => 'Crafting the next-gen 1Panel experience';
+
+  @override
+  String get dashboard_trend_title => 'Real-Time Trends (Last 60s Heartbeat)';
+
+  @override
+  String get dashboard_tab_cpu => 'CPU Trend';
+
+  @override
+  String get dashboard_tab_memory => 'Memory Usage';
+
+  @override
+  String get dashboard_tab_network => 'Network Traffic';
+
+  @override
+  String get dashboard_tab_load => 'System Load';
+
+  @override
+  String get dashboard_net_down => '↓ Download';
+
+  @override
+  String get dashboard_net_up => '↑ Upload';
+
+  @override
+  String get dashboard_net_total => 'Total';
+
+  @override
+  String get dashboard_disk_mount => 'Mount Point';
+
+  @override
+  String get dashboard_mem_usage => 'Used';
+
+  @override
+  String get dashboard_mem_avail => 'Avail';
+
+  @override
+  String get dashboard_cpu_load => 'Load';
+
+  @override
+  String get dashboard_cpu_cores => 'Cores';
+
+  @override
+  String get dashboard_unit_websites => 'Sites';
+
+  @override
+  String get dashboard_unit_containers => 'Apps';
+
+  @override
+  String get dashboard_unit_databases => 'Databases';
+
+  @override
+  String get dashboard_unit_cronjobs => 'Tasks';
+
+  @override
+  String get dashboard_sys_specs => 'System Specs & Environment';
+
+  @override
+  String get dashboard_spec_hostname => 'Hostname';
+
+  @override
+  String get dashboard_spec_os => 'Operating System';
+
+  @override
+  String get dashboard_spec_kernel => 'Kernel Arch';
+
+  @override
+  String get dashboard_spec_cpu => 'Processor';
+
+  @override
+  String get dashboard_spec_proxy => 'System Proxy';
+
+  @override
+  String get dashboard_spec_proxy_none => 'Direct (No Proxy)';
+
+  @override
+  String get dashboard_spec_cores_detail => 'Physical / Logical Cores';
+
+  @override
+  String get dashboard_uptime_prefix => 'Uptime';
+
+  @override
+  String get dashboard_ip_copied => 'Copied IP';
+
+  @override
+  String get dashboard_refresh_tooltip => 'Refresh Real-time Metrics';
+
+  @override
+  String get dashboard_error_api_key_prompt =>
+      'Please enable and copy API Key under 1Panel Settings → API.';
+
+  @override
+  String get dashboard_configure_api_key => 'Configure API Key';
+
+  @override
+  String get dashboard_auth_failed => 'Disconnected / Unauthorized';
+
+  @override
+  String get dashboard_top_processes => 'Top Processes';
+
+  @override
+  String get dashboard_top_cpu => 'Top CPU';
+
+  @override
+  String get dashboard_top_mem => 'Top Memory';
+
+  @override
+  String get dashboard_process_name => 'Process';
+
+  @override
+  String get dashboard_process_pid => 'PID';
+
+  @override
+  String get dashboard_process_user => 'User';
+
+  @override
+  String get dashboard_multi_disk => 'Partitions & Mount Points';
+
+  @override
+  String get dashboard_inodes => 'Inodes';
+
+  @override
+  String get dashboard_load_detail => 'Load Average';
+
+  @override
+  String get dashboard_load_1m => '1 Min';
+
+  @override
+  String get dashboard_load_5m => '5 Min';
+
+  @override
+  String get dashboard_load_15m => '15 Min';
+
+  @override
+  String get dashboard_load_healthy => 'Healthy';
+
+  @override
+  String get dashboard_load_warning => 'High';
+
+  @override
+  String get dashboard_load_critical => 'Critical';
+
+  @override
+  String get dashboard_memory_deep => 'Memory Hierarchy & Swap';
+
+  @override
+  String get dashboard_mem_cache => 'Cache';
+
+  @override
+  String get dashboard_swap => 'Swap Partition';
+
+  @override
+  String get dashboard_swap_safe => 'Normal';
+
+  @override
+  String get dashboard_swap_warning => 'Swapping Active';
+
+  @override
+  String get dashboard_cpu_cores_matrix => 'Per-Core CPU Usage';
+
+  @override
+  String get dashboard_core_prefix => 'Core';
+
+  @override
+  String get dashboard_disk_io => 'Disk I/O Performance';
+
+  @override
+  String get dashboard_io_read => 'Read Bytes';
+
+  @override
+  String get dashboard_io_write => 'Write Bytes';
+
+  @override
+  String get dashboard_io_count => 'Total I/O Operations';
+
+  @override
+  String get dashboard_gpu_title => 'GPU Accelerators';
+
+  @override
+  String get dashboard_gpu_temp => 'Temp';
+
+  @override
+  String get dashboard_gpu_mem => 'VRAM Usage';
+
+  @override
+  String get dashboard_gpu_power => 'Power';
+
+  @override
+  String get dashboard_mem_used => 'Used';
+
+  @override
+  String get dashboard_mem_free => 'Free';
+
+  @override
+  String get dashboard_mem_used_total => 'Used / Total';
+
+  @override
+  String get dashboard_swap_disabled => 'Disabled';
+
+  @override
+  String get dashboard_disk_free => 'Free';
+
+  @override
+  String dashboard_disks_count(Object count) {
+    return '$count Partitions';
+  }
+
+  @override
+  String get dashboard_disks_empty => 'No storage mount points detected';
+
+  @override
+  String get dashboard_io_ops_unit => 'ops';
+
+  @override
+  String dashboard_cores_baseline(Object cores) {
+    return 'Baseline: $cores Cores (Under baseline is light load)';
+  }
+
+  @override
+  String dashboard_cores_count(Object count) {
+    return '$count Cores';
+  }
+
+  @override
+  String get dashboard_cores_empty => 'No per-core sample data';
+
+  @override
+  String get dashboard_refresh_processes => 'Refresh Processes';
+
+  @override
+  String get dashboard_processes_empty =>
+      'No active processes data (collecting or awaiting refresh)';
+
+  @override
+  String get dashboard_sidebar_expand => 'Expand Sidebar';
+
+  @override
+  String get dashboard_sidebar_collapse => 'Collapse Sidebar';
+
+  @override
+  String dashboard_more_modules_count(Object count) {
+    return '$count Modules';
+  }
+
+  @override
+  String get dashboard_mem_total => 'Total';
+
+  @override
+  String get dashboard_hero_address => 'Address';
+
+  @override
+  String get dashboard_hero_os => 'OS';
+
+  @override
+  String get dashboard_hero_cpu => 'CPU';
 }

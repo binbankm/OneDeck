@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
@@ -144,8 +146,15 @@ class DioClient {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           if (_token != null && _token!.isNotEmpty) {
-            // 1Panel V2 统一鉴权 Header
-            options.headers['1Panel-Token'] = _token;
+            // 1Panel V2 规范鉴权签名：
+            // 1Panel-Timestamp: 秒级时间戳
+            // 1Panel-Token: md5("1panel" + APIKey + Timestamp)
+            final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+            final rawSign = '1panel$_token$timestamp';
+            final md5Token = md5.convert(utf8.encode(rawSign)).toString();
+
+            options.headers['1Panel-Timestamp'] = timestamp.toString();
+            options.headers['1Panel-Token'] = md5Token;
             options.headers['Authorization'] = 'Bearer $_token';
           }
           return handler.next(options);
@@ -170,6 +179,19 @@ class DioClient {
   }
 
   ApiException _handleDioError(DioException error) {
+    final errStr = '${error.error ?? ""} ${error.message ?? ""}';
+    if (error.error is HandshakeException ||
+        errStr.contains('HandshakeException') ||
+        errStr.contains('WRONG_VERSION_NUMBER') ||
+        errStr.contains('alert protocol version') ||
+        errStr.contains('CERTIFICATE_VERIFY_FAILED') ||
+        errStr.contains('TlsException')) {
+      return const ApiException(
+        code: ApiException.sslError,
+        message: 'SSL/TLS 握手失败：目标端口可能未开启 HTTPS（请关闭“启用 HTTPS”）或证书不匹配',
+      );
+    }
+
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.sendTimeout ||
         error.type == DioExceptionType.receiveTimeout) {

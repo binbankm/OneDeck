@@ -41,6 +41,7 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
   bool _isSsl = false;
   bool _allowSelfSigned = true;
   bool _isTesting = false;
+  bool _obscureToken = true;
   ConnectionTestResult? _testResult;
 
   @override
@@ -311,8 +312,17 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _tokenController,
-                obscureText: true,
-                decoration: InputDecoration(hintText: l10n.server_token_hint),
+                obscureText: _obscureToken,
+                decoration: InputDecoration(
+                  hintText: l10n.server_token_hint,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureToken ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      size: 20,
+                    ),
+                    onPressed: () => setState(() => _obscureToken = !_obscureToken),
+                  ),
+                ),
               ),
               const SizedBox(height: 18),
 

@@ -256,8 +256,8 @@ class DashboardCurrent {
 
   factory DashboardCurrent.fromJson(Map<String, dynamic> json) {
     return DashboardCurrent(
-      cpuDetailedPercent: (json['cpuDetailedPercent'] as List<dynamic>?)?.map((e) => e as double).toList() ?? const [],
-      cpuPercent: (json['cpuPercent'] as List<dynamic>?)?.map((e) => e as double).toList() ?? const [],
+      cpuDetailedPercent: (json['cpuDetailedPercent'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? const [],
+      cpuPercent: (json['cpuPercent'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? const [],
       cpuTotal: (json['cpuTotal'] as num?)?.toInt() ?? 0,
       cpuUsed: (json['cpuUsed'] as num?)?.toDouble() ?? 0.0,
       cpuUsedPercent: (json['cpuUsedPercent'] as num?)?.toDouble() ?? 0.0,
@@ -622,16 +622,16 @@ class MonitorGPUData {
     return MonitorGPUData(
       date: (json['date'] as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       gpuProcesses: const [],
-      gpuValue: (json['gpuValue'] as List<dynamic>?)?.map((e) => e as double).toList() ?? const [],
-      memoryPercent: (json['memoryPercent'] as List<dynamic>?)?.map((e) => e as double).toList() ?? const [],
-      memoryTotal: (json['memoryTotal'] as List<dynamic>?)?.map((e) => e as double).toList() ?? const [],
-      memoryUsed: (json['memoryUsed'] as List<dynamic>?)?.map((e) => e as double).toList() ?? const [],
-      powerPercent: (json['powerPercent'] as List<dynamic>?)?.map((e) => e as double).toList() ?? const [],
-      powerTotal: (json['powerTotal'] as List<dynamic>?)?.map((e) => e as double).toList() ?? const [],
-      powerUsed: (json['powerUsed'] as List<dynamic>?)?.map((e) => e as double).toList() ?? const [],
+      gpuValue: (json['gpuValue'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? const [],
+      memoryPercent: (json['memoryPercent'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? const [],
+      memoryTotal: (json['memoryTotal'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? const [],
+      memoryUsed: (json['memoryUsed'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? const [],
+      powerPercent: (json['powerPercent'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? const [],
+      powerTotal: (json['powerTotal'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? const [],
+      powerUsed: (json['powerUsed'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? const [],
       processCount: (json['processCount'] as List<dynamic>?)?.map((e) => e as int).toList() ?? const [],
       speedValue: (json['speedValue'] as List<dynamic>?)?.map((e) => e as int).toList() ?? const [],
-      temperatureValue: (json['temperatureValue'] as List<dynamic>?)?.map((e) => e as double).toList() ?? const [],
+      temperatureValue: (json['temperatureValue'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? const [],
     );
   }
 
@@ -806,7 +806,7 @@ class NodeCurrent {
 
   factory NodeCurrent.fromJson(Map<String, dynamic> json) {
     return NodeCurrent(
-      cpuDetailedPercent: (json['cpuDetailedPercent'] as List<dynamic>?)?.map((e) => e as double).toList() ?? const [],
+      cpuDetailedPercent: (json['cpuDetailedPercent'] as List<dynamic>?)?.map((e) => (e as num).toDouble()).toList() ?? const [],
       cpuTotal: (json['cpuTotal'] as num?)?.toInt() ?? 0,
       cpuUsed: (json['cpuUsed'] as num?)?.toDouble() ?? 0.0,
       cpuUsedPercent: (json['cpuUsedPercent'] as num?)?.toDouble() ?? 0.0,

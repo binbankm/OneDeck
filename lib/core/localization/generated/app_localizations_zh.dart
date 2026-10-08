@@ -355,4 +355,256 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settings_author => '打造下一代全平台 1Panel 体验';
+
+  @override
+  String get dashboard_trend_title => '实时监控趋势 (最近 60 秒心跳)';
+
+  @override
+  String get dashboard_tab_cpu => 'CPU 趋势';
+
+  @override
+  String get dashboard_tab_memory => '内存占用';
+
+  @override
+  String get dashboard_tab_network => '网络吞吐';
+
+  @override
+  String get dashboard_tab_load => '系统负载';
+
+  @override
+  String get dashboard_net_down => '↓ 下行流量';
+
+  @override
+  String get dashboard_net_up => '↑ 上行流量';
+
+  @override
+  String get dashboard_net_total => '累计';
+
+  @override
+  String get dashboard_disk_mount => '挂载点';
+
+  @override
+  String get dashboard_mem_usage => '占用';
+
+  @override
+  String get dashboard_mem_avail => '可用';
+
+  @override
+  String get dashboard_cpu_load => '负载';
+
+  @override
+  String get dashboard_cpu_cores => '核';
+
+  @override
+  String get dashboard_unit_websites => '个站点';
+
+  @override
+  String get dashboard_unit_containers => '个应用';
+
+  @override
+  String get dashboard_unit_databases => '个库';
+
+  @override
+  String get dashboard_unit_cronjobs => '项任务';
+
+  @override
+  String get dashboard_sys_specs => '系统规格与环境';
+
+  @override
+  String get dashboard_spec_hostname => '主机名';
+
+  @override
+  String get dashboard_spec_os => '操作系统';
+
+  @override
+  String get dashboard_spec_kernel => '内核架构';
+
+  @override
+  String get dashboard_spec_cpu => '处理器';
+
+  @override
+  String get dashboard_spec_proxy => '系统代理';
+
+  @override
+  String get dashboard_spec_proxy_none => '直连 (无代理)';
+
+  @override
+  String get dashboard_spec_cores_detail => '物理核心 / 逻辑核心';
+
+  @override
+  String get dashboard_uptime_prefix => '已运行';
+
+  @override
+  String get dashboard_ip_copied => '已复制 IP';
+
+  @override
+  String get dashboard_refresh_tooltip => '刷新实时数据';
+
+  @override
+  String get dashboard_error_api_key_prompt =>
+      '1Panel V2 需要在面板「设置」→「API 接口」开启并复制 API Key。';
+
+  @override
+  String get dashboard_configure_api_key => '配置 API Key';
+
+  @override
+  String get dashboard_auth_failed => '未连接 / 鉴权未通过';
+
+  @override
+  String get dashboard_top_processes => 'Top 进程资源排行';
+
+  @override
+  String get dashboard_top_cpu => 'CPU 消耗';
+
+  @override
+  String get dashboard_top_mem => '内存占用';
+
+  @override
+  String get dashboard_process_name => '进程名称';
+
+  @override
+  String get dashboard_process_pid => 'PID';
+
+  @override
+  String get dashboard_process_user => '运行用户';
+
+  @override
+  String get dashboard_multi_disk => '存储分区与挂载点';
+
+  @override
+  String get dashboard_inodes => 'Inode';
+
+  @override
+  String get dashboard_load_detail => '系统平均负载 (Load Average)';
+
+  @override
+  String get dashboard_load_1m => '1 分钟';
+
+  @override
+  String get dashboard_load_5m => '5 分钟';
+
+  @override
+  String get dashboard_load_15m => '15 分钟';
+
+  @override
+  String get dashboard_load_healthy => '负载健康';
+
+  @override
+  String get dashboard_load_warning => '轻微偏高';
+
+  @override
+  String get dashboard_load_critical => '严重过载';
+
+  @override
+  String get dashboard_memory_deep => '内存分层与 Swap';
+
+  @override
+  String get dashboard_mem_cache => '缓存';
+
+  @override
+  String get dashboard_swap => 'Swap 交换分区';
+
+  @override
+  String get dashboard_swap_safe => '正常';
+
+  @override
+  String get dashboard_swap_warning => '已触发换页';
+
+  @override
+  String get dashboard_cpu_cores_matrix => 'CPU 多核心独立负载';
+
+  @override
+  String get dashboard_core_prefix => '核心';
+
+  @override
+  String get dashboard_disk_io => '磁盘 I/O 读写监控';
+
+  @override
+  String get dashboard_io_read => '读取数据';
+
+  @override
+  String get dashboard_io_write => '写入数据';
+
+  @override
+  String get dashboard_io_count => 'I/O 操作次数';
+
+  @override
+  String get dashboard_gpu_title => 'GPU / AI 加速卡';
+
+  @override
+  String get dashboard_gpu_temp => '温度';
+
+  @override
+  String get dashboard_gpu_mem => '显存占用';
+
+  @override
+  String get dashboard_gpu_power => '功耗';
+
+  @override
+  String get dashboard_mem_used => '已用';
+
+  @override
+  String get dashboard_mem_free => '空闲';
+
+  @override
+  String get dashboard_mem_used_total => '已用 / 总量';
+
+  @override
+  String get dashboard_swap_disabled => '未启用';
+
+  @override
+  String get dashboard_disk_free => '剩余';
+
+  @override
+  String dashboard_disks_count(Object count) {
+    return '$count 个分区';
+  }
+
+  @override
+  String get dashboard_disks_empty => '未检测到存储挂载点';
+
+  @override
+  String get dashboard_io_ops_unit => '次';
+
+  @override
+  String dashboard_cores_baseline(Object cores) {
+    return '核心数基线: $cores 核 (低于基线即为轻载运行)';
+  }
+
+  @override
+  String dashboard_cores_count(Object count) {
+    return '$count 核心';
+  }
+
+  @override
+  String get dashboard_cores_empty => '无独立核心采样数据';
+
+  @override
+  String get dashboard_refresh_processes => '刷新进程';
+
+  @override
+  String get dashboard_processes_empty => '暂无活跃进程数据 (正在采集或待刷新)';
+
+  @override
+  String get dashboard_sidebar_expand => '展开侧边栏';
+
+  @override
+  String get dashboard_sidebar_collapse => '折叠侧边栏';
+
+  @override
+  String dashboard_more_modules_count(Object count) {
+    return '$count 个扩展模块';
+  }
+
+  @override
+  String get dashboard_mem_total => '总计';
+
+  @override
+  String get dashboard_hero_address => '连接地址';
+
+  @override
+  String get dashboard_hero_os => '操作系统';
+
+  @override
+  String get dashboard_hero_cpu => '处理器';
 }

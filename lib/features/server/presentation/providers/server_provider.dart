@@ -152,8 +152,13 @@ final testConnectionProvider = Provider<Future<ConnectionTestResult> Function(Se
 
     final stopwatch = Stopwatch()..start();
     try {
-      // 1Panel V2 endpoint for captcha (publicly available without auth, verifies network & entry path)
-      await testClient.get('core/auth/captcha');
+      if (token.isNotEmpty) {
+        // 验证网络连通性与 API Token 鉴权有效性
+        await testClient.get('dashboard/base/all/all');
+      } else {
+        // 仅验证网络连通与入口路径
+        await testClient.get('core/auth/captcha');
+      }
       stopwatch.stop();
       return ConnectionTestResult(
         isSuccess: true,

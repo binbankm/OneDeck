@@ -51,13 +51,21 @@ class DashboardApi {
   }
 
   /// Load top cpu processes
-  Future<ApiResponse<void>> getCurrentTopCpu({Map<String, dynamic>? queryParameters}) async {
-    return client.get<void>('/dashboard/current/top/cpu', queryParameters: queryParameters);
+  Future<ApiResponse<List<Process>>> getCurrentTopCpu({Map<String, dynamic>? queryParameters}) async {
+    return client.get<List<Process>>(
+      '/dashboard/current/top/cpu',
+      queryParameters: queryParameters,
+      fromData: (d) => (d as List<dynamic>?)?.map((e) => Process.fromJson(e as Map<String, dynamic>)).toList() ?? const [],
+    );
   }
 
   /// Load top memory processes
-  Future<ApiResponse<void>> getCurrentTopMem({Map<String, dynamic>? queryParameters}) async {
-    return client.get<void>('/dashboard/current/top/mem', queryParameters: queryParameters);
+  Future<ApiResponse<List<Process>>> getCurrentTopMem({Map<String, dynamic>? queryParameters}) async {
+    return client.get<List<Process>>(
+      '/dashboard/current/top/mem',
+      queryParameters: queryParameters,
+      fromData: (d) => (d as List<dynamic>?)?.map((e) => Process.fromJson(e as Map<String, dynamic>)).toList() ?? const [],
+    );
   }
 
   /// Update quick jump

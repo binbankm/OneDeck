@@ -793,6 +793,492 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'打造下一代全平台 1Panel 体验'**
   String get settings_author;
+
+  /// No description provided for @dashboard_trend_title.
+  ///
+  /// In zh, this message translates to:
+  /// **'实时监控趋势 (最近 60 秒心跳)'**
+  String get dashboard_trend_title;
+
+  /// No description provided for @dashboard_tab_cpu.
+  ///
+  /// In zh, this message translates to:
+  /// **'CPU 趋势'**
+  String get dashboard_tab_cpu;
+
+  /// No description provided for @dashboard_tab_memory.
+  ///
+  /// In zh, this message translates to:
+  /// **'内存占用'**
+  String get dashboard_tab_memory;
+
+  /// No description provided for @dashboard_tab_network.
+  ///
+  /// In zh, this message translates to:
+  /// **'网络吞吐'**
+  String get dashboard_tab_network;
+
+  /// No description provided for @dashboard_tab_load.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统负载'**
+  String get dashboard_tab_load;
+
+  /// No description provided for @dashboard_net_down.
+  ///
+  /// In zh, this message translates to:
+  /// **'↓ 下行流量'**
+  String get dashboard_net_down;
+
+  /// No description provided for @dashboard_net_up.
+  ///
+  /// In zh, this message translates to:
+  /// **'↑ 上行流量'**
+  String get dashboard_net_up;
+
+  /// No description provided for @dashboard_net_total.
+  ///
+  /// In zh, this message translates to:
+  /// **'累计'**
+  String get dashboard_net_total;
+
+  /// No description provided for @dashboard_disk_mount.
+  ///
+  /// In zh, this message translates to:
+  /// **'挂载点'**
+  String get dashboard_disk_mount;
+
+  /// No description provided for @dashboard_mem_usage.
+  ///
+  /// In zh, this message translates to:
+  /// **'占用'**
+  String get dashboard_mem_usage;
+
+  /// No description provided for @dashboard_mem_avail.
+  ///
+  /// In zh, this message translates to:
+  /// **'可用'**
+  String get dashboard_mem_avail;
+
+  /// No description provided for @dashboard_cpu_load.
+  ///
+  /// In zh, this message translates to:
+  /// **'负载'**
+  String get dashboard_cpu_load;
+
+  /// No description provided for @dashboard_cpu_cores.
+  ///
+  /// In zh, this message translates to:
+  /// **'核'**
+  String get dashboard_cpu_cores;
+
+  /// No description provided for @dashboard_unit_websites.
+  ///
+  /// In zh, this message translates to:
+  /// **'个站点'**
+  String get dashboard_unit_websites;
+
+  /// No description provided for @dashboard_unit_containers.
+  ///
+  /// In zh, this message translates to:
+  /// **'个应用'**
+  String get dashboard_unit_containers;
+
+  /// No description provided for @dashboard_unit_databases.
+  ///
+  /// In zh, this message translates to:
+  /// **'个库'**
+  String get dashboard_unit_databases;
+
+  /// No description provided for @dashboard_unit_cronjobs.
+  ///
+  /// In zh, this message translates to:
+  /// **'项任务'**
+  String get dashboard_unit_cronjobs;
+
+  /// No description provided for @dashboard_sys_specs.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统规格与环境'**
+  String get dashboard_sys_specs;
+
+  /// No description provided for @dashboard_spec_hostname.
+  ///
+  /// In zh, this message translates to:
+  /// **'主机名'**
+  String get dashboard_spec_hostname;
+
+  /// No description provided for @dashboard_spec_os.
+  ///
+  /// In zh, this message translates to:
+  /// **'操作系统'**
+  String get dashboard_spec_os;
+
+  /// No description provided for @dashboard_spec_kernel.
+  ///
+  /// In zh, this message translates to:
+  /// **'内核架构'**
+  String get dashboard_spec_kernel;
+
+  /// No description provided for @dashboard_spec_cpu.
+  ///
+  /// In zh, this message translates to:
+  /// **'处理器'**
+  String get dashboard_spec_cpu;
+
+  /// No description provided for @dashboard_spec_proxy.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统代理'**
+  String get dashboard_spec_proxy;
+
+  /// No description provided for @dashboard_spec_proxy_none.
+  ///
+  /// In zh, this message translates to:
+  /// **'直连 (无代理)'**
+  String get dashboard_spec_proxy_none;
+
+  /// No description provided for @dashboard_spec_cores_detail.
+  ///
+  /// In zh, this message translates to:
+  /// **'物理核心 / 逻辑核心'**
+  String get dashboard_spec_cores_detail;
+
+  /// No description provided for @dashboard_uptime_prefix.
+  ///
+  /// In zh, this message translates to:
+  /// **'已运行'**
+  String get dashboard_uptime_prefix;
+
+  /// No description provided for @dashboard_ip_copied.
+  ///
+  /// In zh, this message translates to:
+  /// **'已复制 IP'**
+  String get dashboard_ip_copied;
+
+  /// No description provided for @dashboard_refresh_tooltip.
+  ///
+  /// In zh, this message translates to:
+  /// **'刷新实时数据'**
+  String get dashboard_refresh_tooltip;
+
+  /// No description provided for @dashboard_error_api_key_prompt.
+  ///
+  /// In zh, this message translates to:
+  /// **'1Panel V2 需要在面板「设置」→「API 接口」开启并复制 API Key。'**
+  String get dashboard_error_api_key_prompt;
+
+  /// No description provided for @dashboard_configure_api_key.
+  ///
+  /// In zh, this message translates to:
+  /// **'配置 API Key'**
+  String get dashboard_configure_api_key;
+
+  /// No description provided for @dashboard_auth_failed.
+  ///
+  /// In zh, this message translates to:
+  /// **'未连接 / 鉴权未通过'**
+  String get dashboard_auth_failed;
+
+  /// No description provided for @dashboard_top_processes.
+  ///
+  /// In zh, this message translates to:
+  /// **'Top 进程资源排行'**
+  String get dashboard_top_processes;
+
+  /// No description provided for @dashboard_top_cpu.
+  ///
+  /// In zh, this message translates to:
+  /// **'CPU 消耗'**
+  String get dashboard_top_cpu;
+
+  /// No description provided for @dashboard_top_mem.
+  ///
+  /// In zh, this message translates to:
+  /// **'内存占用'**
+  String get dashboard_top_mem;
+
+  /// No description provided for @dashboard_process_name.
+  ///
+  /// In zh, this message translates to:
+  /// **'进程名称'**
+  String get dashboard_process_name;
+
+  /// No description provided for @dashboard_process_pid.
+  ///
+  /// In zh, this message translates to:
+  /// **'PID'**
+  String get dashboard_process_pid;
+
+  /// No description provided for @dashboard_process_user.
+  ///
+  /// In zh, this message translates to:
+  /// **'运行用户'**
+  String get dashboard_process_user;
+
+  /// No description provided for @dashboard_multi_disk.
+  ///
+  /// In zh, this message translates to:
+  /// **'存储分区与挂载点'**
+  String get dashboard_multi_disk;
+
+  /// No description provided for @dashboard_inodes.
+  ///
+  /// In zh, this message translates to:
+  /// **'Inode'**
+  String get dashboard_inodes;
+
+  /// No description provided for @dashboard_load_detail.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统平均负载 (Load Average)'**
+  String get dashboard_load_detail;
+
+  /// No description provided for @dashboard_load_1m.
+  ///
+  /// In zh, this message translates to:
+  /// **'1 分钟'**
+  String get dashboard_load_1m;
+
+  /// No description provided for @dashboard_load_5m.
+  ///
+  /// In zh, this message translates to:
+  /// **'5 分钟'**
+  String get dashboard_load_5m;
+
+  /// No description provided for @dashboard_load_15m.
+  ///
+  /// In zh, this message translates to:
+  /// **'15 分钟'**
+  String get dashboard_load_15m;
+
+  /// No description provided for @dashboard_load_healthy.
+  ///
+  /// In zh, this message translates to:
+  /// **'负载健康'**
+  String get dashboard_load_healthy;
+
+  /// No description provided for @dashboard_load_warning.
+  ///
+  /// In zh, this message translates to:
+  /// **'轻微偏高'**
+  String get dashboard_load_warning;
+
+  /// No description provided for @dashboard_load_critical.
+  ///
+  /// In zh, this message translates to:
+  /// **'严重过载'**
+  String get dashboard_load_critical;
+
+  /// No description provided for @dashboard_memory_deep.
+  ///
+  /// In zh, this message translates to:
+  /// **'内存分层与 Swap'**
+  String get dashboard_memory_deep;
+
+  /// No description provided for @dashboard_mem_cache.
+  ///
+  /// In zh, this message translates to:
+  /// **'缓存'**
+  String get dashboard_mem_cache;
+
+  /// No description provided for @dashboard_swap.
+  ///
+  /// In zh, this message translates to:
+  /// **'Swap 交换分区'**
+  String get dashboard_swap;
+
+  /// No description provided for @dashboard_swap_safe.
+  ///
+  /// In zh, this message translates to:
+  /// **'正常'**
+  String get dashboard_swap_safe;
+
+  /// No description provided for @dashboard_swap_warning.
+  ///
+  /// In zh, this message translates to:
+  /// **'已触发换页'**
+  String get dashboard_swap_warning;
+
+  /// No description provided for @dashboard_cpu_cores_matrix.
+  ///
+  /// In zh, this message translates to:
+  /// **'CPU 多核心独立负载'**
+  String get dashboard_cpu_cores_matrix;
+
+  /// No description provided for @dashboard_core_prefix.
+  ///
+  /// In zh, this message translates to:
+  /// **'核心'**
+  String get dashboard_core_prefix;
+
+  /// No description provided for @dashboard_disk_io.
+  ///
+  /// In zh, this message translates to:
+  /// **'磁盘 I/O 读写监控'**
+  String get dashboard_disk_io;
+
+  /// No description provided for @dashboard_io_read.
+  ///
+  /// In zh, this message translates to:
+  /// **'读取数据'**
+  String get dashboard_io_read;
+
+  /// No description provided for @dashboard_io_write.
+  ///
+  /// In zh, this message translates to:
+  /// **'写入数据'**
+  String get dashboard_io_write;
+
+  /// No description provided for @dashboard_io_count.
+  ///
+  /// In zh, this message translates to:
+  /// **'I/O 操作次数'**
+  String get dashboard_io_count;
+
+  /// No description provided for @dashboard_gpu_title.
+  ///
+  /// In zh, this message translates to:
+  /// **'GPU / AI 加速卡'**
+  String get dashboard_gpu_title;
+
+  /// No description provided for @dashboard_gpu_temp.
+  ///
+  /// In zh, this message translates to:
+  /// **'温度'**
+  String get dashboard_gpu_temp;
+
+  /// No description provided for @dashboard_gpu_mem.
+  ///
+  /// In zh, this message translates to:
+  /// **'显存占用'**
+  String get dashboard_gpu_mem;
+
+  /// No description provided for @dashboard_gpu_power.
+  ///
+  /// In zh, this message translates to:
+  /// **'功耗'**
+  String get dashboard_gpu_power;
+
+  /// No description provided for @dashboard_mem_used.
+  ///
+  /// In zh, this message translates to:
+  /// **'已用'**
+  String get dashboard_mem_used;
+
+  /// No description provided for @dashboard_mem_free.
+  ///
+  /// In zh, this message translates to:
+  /// **'空闲'**
+  String get dashboard_mem_free;
+
+  /// No description provided for @dashboard_mem_used_total.
+  ///
+  /// In zh, this message translates to:
+  /// **'已用 / 总量'**
+  String get dashboard_mem_used_total;
+
+  /// No description provided for @dashboard_swap_disabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'未启用'**
+  String get dashboard_swap_disabled;
+
+  /// No description provided for @dashboard_disk_free.
+  ///
+  /// In zh, this message translates to:
+  /// **'剩余'**
+  String get dashboard_disk_free;
+
+  /// No description provided for @dashboard_disks_count.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个分区'**
+  String dashboard_disks_count(Object count);
+
+  /// No description provided for @dashboard_disks_empty.
+  ///
+  /// In zh, this message translates to:
+  /// **'未检测到存储挂载点'**
+  String get dashboard_disks_empty;
+
+  /// No description provided for @dashboard_io_ops_unit.
+  ///
+  /// In zh, this message translates to:
+  /// **'次'**
+  String get dashboard_io_ops_unit;
+
+  /// No description provided for @dashboard_cores_baseline.
+  ///
+  /// In zh, this message translates to:
+  /// **'核心数基线: {cores} 核 (低于基线即为轻载运行)'**
+  String dashboard_cores_baseline(Object cores);
+
+  /// No description provided for @dashboard_cores_count.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 核心'**
+  String dashboard_cores_count(Object count);
+
+  /// No description provided for @dashboard_cores_empty.
+  ///
+  /// In zh, this message translates to:
+  /// **'无独立核心采样数据'**
+  String get dashboard_cores_empty;
+
+  /// No description provided for @dashboard_refresh_processes.
+  ///
+  /// In zh, this message translates to:
+  /// **'刷新进程'**
+  String get dashboard_refresh_processes;
+
+  /// No description provided for @dashboard_processes_empty.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无活跃进程数据 (正在采集或待刷新)'**
+  String get dashboard_processes_empty;
+
+  /// No description provided for @dashboard_sidebar_expand.
+  ///
+  /// In zh, this message translates to:
+  /// **'展开侧边栏'**
+  String get dashboard_sidebar_expand;
+
+  /// No description provided for @dashboard_sidebar_collapse.
+  ///
+  /// In zh, this message translates to:
+  /// **'折叠侧边栏'**
+  String get dashboard_sidebar_collapse;
+
+  /// No description provided for @dashboard_more_modules_count.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个扩展模块'**
+  String dashboard_more_modules_count(Object count);
+
+  /// No description provided for @dashboard_mem_total.
+  ///
+  /// In zh, this message translates to:
+  /// **'总计'**
+  String get dashboard_mem_total;
+
+  /// No description provided for @dashboard_hero_address.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接地址'**
+  String get dashboard_hero_address;
+
+  /// No description provided for @dashboard_hero_os.
+  ///
+  /// In zh, this message translates to:
+  /// **'操作系统'**
+  String get dashboard_hero_os;
+
+  /// No description provided for @dashboard_hero_cpu.
+  ///
+  /// In zh, this message translates to:
+  /// **'处理器'**
+  String get dashboard_hero_cpu;
 }
 
 class _AppLocalizationsDelegate

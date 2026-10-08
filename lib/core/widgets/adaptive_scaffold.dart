@@ -7,16 +7,14 @@ import '../theme/deck_colors.dart';
 import '../../features/server/presentation/widgets/server_switcher_pill.dart';
 import '../../features/settings/presentation/screens/app_settings_dialog.dart';
 
-/// Currently active navigation destination ID across the app.
 final activeNavIdProvider = StateProvider<String>((ref) => 'dashboard');
-
-/// Sidebar collapse state on desktop.
 final sidebarCollapsedProvider = StateProvider<bool>((ref) => false);
 
+/// Definition for a primary sidebar navigation item.
 class NavItemDef {
   final String id;
   final IconData icon;
-  final String Function(BuildContext context) label;
+  final String Function(BuildContext) label;
   final String group;
 
   const NavItemDef({
@@ -27,7 +25,7 @@ class NavItemDef {
   });
 }
 
-/// The master adaptive shell for OneDeck across Desktop, Tablet, and Mobile.
+/// A responsive, state-of-the-art titanium navigation shell for OneDeck.
 class AdaptiveScaffold extends ConsumerWidget {
   final Widget child;
 
@@ -36,99 +34,30 @@ class AdaptiveScaffold extends ConsumerWidget {
     required this.child,
   });
 
+  /// Master list of all sidebar & tab navigation routes.
   static List<NavItemDef> getNavItems(BuildContext context) {
     return [
-      // 1. Overview
-      NavItemDef(
-        id: 'dashboard',
-        icon: LucideIcons.layoutDashboard,
-        label: (ctx) => ctx.l10n.nav_dashboard,
-        group: 'overview',
-      ),
-      NavItemDef(
-        id: 'host',
-        icon: LucideIcons.server,
-        label: (ctx) => ctx.l10n.nav_host,
-        group: 'overview',
-      ),
+      // 1. Overview (监控与概览)
+      NavItemDef(id: 'dashboard', icon: LucideIcons.layoutDashboard, label: (c) => c.l10n.nav_dashboard, group: 'overview'),
+      NavItemDef(id: 'host', icon: LucideIcons.activity, label: (c) => c.l10n.nav_host, group: 'overview'),
 
-      // 2. Apps & Services
-      NavItemDef(
-        id: 'app_store',
-        icon: LucideIcons.shoppingBag,
-        label: (ctx) => ctx.l10n.nav_app_store,
-        group: 'apps',
-      ),
-      NavItemDef(
-        id: 'website',
-        icon: LucideIcons.globe,
-        label: (ctx) => ctx.l10n.nav_website,
-        group: 'apps',
-      ),
-      NavItemDef(
-        id: 'container',
-        icon: LucideIcons.box,
-        label: (ctx) => ctx.l10n.nav_container,
-        group: 'apps',
-      ),
-      NavItemDef(
-        id: 'database',
-        icon: LucideIcons.database,
-        label: (ctx) => ctx.l10n.nav_database,
-        group: 'apps',
-      ),
+      // 2. Apps & Services (应用与服务)
+      NavItemDef(id: 'appstore', icon: LucideIcons.store, label: (c) => c.l10n.nav_app_store, group: 'apps'),
+      NavItemDef(id: 'website', icon: LucideIcons.globe, label: (c) => c.l10n.nav_website, group: 'apps'),
+      NavItemDef(id: 'container', icon: LucideIcons.box, label: (c) => c.l10n.nav_container, group: 'apps'),
+      NavItemDef(id: 'database', icon: LucideIcons.database, label: (c) => c.l10n.nav_database, group: 'apps'),
 
-      // 3. Ops & System
-      NavItemDef(
-        id: 'file',
-        icon: LucideIcons.folder,
-        label: (ctx) => ctx.l10n.nav_file,
-        group: 'ops',
-      ),
-      NavItemDef(
-        id: 'terminal',
-        icon: LucideIcons.terminal,
-        label: (ctx) => ctx.l10n.nav_terminal,
-        group: 'ops',
-      ),
-      NavItemDef(
-        id: 'cronjob',
-        icon: LucideIcons.clock,
-        label: (ctx) => ctx.l10n.nav_cronjob,
-        group: 'ops',
-      ),
-      NavItemDef(
-        id: 'supervisor',
-        icon: LucideIcons.shieldAlert,
-        label: (ctx) => ctx.l10n.nav_supervisor,
-        group: 'ops',
-      ),
-      NavItemDef(
-        id: 'toolbox',
-        icon: LucideIcons.wrench,
-        label: (ctx) => ctx.l10n.nav_toolbox,
-        group: 'ops',
-      ),
+      // 3. Ops & System (系统与运维)
+      NavItemDef(id: 'file', icon: LucideIcons.folder, label: (c) => c.l10n.nav_file, group: 'ops'),
+      NavItemDef(id: 'terminal', icon: LucideIcons.terminal, label: (c) => c.l10n.nav_terminal, group: 'ops'),
+      NavItemDef(id: 'cronjob', icon: LucideIcons.clock, label: (c) => c.l10n.nav_cronjob, group: 'ops'),
+      NavItemDef(id: 'supervisor', icon: LucideIcons.cpu, label: (c) => c.l10n.nav_supervisor, group: 'ops'),
+      NavItemDef(id: 'toolbox', icon: LucideIcons.wrench, label: (c) => c.l10n.nav_toolbox, group: 'ops'),
 
-      // 4. Security & Hub
-      NavItemDef(
-        id: 'firewall',
-        icon: LucideIcons.shieldCheck,
-        label: (ctx) => ctx.l10n.nav_firewall,
-        group: 'security',
-      ),
-      NavItemDef(
-        id: 'log',
-        icon: LucideIcons.fileText,
-        label: (ctx) => ctx.l10n.nav_log,
-        group: 'security',
-      ),
-      NavItemDef(
-        id: 'panel_settings',
-        icon: LucideIcons.sliders,
-        label: (ctx) => ctx.l10n.nav_panel_settings,
-        group: 'security',
-      ),
+      // 4. Security & Hub (安全与全局)
+      NavItemDef(id: 'firewall', icon: LucideIcons.shield, label: (c) => c.l10n.nav_firewall, group: 'security'),
+      NavItemDef(id: 'log', icon: LucideIcons.fileText, label: (c) => c.l10n.nav_log, group: 'security'),
+      NavItemDef(id: 'panel_settings', icon: LucideIcons.sliders, label: (c) => c.l10n.nav_panel_settings, group: 'security'),
     ];
   }
 
@@ -172,7 +101,7 @@ class AdaptiveScaffold extends ConsumerWidget {
             children: [
               // Sidebar Logo Header
               _buildSidebarHeader(context, ref, isCollapsed),
-              const Divider(),
+              const Divider(height: 1),
               // Navigation Items List
               Expanded(
                 child: ListView(
@@ -188,14 +117,14 @@ class AdaptiveScaffold extends ConsumerWidget {
                   ],
                 ),
               ),
-              const Divider(),
+              const Divider(height: 1),
               // Sidebar Footer Actions
               _buildSidebarFooter(context, ref, isCollapsed),
             ],
           ),
         ),
 
-        // Right Main Content Pane (Zero redundant top bar, maximum cockpit workspace)
+        // Right Main Content Pane (Zero top bar, pure cockpit immersion)
         Expanded(
           child: child,
         ),
@@ -203,20 +132,22 @@ class AdaptiveScaffold extends ConsumerWidget {
     );
   }
 
+
+
   Widget _buildSidebarHeader(BuildContext context, WidgetRef ref, bool isCollapsed) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final showFull = !isCollapsed && constraints.maxWidth > 110;
         return Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: showFull ? 12 : 8,
+            horizontal: showFull ? 12 : 6,
             vertical: 12,
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: showFull ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // App Brand Header
+              // Brand Logo & Name
               Row(
                 mainAxisAlignment: showFull ? MainAxisAlignment.start : MainAxisAlignment.center,
                 children: [
@@ -249,13 +180,8 @@ class AdaptiveScaffold extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              // Integrated Server Switcher Pill
-              SizedBox(
-                width: double.infinity,
-                child: showFull
-                    ? const ServerSwitcherPill()
-                    : const Center(child: ServerSwitcherPill()),
-              ),
+              // Server Switcher Integrated into Left Sidebar
+              const ServerSwitcherPill(),
             ],
           ),
         );
@@ -268,78 +194,79 @@ class AdaptiveScaffold extends ConsumerWidget {
     WidgetRef ref,
     List<NavItemDef> allItems,
     String groupKey,
-    String groupTitle,
+    String groupLabel,
     bool isCollapsed,
     String activeId,
   ) {
-    final items = allItems.where((i) => i.group == groupKey).toList();
+    final sectionItems = allItems.where((i) => i.group == groupKey).toList();
+    if (sectionItems.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (!isCollapsed)
           Padding(
-            padding: const EdgeInsets.only(left: 10, bottom: 6, top: 4),
+            padding: const EdgeInsets.only(left: 10, bottom: 4, top: 4),
             child: Text(
-              groupTitle.toUpperCase(),
+              groupLabel,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 10.5,
                 fontWeight: FontWeight.w700,
                 color: DeckColors.textMuted(context),
                 letterSpacing: 0.6,
               ),
             ),
           ),
-        ...items.map((item) {
+        ...sectionItems.map((item) {
           final isSelected = item.id == activeId;
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Tooltip(
-              message: isCollapsed ? item.label(context) : '',
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: () => ref.read(activeNavIdProvider.notifier).state = item.id,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final showText = !isCollapsed && constraints.maxWidth > 90;
-                    return Container(
-                      height: 38,
-                      padding: EdgeInsets.symmetric(horizontal: showText ? 12 : 0),
-                      decoration: BoxDecoration(
-                        color: isSelected ? DeckColors.accentIndigo.withValues(alpha: 0.12) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSelected ? DeckColors.accentIndigo.withValues(alpha: 0.5) : Colors.transparent,
-                          width: 0.8,
+            padding: const EdgeInsets.symmetric(vertical: 1.5),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => ref.read(activeNavIdProvider.notifier).state = item.id,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCollapsed ? 12 : 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? DeckColors.accentIndigo.withValues(alpha: 0.15)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: isSelected
+                      ? Border.all(color: DeckColors.accentIndigo.withValues(alpha: 0.5), width: 0.8)
+                      : null,
+                ),
+                child: Row(
+                  mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+                  children: [
+                    Icon(
+                      item.icon,
+                      size: 16,
+                      color: isSelected
+                          ? DeckColors.accentIndigo
+                          : DeckColors.textSecondary(context),
+                    ),
+                    if (!isCollapsed) ...[
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          item.label(context),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            color: isSelected
+                                ? DeckColors.textPrimary(context)
+                                : DeckColors.textSecondary(context),
+                          ),
                         ),
                       ),
-                      child: Row(
-                        mainAxisAlignment: showText ? MainAxisAlignment.start : MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            item.icon,
-                            size: 18,
-                            color: isSelected ? DeckColors.accentIndigo : DeckColors.textSecondary(context),
-                          ),
-                          if (showText) ...[
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                item.label(context),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                  color: isSelected ? DeckColors.accentIndigo : DeckColors.textPrimary(context),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    );
-                  },
+                    ],
+                  ],
                 ),
               ),
             ),
@@ -350,97 +277,117 @@ class AdaptiveScaffold extends ConsumerWidget {
   }
 
   Widget _buildSidebarFooter(BuildContext context, WidgetRef ref, bool isCollapsed) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isNarrow = isCollapsed || constraints.maxWidth < 110;
-        if (isNarrow) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: isCollapsed
+          ? Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
                   tooltip: context.l10n.settings_title,
                   icon: const Icon(LucideIcons.settings, size: 18),
+                  color: DeckColors.textMuted(context),
                   onPressed: () => showAppSettingsDialog(context),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 IconButton(
-                  tooltip: 'Expand sidebar',
-                  icon: const Icon(LucideIcons.panelLeftOpen, size: 18),
-                  onPressed: () => ref.read(sidebarCollapsedProvider.notifier).state = false,
+                  tooltip: context.l10n.dashboard_sidebar_expand,
+                  icon: Icon(
+                    Icons.keyboard_double_arrow_right_rounded,
+                    size: 18,
+                    color: DeckColors.textMuted(context),
+                  ),
+                  onPressed: () {
+                    ref.read(sidebarCollapsedProvider.notifier).state = false;
+                  },
+                ),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  tooltip: context.l10n.settings_title,
+                  icon: const Icon(LucideIcons.settings, size: 18),
+                  color: DeckColors.textMuted(context),
+                  onPressed: () => showAppSettingsDialog(context),
+                ),
+                IconButton(
+                  tooltip: context.l10n.dashboard_sidebar_collapse,
+                  icon: Icon(
+                    Icons.keyboard_double_arrow_left_rounded,
+                    size: 18,
+                    color: DeckColors.textMuted(context),
+                  ),
+                  onPressed: () {
+                    ref.read(sidebarCollapsedProvider.notifier).state = true;
+                  },
                 ),
               ],
             ),
-          );
-        }
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                tooltip: context.l10n.settings_title,
-                icon: const Icon(LucideIcons.settings, size: 18),
-                onPressed: () => showAppSettingsDialog(context),
-              ),
-              IconButton(
-                tooltip: 'Collapse sidebar',
-                icon: const Icon(LucideIcons.panelLeftClose, size: 18),
-                onPressed: () => ref.read(sidebarCollapsedProvider.notifier).state = true,
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
-
-
   // ---------------------------------------------------------------------------
-  // MOBILE LAYOUT (< 840px)
+  // MOBILE / COMPACT LAYOUT (< 840px)
   // ---------------------------------------------------------------------------
   Widget _buildMobileLayout(BuildContext context, WidgetRef ref) {
     return SafeArea(
+      bottom: false,
       child: Column(
         children: [
-          // Mobile Top Bar
+          // Top Mobile App Bar with Integrated Pill
           Container(
-            height: 56,
+            height: 54,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: DeckColors.card(context),
               border: Border(bottom: BorderSide(color: DeckColors.subtleBorder(context), width: 0.8)),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [DeckColors.accentIndigo, DeckColors.accentCyan],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isSuperCompact = constraints.maxWidth < 280;
+                return Row(
+                  children: [
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [DeckColors.accentIndigo, DeckColors.accentCyan],
+                        ),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: const Icon(LucideIcons.terminal, color: Colors.white, size: 14),
                     ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.dns_rounded, color: Colors.white, size: 16),
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: ServerSwitcherPill(),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                IconButton(
-                  tooltip: context.l10n.settings_title,
-                  icon: const Icon(LucideIcons.settings, size: 18),
-                  onPressed: () => showAppSettingsDialog(context),
-                ),
-              ],
+                    if (!isSuperCompact) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        'OneDeck',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                          color: DeckColors.textPrimary(context),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: ServerSwitcherPill(),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      tooltip: context.l10n.settings_title,
+                      icon: const Icon(LucideIcons.settings, size: 18),
+                      onPressed: () => showAppSettingsDialog(context),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           // Content
@@ -482,17 +429,21 @@ class AdaptiveScaffold extends ConsumerWidget {
                       Icon(
                         item.$2,
                         size: 20,
-                        color: isSelected ? DeckColors.accentIndigo : DeckColors.textSecondary(context),
+                        color: isSelected
+                            ? DeckColors.accentIndigo
+                            : DeckColors.textMuted(context),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
                         item.$3,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 10,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                          color: isSelected ? DeckColors.accentIndigo : DeckColors.textMuted(context),
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          color: isSelected
+                              ? DeckColors.accentIndigo
+                              : DeckColors.textMuted(context),
                         ),
                       ),
                     ],
@@ -511,8 +462,8 @@ class AdaptiveScaffold extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(LucideIcons.moreHorizontal, size: 20, color: DeckColors.textSecondary(context)),
-                    const SizedBox(height: 2),
+                    Icon(LucideIcons.moreHorizontal, size: 20, color: DeckColors.textMuted(context)),
+                    const SizedBox(height: 3),
                     Text(
                       context.l10n.common_more,
                       maxLines: 1,
@@ -530,7 +481,6 @@ class AdaptiveScaffold extends ConsumerWidget {
   }
 
   void _showAllModulesDrawer(BuildContext context, WidgetRef ref) {
-    // Exclude the 4 primary tabs already pinned on the bottom bar
     const bottomBarIds = {'dashboard', 'website', 'container', 'file'};
     final allItems = getNavItems(context);
     final moreItems = allItems.where((item) => !bottomBarIds.contains(item.id)).toList();
@@ -573,7 +523,7 @@ class AdaptiveScaffold extends ConsumerWidget {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: DeckColors.textPrimary(context)),
                   ),
                   Text(
-                    '${moreItems.length} 个扩展模块',
+                    context.l10n.dashboard_more_modules_count(moreItems.length.toString()),
                     style: TextStyle(fontSize: 12, color: DeckColors.textMuted(context)),
                   ),
                 ],
@@ -581,7 +531,6 @@ class AdaptiveScaffold extends ConsumerWidget {
               const SizedBox(height: 16),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  // Calculate dynamic column width: 4 columns or 3 on compact screens
                   final itemWidth = (constraints.maxWidth - 36) / 4;
                   final cardWidth = itemWidth < 70 ? (constraints.maxWidth - 24) / 3 : itemWidth;
 

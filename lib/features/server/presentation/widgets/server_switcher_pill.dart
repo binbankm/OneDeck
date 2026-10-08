@@ -5,7 +5,7 @@ import '../../../../core/theme/deck_colors.dart';
 import '../providers/server_provider.dart';
 import 'server_switcher_sheet.dart';
 
-/// Top bar switcher pill displaying active server status, latency and fast-switch popup.
+/// Top bar switcher pill displaying active server status, real-time latency and fast-switch popup.
 class ServerSwitcherPill extends ConsumerWidget {
   const ServerSwitcherPill({super.key});
 
@@ -22,6 +22,16 @@ class ServerSwitcherPill extends ConsumerWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isSuperNarrow = constraints.maxWidth < 60;
+          final latency = activeServer?.lastLatencyMs;
+
+          Color latencyColor = DeckColors.statusOnline;
+          if (latency != null) {
+            if (latency > 500) {
+              latencyColor = DeckColors.statusError;
+            } else if (latency > 250) {
+              latencyColor = DeckColors.statusWarning;
+            }
+          }
 
           return Container(
             padding: EdgeInsets.symmetric(
@@ -81,8 +91,8 @@ class ServerSwitcherPill extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  // Latency badge if available
-                  if (activeServer?.lastLatencyMs != null && constraints.maxWidth > 140) ...[
+                  // Real-time Latency badge if available
+                  if (latency != null && latency > 0 && constraints.maxWidth > 140) ...[
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -91,11 +101,11 @@ class ServerSwitcherPill extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        '${activeServer!.lastLatencyMs}ms',
-                        style: const TextStyle(
+                        '${latency}ms',
+                        style: TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: DeckColors.statusOnline,
+                          fontWeight: FontWeight.w600,
+                          color: latencyColor,
                           fontFamily: 'monospace',
                         ),
                       ),
