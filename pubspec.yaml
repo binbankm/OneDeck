@@ -1,0 +1,74 @@
+name: one_deck
+description: "OneDeck - A Modern Cross-Platform Client for 1Panel."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # --- 1. 网络与长连接通信 (Auth & WebSocket) ---
+  dio: ^5.8.0+1
+  web_socket_channel: ^3.0.3
+  connectivity_plus: ^6.1.4
+
+  # --- 2. 状态管理与路由 (Riverpod & GoRouter) ---
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.3.5
+  go_router: ^14.8.1
+
+  # --- 3. 数据安全与持久化 (Security & Sandbox) ---
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.5.2
+  path_provider: ^2.1.5
+  local_auth: ^2.3.0
+  crypto: ^3.0.7
+  uuid: ^4.5.1
+
+  # --- 4. 仪表盘与图表 (Dashboard & Metrics) ---
+  fl_chart: ^0.70.2
+  intl: any
+
+  # --- 5. 运维专业能力：终端模拟与代码编辑器 (Terminal & Editor) ---
+  xterm: ^4.0.0
+  re_editor: ^0.9.0
+  re_highlight: ^0.0.3
+
+  # --- 6. 文件系统与跨平台能力 (Files & System) ---
+  file_picker: ^8.1.7
+  share_plus: ^10.1.4
+  url_launcher: ^6.3.1
+  package_info_plus: ^8.3.0
+
+  # --- 7. 全平台桌面端体验增强 (Desktop Only) ---
+  window_manager: ^0.4.3
+
+  # --- 8. UI 设计系统、图标与反馈 (Design System) ---
+  lucide_icons: ^0.257.0
+  toastification: ^3.2.0
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  gap: ^3.0.1
+  flutter_animate: ^4.5.2
+
+  # --- 9. 日志与模型工具 ---
+  logger: ^2.5.0
+  json_annotation: ^4.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.15
+  riverpod_generator: ^2.4.3
+  json_serializable: ^6.9.4
+
+flutter:
+  generate: true
+  uses-material-design: true
