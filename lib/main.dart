@@ -8,6 +8,9 @@ import 'core/localization/locale_provider.dart';
 import 'core/theme/deck_colors.dart';
 import 'core/theme/deck_theme.dart';
 import 'core/theme/theme_provider.dart';
+import 'core/widgets/adaptive_scaffold.dart';
+import 'core/widgets/deck_card.dart';
+import 'features/dashboard/presentation/screens/dashboard_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,142 +53,74 @@ class OneDeckApp extends ConsumerWidget {
       darkTheme: DeckTheme.darkTheme,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const OneDeckPlaceholderScreen(),
+      home: const OneDeckHomeScreen(),
     );
   }
 }
 
-/// Temporary placeholder screen to showcase the active theme and i18n
-class OneDeckPlaceholderScreen extends ConsumerWidget {
-  const OneDeckPlaceholderScreen({super.key});
+/// The main dashboard screen hosting the adaptive layout shell and active module view.
+class OneDeckHomeScreen extends ConsumerWidget {
+  const OneDeckHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final currentTheme = ref.watch(themeModeProvider);
-    final currentLocale = ref.watch(localeProvider);
+    final activeNavId = ref.watch(activeNavIdProvider);
 
-    return Scaffold(
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 480),
-          margin: const EdgeInsets.all(24),
+    Widget content;
+    switch (activeNavId) {
+      case 'dashboard':
+        content = const DashboardScreen();
+        break;
+      default:
+        content = _buildModulePlaceholder(context, ref, activeNavId);
+        break;
+    }
+
+    return AdaptiveScaffold(child: content);
+  }
+
+  Widget _buildModulePlaceholder(BuildContext context, WidgetRef ref, String navId) {
+    final navItems = AdaptiveScaffold.getNavItems(context);
+    final item = navItems.where((i) => i.id == navId).firstOrNull;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: DeckCard(
           padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: DeckColors.card(context),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: DeckColors.subtleBorder(context),
-              width: 0.8,
-            ),
-          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [DeckColors.accentIndigo, DeckColors.accentCyan],
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.dns_rounded, color: Colors.white, size: 22),
+              if (item != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: DeckColors.accentIndigo.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.appName,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: DeckColors.textPrimary(context),
-                        ),
-                      ),
-                      Text(
-                        l10n.appSlogan,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: DeckColors.textMuted(context),
-                        ),
-                      ),
-                    ],
+                  child: Icon(item.icon, size: 32, color: DeckColors.accentIndigo),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  item.label(context),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: DeckColors.textPrimary(context),
                   ),
                 ),
+                const SizedBox(height: 8),
               ],
-            ),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-              // Theme Switcher row
               Text(
-                l10n.settings_theme_mode,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: DeckColors.textSecondary(context),
-                ),
+                '此模块已准备就绪，即将连接 1Panel V2 真实数据。',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: DeckColors.textMuted(context)),
               ),
-              const SizedBox(height: 8),
-              SegmentedButton<ThemeMode>(
-                segments: [
-                  ButtonSegment(
-                    value: ThemeMode.system,
-                    label: Text(l10n.settings_theme_system, style: const TextStyle(fontSize: 12)),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.dark,
-                    label: Text(l10n.settings_theme_dark, style: const TextStyle(fontSize: 12)),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.light,
-                    label: Text(l10n.settings_theme_light, style: const TextStyle(fontSize: 12)),
-                  ),
-                ],
-                selected: {currentTheme},
-                onSelectionChanged: (selected) {
-                  ref.read(themeModeProvider.notifier).setThemeMode(selected.first);
-                },
-              ),
-              const SizedBox(height: 18),
-              // Language Switcher row
-              Text(
-                l10n.settings_language,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: DeckColors.textSecondary(context),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<String>(
-                segments: [
-                  ButtonSegment(
-                    value: 'system',
-                    label: Text(l10n.settings_lang_system, style: const TextStyle(fontSize: 12)),
-                  ),
-                  ButtonSegment(
-                    value: 'zh',
-                    label: Text(l10n.settings_lang_zh, style: const TextStyle(fontSize: 12)),
-                  ),
-                  ButtonSegment(
-                    value: 'en',
-                    label: Text(l10n.settings_lang_en, style: const TextStyle(fontSize: 12)),
-                  ),
-                ],
-                selected: {
-                  currentLocale == null ? 'system' : currentLocale.languageCode,
-                },
-                onSelectionChanged: (selected) {
-                  ref.read(localeProvider.notifier).setLanguageCode(selected.first);
-                },
+              const SizedBox(height: 20),
+              OutlinedButton.icon(
+                onPressed: () => ref.read(activeNavIdProvider.notifier).state = 'dashboard',
+                icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                label: Text(context.l10n.common_back),
               ),
             ],
           ),

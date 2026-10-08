@@ -50,7 +50,6 @@ dependencies:
   window_manager: ^0.4.3
 
   # --- 8. UI 设计系统、图标与反馈 (Design System) ---
-  lucide_icons: ^0.257.0
   toastification: ^3.2.0
   cached_network_image: ^3.4.1
   shimmer: ^3.0.0
@@ -60,6 +59,7 @@ dependencies:
   # --- 9. 日志与模型工具 ---
   logger: ^2.5.0
   json_annotation: ^4.9.0
+  lucide_icons_flutter: ^3.1.22
 
 dev_dependencies:
   flutter_test:
