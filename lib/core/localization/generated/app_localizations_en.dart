@@ -307,10 +307,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings_theme_system => 'System Default';
 
   @override
-  String get settings_theme_dark => 'Titanium Dark';
+  String get settings_theme_dark => 'Dark';
 
   @override
-  String get settings_theme_light => 'Polar Light';
+  String get settings_theme_light => 'Light';
 
   @override
   String get settings_language => 'Language';

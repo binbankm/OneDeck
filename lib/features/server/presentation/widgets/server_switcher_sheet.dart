@@ -185,9 +185,11 @@ class _ServerListTile extends StatelessWidget {
           width: isActive ? 1.2 : 0.8,
         ),
       ),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        onTap: onTap,
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          onTap: onTap,
         leading: Container(
           width: 36,
           height: 36,
@@ -258,6 +260,7 @@ class _ServerListTile extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

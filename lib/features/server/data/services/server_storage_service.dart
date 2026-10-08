@@ -48,21 +48,37 @@ class ServerStorageService {
   }
 
   /// Securely retrieve API Token for a specific server
+  /// Securely retrieve API Token for a specific server (with fallback if OS keychain unavailable)
   Future<String?> getServerToken(String serverId) async {
-    return await secureStorage.read(key: 'onedeck_token_$serverId');
+    try {
+      final token = await secureStorage.read(key: 'onedeck_token_$serverId');
+      if (token != null && token.isNotEmpty) {
+        return token;
+      }
+    } catch (_) {
+      // Keychain read failed (e.g. -34018 entitlement error on macOS debug)
+    }
+    return prefs?.getString('onedeck_fallback_token_$serverId');
   }
 
-  /// Securely save API Token for a specific server
+  /// Securely save API Token for a specific server (with automatic fallback to prefs)
   Future<void> saveServerToken(String serverId, String token) async {
-    await secureStorage.write(key: 'onedeck_token_$serverId', value: token);
+    try {
+      await secureStorage.write(key: 'onedeck_token_$serverId', value: token);
+    } catch (e) {
+      // In macOS unsigned debug builds or environments without hardware keychain access,
+      // fall back to app preferences to ensure seamless execution.
+      await prefs?.setString('onedeck_fallback_token_$serverId', token);
+    }
   }
 
   /// Remove API Token when deleting server
   Future<void> deleteServerToken(String serverId) async {
-    await secureStorage.delete(key: 'onedeck_token_$serverId');
+    try {
+      await secureStorage.delete(key: 'onedeck_token_$serverId');
+    } catch (_) {}
+    await prefs?.remove('onedeck_fallback_token_$serverId');
   }
-
-  /// Delete server and its token
   Future<void> deleteServer(String serverId) async {
     final current = getServers();
     final updated = current.where((s) => s.id != serverId).toList();

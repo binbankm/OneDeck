@@ -306,10 +306,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settings_theme_system => '跟随系统';
 
   @override
-  String get settings_theme_dark => '钛金深色';
+  String get settings_theme_dark => '深色';
 
   @override
-  String get settings_theme_light => '极地浅色';
+  String get settings_theme_light => '浅色';
 
   @override
   String get settings_language => '界面语言';

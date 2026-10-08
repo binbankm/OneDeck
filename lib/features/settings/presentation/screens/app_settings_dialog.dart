@@ -28,145 +28,185 @@ class AppSettingsCard extends ConsumerWidget {
     final currentTheme = ref.watch(themeModeProvider);
     final currentLocale = ref.watch(localeProvider);
 
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 540),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: DeckColors.card(context),
+    return Material(
+      color: DeckColors.card(context),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: DeckColors.subtleBorder(context), width: 0.8),
+        side: BorderSide(color: DeckColors.subtleBorder(context), width: 0.8),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: DeckColors.accentIndigo.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.settings_rounded, color: DeckColors.accentIndigo, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      l10n.settings_title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: DeckColors.textPrimary(context),
-                      ),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // 1. Appearance & Theme
-            Text(
-              l10n.settings_appearance,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: DeckColors.accentIndigo,
-              ),
-            ),
-            const SizedBox(height: 10),
-            DeckCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      clipBehavior: Clip.antiAlias,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 360;
+          return Container(
+            constraints: const BoxConstraints(maxWidth: 540),
+            padding: EdgeInsets.all(isNarrow ? 16 : 24),
+            child: SingleChildScrollView(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l10n.settings_theme_mode, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: DeckColors.textPrimary(context))),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: SegmentedButton<ThemeMode>(
-                      segments: [
-                        ButtonSegment(
-                          value: ThemeMode.system,
-                          label: Text(l10n.settings_theme_system, style: const TextStyle(fontSize: 12)),
-                          icon: const Icon(Icons.brightness_auto_rounded, size: 16),
+                  // Header (Zero overflow with Expanded text)
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: DeckColors.accentIndigo.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        ButtonSegment(
-                          value: ThemeMode.dark,
-                          label: Text(l10n.settings_theme_dark, style: const TextStyle(fontSize: 12)),
-                          icon: const Icon(Icons.dark_mode_rounded, size: 16),
+                        child: const Icon(Icons.settings_rounded, color: DeckColors.accentIndigo, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          l10n.settings_title,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: isNarrow ? 16 : 18,
+                            fontWeight: FontWeight.bold,
+                            color: DeckColors.textPrimary(context),
+                          ),
                         ),
-                        ButtonSegment(
-                          value: ThemeMode.light,
-                          label: Text(l10n.settings_theme_light, style: const TextStyle(fontSize: 12)),
-                          icon: const Icon(Icons.light_mode_rounded, size: 16),
-                        ),
-                      ],
-                      selected: {currentTheme},
-                      onSelectionChanged: (selected) {
-                        ref.read(themeModeProvider.notifier).setThemeMode(selected.first);
-                      },
-                    ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 20),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
-            // 2. Language
-            Text(
-              l10n.settings_language,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: DeckColors.accentIndigo,
-              ),
-            ),
-            const SizedBox(height: 10),
-            DeckCard(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.settings_language, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: DeckColors.textPrimary(context))),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: SegmentedButton<String>(
-                      segments: [
-                        ButtonSegment(
-                          value: 'system',
-                          label: Text(l10n.settings_lang_system, style: const TextStyle(fontSize: 12)),
-                        ),
-                        ButtonSegment(
-                          value: 'zh',
-                          label: Text(l10n.settings_lang_zh, style: const TextStyle(fontSize: 12)),
-                        ),
-                        ButtonSegment(
-                          value: 'en',
-                          label: Text(l10n.settings_lang_en, style: const TextStyle(fontSize: 12)),
-                        ),
-                      ],
-                      selected: {
-                        currentLocale == null ? 'system' : currentLocale.languageCode,
-                      },
-                      onSelectionChanged: (selected) {
-                        ref.read(localeProvider.notifier).setLanguageCode(selected.first);
-                      },
+                  // 1. Appearance & Theme
+                  Text(
+                    l10n.settings_appearance,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: DeckColors.accentIndigo,
                     ),
                   ),
-                ],
-              ),
-            ),
+                  const SizedBox(height: 10),
+                  DeckCard(
+                    padding: EdgeInsets.symmetric(horizontal: isNarrow ? 10 : 16, vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.settings_theme_mode, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: DeckColors.textPrimary(context))),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<ThemeMode>(
+                            showSelectedIcon: false,
+                            style: const ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 6, vertical: 4)),
+                            ),
+                            segments: [
+                              ButtonSegment(
+                                value: ThemeMode.system,
+                                label: Text(
+                                  l10n.settings_theme_system,
+                                  style: TextStyle(fontSize: isNarrow ? 11 : 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                icon: isNarrow ? null : const Icon(Icons.brightness_auto_rounded, size: 16),
+                              ),
+                              ButtonSegment(
+                                value: ThemeMode.dark,
+                                label: Text(
+                                  l10n.settings_theme_dark,
+                                  style: TextStyle(fontSize: isNarrow ? 11 : 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                icon: isNarrow ? null : const Icon(Icons.dark_mode_rounded, size: 16),
+                              ),
+                              ButtonSegment(
+                                value: ThemeMode.light,
+                                label: Text(
+                                  l10n.settings_theme_light,
+                                  style: TextStyle(fontSize: isNarrow ? 11 : 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                icon: isNarrow ? null : const Icon(Icons.light_mode_rounded, size: 16),
+                              ),
+                            ],
+                            selected: {currentTheme},
+                            onSelectionChanged: (selected) {
+                              ref.read(themeModeProvider.notifier).setThemeMode(selected.first);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 2. Language
+                  Text(
+                    l10n.settings_language,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: DeckColors.accentIndigo,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  DeckCard(
+                    padding: EdgeInsets.symmetric(horizontal: isNarrow ? 10 : 16, vertical: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.settings_language, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: DeckColors.textPrimary(context))),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<String>(
+                            showSelectedIcon: false,
+                            style: const ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 6, vertical: 4)),
+                            ),
+                            segments: [
+                              ButtonSegment(
+                                value: 'system',
+                                label: Text(
+                                  l10n.settings_lang_system,
+                                  style: TextStyle(fontSize: isNarrow ? 11 : 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: 'zh',
+                                label: Text(
+                                  l10n.settings_lang_zh,
+                                  style: TextStyle(fontSize: isNarrow ? 11 : 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: 'en',
+                                label: Text(
+                                  l10n.settings_lang_en,
+                                  style: TextStyle(fontSize: isNarrow ? 11 : 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                            selected: {
+                              currentLocale == null ? 'system' : currentLocale.languageCode,
+                            },
+                            onSelectionChanged: (selected) {
+                              ref.read(localeProvider.notifier).setLanguageCode(selected.first);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
             const SizedBox(height: 20),
 
             // 3. About
@@ -223,6 +263,9 @@ class AppSettingsCard extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+        },
       ),
     );
   }

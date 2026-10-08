@@ -695,13 +695,13 @@ abstract class AppLocalizations {
   /// No description provided for @settings_theme_dark.
   ///
   /// In zh, this message translates to:
-  /// **'钛金深色'**
+  /// **'深色'**
   String get settings_theme_dark;
 
   /// No description provided for @settings_theme_light.
   ///
   /// In zh, this message translates to:
-  /// **'极地浅色'**
+  /// **'浅色'**
   String get settings_theme_light;
 
   /// No description provided for @settings_language.

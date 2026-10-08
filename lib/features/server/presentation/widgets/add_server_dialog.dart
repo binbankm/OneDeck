@@ -127,16 +127,24 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
     final server = _buildServerModel();
     final token = _tokenController.text.trim();
 
-    await ref.read(serversProvider.notifier).addOrUpdateServer(server, token);
+    try {
+      await ref.read(serversProvider.notifier).addOrUpdateServer(server, token);
 
-    // If activeServerId is null or editing the current server, set active
-    final activeId = ref.read(activeServerIdProvider);
-    if (activeId == null || activeId == server.id) {
-      await ref.read(activeServerIdProvider.notifier).selectServer(server.id);
-    }
+      // If activeServerId is null or editing the current server, set active
+      final activeId = ref.read(activeServerIdProvider);
+      if (activeId == null || activeId == server.id) {
+        await ref.read(activeServerIdProvider.notifier).selectServer(server.id);
+      }
 
-    if (mounted) {
-      Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存服务器失败: $e')),
+        );
+      }
     }
   }
 
@@ -145,15 +153,17 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
     final l10n = context.l10n;
     final isEditing = widget.initialServer != null;
 
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 520),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: DeckColors.card(context),
+    return Material(
+      color: DeckColors.card(context),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: DeckColors.subtleBorder(context), width: 0.8),
+        side: BorderSide(color: DeckColors.subtleBorder(context), width: 0.8),
       ),
-      child: Form(
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 520),
+        padding: const EdgeInsets.all(24),
+        child: Form(
         key: _formKey,
         child: SingleChildScrollView(
           child: Column(
@@ -164,12 +174,15 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    isEditing ? l10n.server_edit : l10n.server_add,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: DeckColors.textPrimary(context),
+                  Expanded(
+                    child: Text(
+                      isEditing ? l10n.server_edit : l10n.server_add,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: DeckColors.textPrimary(context),
+                      ),
                     ),
                   ),
                   IconButton(
@@ -189,28 +202,25 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
               ),
               const SizedBox(height: 14),
 
-              // Host & Port Row
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(l10n.server_address, style: _labelStyle(context)),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _hostController,
-                          validator: (v) => v == null || v.trim().isEmpty ? l10n.common_failed : null,
-                          decoration: InputDecoration(hintText: l10n.server_address_hint),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 1,
+              // Host & Port Row (Flexible layout with safe fixed port width)
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 280;
+                  final hostField = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l10n.server_address, style: _labelStyle(context)),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _hostController,
+                        validator: (v) => v == null || v.trim().isEmpty ? l10n.common_failed : null,
+                        decoration: InputDecoration(hintText: l10n.server_address_hint),
+                      ),
+                    ],
+                  );
+
+                  final portField = SizedBox(
+                    width: isCompact ? double.infinity : 108,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -219,12 +229,44 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
                         TextFormField(
                           controller: _portController,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(hintText: '9999'),
+                          maxLength: 5,
+                          textAlign: TextAlign.center,
+                          decoration: const InputDecoration(
+                            hintText: '9999',
+                            counterText: '',
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                          ),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return l10n.common_failed;
+                            final p = int.tryParse(v.trim());
+                            if (p == null || p < 1 || p > 65535) return '!';
+                            return null;
+                          },
                         ),
                       ],
                     ),
-                  ),
-                ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        hostField,
+                        const SizedBox(height: 14),
+                        portField,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: hostField),
+                      const SizedBox(width: 12),
+                      portField,
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 14),
 
@@ -316,10 +358,10 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
                 const SizedBox(height: 16),
               ],
 
-              // Actions Row
-              Row(
-                children: [
-                  OutlinedButton.icon(
+              // Actions Row (Adaptive layout to prevent button overflow on compact screens)
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final testBtn = OutlinedButton.icon(
                     onPressed: _isTesting ? null : _handleTestConnection,
                     icon: _isTesting
                         ? const SizedBox(
@@ -329,23 +371,51 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
                           )
                         : const Icon(Icons.bolt_rounded, size: 16),
                     label: Text(l10n.server_test_connection),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(l10n.common_cancel),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _handleSave,
-                    child: Text(l10n.common_save),
-                  ),
-                ],
+                  );
+
+                  final actionBtns = Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text(l10n.common_cancel),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: _handleSave,
+                        child: Text(l10n.common_save),
+                      ),
+                    ],
+                  );
+
+                  if (constraints.maxWidth < 280) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        testBtn,
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [actionBtns],
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      testBtn,
+                      const Spacer(),
+                      actionBtns,
+                    ],
+                  );
+                },
               ),
             ],
           ),
         ),
       ),
+    ),
     );
   }
 

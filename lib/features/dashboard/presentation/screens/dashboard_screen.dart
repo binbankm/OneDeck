@@ -29,50 +29,62 @@ class DashboardScreen extends ConsumerWidget {
     final l10n = context.l10n;
 
     return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 480),
-        child: DeckCard(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: DeckColors.accentIndigo.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 360;
+          return SingleChildScrollView(
+            padding: EdgeInsets.all(isNarrow ? 12 : 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: DeckCard(
+                padding: EdgeInsets.all(isNarrow ? 16 : 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: isNarrow ? 48 : 64,
+                      height: isNarrow ? 48 : 64,
+                      decoration: BoxDecoration(
+                        color: DeckColors.accentIndigo.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(LucideIcons.server, size: isNarrow ? 24 : 32, color: DeckColors.accentIndigo),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      l10n.server_no_servers,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: isNarrow ? 16 : 18,
+                        fontWeight: FontWeight.bold,
+                        color: DeckColors.textPrimary(context),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '连接到您的 1Panel V2 服务器以实时监控和管理容器、网站与数据库。',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: DeckColors.textMuted(context),
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: ElevatedButton.icon(
+                        onPressed: () => showAddOrEditServerDialog(context),
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: Text(l10n.server_add_first),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Icon(LucideIcons.server, size: 32, color: DeckColors.accentIndigo),
               ),
-              const SizedBox(height: 18),
-              Text(
-                l10n.server_no_servers,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: DeckColors.textPrimary(context),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '连接到您的 1Panel V2 服务器以实时监控和管理容器、网站与数据库。',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: DeckColors.textMuted(context),
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () => showAddOrEditServerDialog(context),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: Text(l10n.server_add_first),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

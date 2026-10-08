@@ -84,47 +84,50 @@ class OneDeckHomeScreen extends ConsumerWidget {
     final item = navItems.where((i) => i.id == navId).firstOrNull;
 
     return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: DeckCard(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (item != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: DeckColors.accentIndigo.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(item.icon, size: 32, color: DeckColors.accentIndigo),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 360;
+          return SingleChildScrollView(
+            padding: EdgeInsets.all(isNarrow ? 12 : 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: DeckCard(
+                padding: EdgeInsets.all(isNarrow ? 16 : 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (item != null) ...[
+                      Container(
+                        padding: EdgeInsets.all(isNarrow ? 10 : 14),
+                        decoration: BoxDecoration(
+                          color: DeckColors.accentIndigo.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(item.icon, size: isNarrow ? 24 : 32, color: DeckColors.accentIndigo),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        item.label(context),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: isNarrow ? 16 : 18,
+                          fontWeight: FontWeight.bold,
+                          color: DeckColors.textPrimary(context),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    Text(
+                      '此模块已准备就绪，即将连接 1Panel V2 真实数据。',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 13, color: DeckColors.textMuted(context)),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  item.label(context),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: DeckColors.textPrimary(context),
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              Text(
-                '此模块已准备就绪，即将连接 1Panel V2 真实数据。',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: DeckColors.textMuted(context)),
               ),
-              const SizedBox(height: 20),
-              OutlinedButton.icon(
-                onPressed: () => ref.read(activeNavIdProvider.notifier).state = 'dashboard',
-                icon: const Icon(Icons.arrow_back_rounded, size: 16),
-                label: Text(context.l10n.common_back),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
