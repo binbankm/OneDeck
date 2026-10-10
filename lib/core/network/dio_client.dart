@@ -117,14 +117,19 @@ class DioClient {
     }
     final entryPart = cleanEntry.isNotEmpty ? '/$cleanEntry' : '';
 
-    // 4. 拼装 1Panel V2 统一 API 根路径
-    _dio.options.baseUrl = '$scheme://$cleanHost$portPart$entryPart/api/v2/';
-    _logger.i('1Panel 基础服务已切换: ${_dio.options.baseUrl}');
+    // 4. 拼装 1Panel V2 统一 API 根路径（若未变更则静默跳过，避免全平台轮询时日志爆炸与重复配置）
+    final targetBaseUrl = '$scheme://$cleanHost$portPart$entryPart/api/v2/';
+    if (_dio.options.baseUrl != targetBaseUrl) {
+      _dio.options.baseUrl = targetBaseUrl;
+      _logger.i('1Panel 基础服务已切换: ${_dio.options.baseUrl}');
+    }
   }
 
   /// 更新 JWT 鉴权 Token
   void setToken(String? token) {
-    _token = token;
+    if (_token != token) {
+      _token = token;
+    }
   }
 
   void _setupCertificateAdapter() {

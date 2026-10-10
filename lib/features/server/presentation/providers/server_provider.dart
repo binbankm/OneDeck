@@ -44,6 +44,13 @@ class ServersNotifier extends StateNotifier<List<ServerModel>> {
   }
 
   Future<void> updateHealthStatus(String serverId, {required bool isOnline, required int latencyMs}) async {
+    final existing = state.where((s) => s.id == serverId).firstOrNull;
+    if (existing == null) return;
+
+    final statusChanged = existing.isOnline != isOnline;
+    final latencyChanged = (existing.lastLatencyMs == null) || (existing.lastLatencyMs! - latencyMs).abs() > 30;
+    if (!statusChanged && !latencyChanged) return;
+
     final updated = state.map((s) {
       if (s.id == serverId) {
         return s.copyWith(
@@ -55,7 +62,11 @@ class ServersNotifier extends StateNotifier<List<ServerModel>> {
       return s;
     }).toList();
     state = updated;
-    await _storage.saveServers(updated);
+
+    // 仅当在线/离线状态变化时持久化，避免高频轮询导致无谓的 SharedPreferences 频繁刷盘
+    if (statusChanged) {
+      await _storage.saveServers(updated);
+    }
   }
 }
 
