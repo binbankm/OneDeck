@@ -1,3 +1,5 @@
+import 'package:device_preview/device_preview.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,7 +32,10 @@ Future<void> main() async {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
       ],
-      child: const OneDeckApp(),
+      child: DevicePreview(
+        enabled: !kReleaseMode,
+        builder: (context) => const OneDeckApp(),
+      ),
     ),
   );
 }
@@ -47,12 +52,25 @@ class OneDeckApp extends ConsumerWidget {
     return MaterialApp(
       title: 'OneDeck',
       debugShowCheckedModeBanner: false,
-      locale: activeLocale,
+      locale: DevicePreview.locale(context) ?? activeLocale,
       themeMode: themeMode,
       theme: DeckTheme.lightTheme,
       darkTheme: DeckTheme.darkTheme,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) {
+        final previewChild = DevicePreview.appBuilder(context, child);
+        final mq = MediaQuery.of(context);
+        return MediaQuery(
+          data: mq.copyWith(
+            textScaler: mq.textScaler.clamp(
+              minScaleFactor: 0.85,
+              maxScaleFactor: 1.18,
+            ),
+          ),
+          child: previewChild,
+        );
+      },
       home: const OneDeckHomeScreen(),
     );
   }

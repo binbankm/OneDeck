@@ -797,8 +797,14 @@ abstract class AppLocalizations {
   /// No description provided for @dashboard_trend_title.
   ///
   /// In zh, this message translates to:
-  /// **'实时监控趋势 (最近 60 秒心跳)'**
+  /// **'实时监控趋势'**
   String get dashboard_trend_title;
+
+  /// No description provided for @dashboard_live_badge.
+  ///
+  /// In zh, this message translates to:
+  /// **'实时'**
+  String get dashboard_live_badge;
 
   /// No description provided for @dashboard_tab_cpu.
   ///
@@ -1031,7 +1037,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashboard_load_detail.
   ///
   /// In zh, this message translates to:
-  /// **'系统平均负载 (Load Average)'**
+  /// **'系统平均负载'**
   String get dashboard_load_detail;
 
   /// No description provided for @dashboard_load_1m.

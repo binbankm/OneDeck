@@ -39,129 +39,168 @@ class SystemLoadAndCoresCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: DeckColors.accentPurple.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: DeckColors.accentPurple.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(LucideIcons.activity, size: 16, color: DeckColors.accentPurple),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                l10n.dashboard_load_detail,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: DeckColors.textPrimary(context),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
-                        child: const Icon(LucideIcons.activity, size: 16, color: DeckColors.accentPurple),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        l10n.dashboard_load_detail,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: DeckColors.textPrimary(context),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isOverloaded
+                              ? DeckColors.statusError.withValues(alpha: 0.12)
+                              : (isWarning ? DeckColors.statusWarning.withValues(alpha: 0.12) : DeckColors.statusOnline.withValues(alpha: 0.12)),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isOverloaded
+                                ? DeckColors.statusError.withValues(alpha: 0.4)
+                                : (isWarning ? DeckColors.statusWarning.withValues(alpha: 0.4) : DeckColors.statusOnline.withValues(alpha: 0.4)),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          isOverloaded
+                              ? l10n.dashboard_load_critical
+                              : (isWarning ? l10n.dashboard_load_warning : l10n.dashboard_load_healthy),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isOverloaded
+                                ? DeckColors.statusError
+                                : (isWarning ? DeckColors.statusWarning : DeckColors.statusOnline),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: isOverloaded
-                          ? DeckColors.statusError.withValues(alpha: 0.12)
-                          : (isWarning ? DeckColors.statusWarning.withValues(alpha: 0.12) : DeckColors.statusOnline.withValues(alpha: 0.12)),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isOverloaded
-                            ? DeckColors.statusError.withValues(alpha: 0.4)
-                            : (isWarning ? DeckColors.statusWarning.withValues(alpha: 0.4) : DeckColors.statusOnline.withValues(alpha: 0.4)),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: Text(
-                      isOverloaded
-                          ? l10n.dashboard_load_critical
-                          : (isWarning ? l10n.dashboard_load_warning : l10n.dashboard_load_healthy),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: isOverloaded
-                            ? DeckColors.statusError
-                            : (isWarning ? DeckColors.statusWarning : DeckColors.statusOnline),
-                      ),
-                    ),
+                  const SizedBox(height: 14),
+                  // 3 Loads Row
+                  Row(
+                    children: [
+                      Expanded(child: _buildLoadMeter(context, l10n.dashboard_load_1m, load1, cores)),
+                      const SizedBox(width: 10),
+                      Expanded(child: _buildLoadMeter(context, l10n.dashboard_load_5m, load5, cores)),
+                      const SizedBox(width: 10),
+                      Expanded(child: _buildLoadMeter(context, l10n.dashboard_load_15m, load15, cores)),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // 3 Loads Row
-              Row(
-                children: [
-                  Expanded(child: _buildLoadMeter(context, l10n.dashboard_load_1m, load1, cores)),
-                  const SizedBox(width: 10),
-                  Expanded(child: _buildLoadMeter(context, l10n.dashboard_load_5m, load5, cores)),
-                  const SizedBox(width: 10),
-                  Expanded(child: _buildLoadMeter(context, l10n.dashboard_load_15m, load15, cores)),
                 ],
               ),
               const SizedBox(height: 10),
               Text(
                 l10n.dashboard_cores_baseline(cores.toString()),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 11, color: DeckColors.textMuted(context)),
               ),
             ],
           ),
         );
 
+        final maxVal = perCore.isNotEmpty ? perCore.reduce((a, b) => a > b ? a : b) : 0.0;
+        final maxIdx = perCore.isNotEmpty ? perCore.indexOf(maxVal) : 0;
+        final isZh = Localizations.localeOf(context).languageCode == 'zh';
+        final coreSummary = perCore.isEmpty
+            ? ''
+            : (isZh
+                ? '全部 ${perCore.length} 核运行中 · 峰值核心 #$maxIdx (${maxVal.toStringAsFixed(0)}%)'
+                : 'All ${perCore.length} cores active · Peak Core #$maxIdx (${maxVal.toStringAsFixed(0)}%)');
+
+        // Calculate available inner width for core badges without needing nested LayoutBuilder
+        final coresContainerWidth = isNarrow
+            ? (constraints.maxWidth - 32)
+            : ((constraints.maxWidth - 12) * (6.0 / 11.0) - 32);
+        final safeWidth = coresContainerWidth > 0 ? coresContainerWidth : 300.0;
+        final cols = safeWidth < 360 ? 3 : (safeWidth < 600 ? 4 : 6);
+        final itemWidth = ((safeWidth - (cols - 1) * 8) / cols).floorToDouble();
+
         final coresWidget = DeckCard(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: DeckColors.accentIndigo.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: DeckColors.accentIndigo.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(LucideIcons.cpu, size: 16, color: DeckColors.accentIndigo),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                l10n.dashboard_cpu_cores_matrix,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: DeckColors.textPrimary(context),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
-                        child: const Icon(LucideIcons.cpu, size: 16, color: DeckColors.accentIndigo),
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        l10n.dashboard_cpu_cores_matrix,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: DeckColors.textPrimary(context),
-                        ),
+                        l10n.dashboard_cores_count(perCore.length.toString()),
+                        style: TextStyle(fontSize: 11, color: DeckColors.textMuted(context), fontFamily: 'monospace'),
                       ),
                     ],
                   ),
-                  Text(
-                    l10n.dashboard_cores_count(perCore.length.toString()),
-                    style: TextStyle(fontSize: 11, color: DeckColors.textMuted(context), fontFamily: 'monospace'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              if (perCore.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Center(
-                    child: Text(l10n.dashboard_cores_empty, style: TextStyle(fontSize: 12, color: DeckColors.textMuted(context))),
-                  ),
-                )
-              else
-                LayoutBuilder(
-                  builder: (context, c) {
-                    final cols = c.maxWidth < 360 ? 3 : (c.maxWidth < 600 ? 4 : 6);
-                    final itemWidth = ((c.maxWidth - (cols - 1) * 8) / cols).floorToDouble();
-                    return Wrap(
+                  const SizedBox(height: 14),
+                  if (perCore.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: Text(l10n.dashboard_cores_empty, style: TextStyle(fontSize: 12, color: DeckColors.textMuted(context))),
+                      ),
+                    )
+                  else
+                    Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: perCore.asMap().entries.take(16).map((entry) {
@@ -178,7 +217,7 @@ class SystemLoadAndCoresCard extends StatelessWidget {
 
                         return Container(
                           width: itemWidth,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
                           decoration: BoxDecoration(
                             color: DeckColors.canvas(context),
                             borderRadius: BorderRadius.circular(8),
@@ -210,12 +249,12 @@ class SystemLoadAndCoresCard extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 4.5),
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(2),
                                 child: LinearProgressIndicator(
                                   value: ratio,
-                                  minHeight: 3,
+                                  minHeight: 3.5,
                                   backgroundColor: DeckColors.subtleBorder(context),
                                   valueColor: AlwaysStoppedAnimation<Color>(coreColor),
                                 ),
@@ -224,9 +263,18 @@ class SystemLoadAndCoresCard extends StatelessWidget {
                           ),
                         );
                       }).toList(),
-                    );
-                  },
+                    ),
+                ],
+              ),
+              if (coreSummary.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(
+                  coreSummary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: DeckColors.textMuted(context)),
                 ),
+              ],
             ],
           ),
         );
@@ -241,13 +289,15 @@ class SystemLoadAndCoresCard extends StatelessWidget {
           );
         }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 5, child: loadWidget),
-            const SizedBox(width: 12),
-            Expanded(flex: 6, child: coresWidget),
-          ],
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(flex: 5, child: loadWidget),
+              const SizedBox(width: 12),
+              Expanded(flex: 6, child: coresWidget),
+            ],
+          ),
         );
       },
     );

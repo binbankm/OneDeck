@@ -149,7 +149,7 @@ class MultiDiskCard extends StatelessWidget {
                         Text(
                           '${usedPercent.toStringAsFixed(1)}%',
                           style: TextStyle(
-                            fontSize: 12.5,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: barColor,
                             fontFamily: 'monospace',
@@ -177,7 +177,7 @@ class MultiDiskCard extends StatelessWidget {
                             child: Text(
                               d.device,
                               style: TextStyle(
-                                fontSize: 10.5,
+                                fontSize: 10,
                                 color: DeckColors.textMuted(context),
                                 fontFamily: 'monospace',
                               ),

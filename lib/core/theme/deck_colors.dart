@@ -11,29 +11,40 @@ abstract final class DeckColors {
   /// Electric Purple - Complementary accent
   static const Color accentPurple = Color(0xFF8B5CF6);
 
-  // --- 2. Dark Palette: Titanium Obsidian (深空钛黑) ---
-  static const Color darkCanvas = Color(0xFF0B0E17);
-  static const Color darkCard = Color(0xFF131826);
-  static const Color darkCardHover = Color(0xFF1A2234);
-  static const Color darkSidebar = Color(0xFF0E121E);
-  static const Color darkSubtleBorder = Color(0x14FFFFFF); // rgba(255,255,255, 0.08)
-  static const Color darkGlowBorder = Color(0x286366F1); // subtle indigo border glow
+  // --- 2. Dark Palette: Space Titanium (深空钛灰 · Apple Pro & Linear 经典) ---
+  /// Deep Space Titanium canvas - neutral, deep, zero cheap blue-tint
+  static const Color darkCanvas = Color(0xFF111215);
+  /// Floating titanium frosted card surface
+  static const Color darkCard = Color(0xFF191B20);
+  /// Subtle hover highlight on card
+  static const Color darkCardHover = Color(0xFF21232A);
+  /// Integrated sidebar surface
+  static const Color darkSidebar = Color(0xFF15161A);
+  /// Hairline specular border (rgba(255, 255, 255, 0.085))
+  static const Color darkSubtleBorder = Color(0x16FFFFFF);
+  /// Accent glow border
+  static const Color darkGlowBorder = Color(0x286366F1);
 
-  static const Color darkTextPrimary = Color(0xFFF1F5F9); // slate-100
-  static const Color darkTextSecondary = Color(0xFF94A3B8); // slate-400
-  static const Color darkTextMuted = Color(0xFF64748B); // slate-500
+  static const Color darkTextPrimary = Color(0xFFF3F4F6); // neutral-100
+  static const Color darkTextSecondary = Color(0xFF9CA3AF); // cool neutral-400
+  static const Color darkTextMuted = Color(0xFF6B7280); // cool neutral-500
 
-  // --- 3. Light Palette: Polar Titanium (极地钛白) ---
-  static const Color lightCanvas = Color(0xFFF8FAFC); // slate-50
+  // --- 3. Light Palette: Warm Alabaster (雪花石膏暖白 · Linear & macOS Light 调色) ---
+  /// Warm alabaster canvas - gentle on eyes, no blinding cold white
+  static const Color lightCanvas = Color(0xFFF4F4F6);
+  /// Embossed pure white floating cards
   static const Color lightCard = Color(0xFFFFFFFF);
-  static const Color lightCardHover = Color(0xFFF1F5F9);
-  static const Color lightSidebar = Color(0xFFF1F5F9);
-  static const Color lightSubtleBorder = Color(0xFFE2E8F0); // slate-200
+  /// Subtle card hover
+  static const Color lightCardHover = Color(0xFFFAFAFC);
+  /// Light sidebar
+  static const Color lightSidebar = Color(0xFFF7F8FA);
+  /// Hairline soft boundary border
+  static const Color lightSubtleBorder = Color(0xFFE2E2E8);
   static const Color lightGlowBorder = Color(0x1F6366F1);
 
-  static const Color lightTextPrimary = Color(0xFF0F172A); // slate-900
-  static const Color lightTextSecondary = Color(0xFF475569); // slate-600
-  static const Color lightTextMuted = Color(0xFF94A3B8); // slate-400
+  static const Color lightTextPrimary = Color(0xFF111827); // deep obsidian ink
+  static const Color lightTextSecondary = Color(0xFF4B5563); // neutral warm slate
+  static const Color lightTextMuted = Color(0xFF8E8E93); // Apple system gray
 
   // --- 4. Semantic Status Colors (状态指示灯) ---
   /// Normal / Running / Healthy

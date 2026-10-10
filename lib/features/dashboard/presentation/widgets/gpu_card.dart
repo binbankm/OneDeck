@@ -63,18 +63,23 @@ class GpuCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        gpu.productName.isNotEmpty ? gpu.productName : 'NVIDIA Accelerator',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: DeckColors.textPrimary(context),
+                      Expanded(
+                        child: Text(
+                          gpu.productName.isNotEmpty ? gpu.productName : 'NVIDIA Accelerator',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: DeckColors.textPrimary(context),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         '${l10n.dashboard_gpu_temp}: ${gpu.temperature.isNotEmpty ? "${gpu.temperature}°C" : "--"}',
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: tempNum > 80 ? DeckColors.statusError : DeckColors.statusOnline,
                           fontFamily: 'monospace',

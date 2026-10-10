@@ -161,7 +161,7 @@ class MemorySwapCard extends StatelessWidget {
                                 child: Text(
                                   l10n.dashboard_swap,
                                   style: TextStyle(
-                                    fontSize: 12.5,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: DeckColors.textPrimary(context),
                                   ),
@@ -183,7 +183,7 @@ class MemorySwapCard extends StatelessWidget {
                             ),
                             child: Text(
                               '未启用',
-                              style: TextStyle(fontSize: 10.5, color: DeckColors.textMuted(context)),
+                              style: TextStyle(fontSize: 10, color: DeckColors.textMuted(context)),
                             ),
                           )
                         else
@@ -204,7 +204,7 @@ class MemorySwapCard extends StatelessWidget {
                             child: Text(
                               isSwapActive ? l10n.dashboard_swap_warning : l10n.dashboard_swap_safe,
                               style: TextStyle(
-                                fontSize: 10.5,
+                                fontSize: 10,
                                 fontWeight: FontWeight.bold,
                                 color: isSwapActive ? DeckColors.statusWarning : DeckColors.statusOnline,
                               ),
@@ -220,7 +220,7 @@ class MemorySwapCard extends StatelessWidget {
                           Flexible(
                             child: Text(
                               l10n.dashboard_mem_used_total,
-                              style: TextStyle(fontSize: 10.5, color: DeckColors.textMuted(context)),
+                              style: TextStyle(fontSize: 10, color: DeckColors.textMuted(context)),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -228,7 +228,7 @@ class MemorySwapCard extends StatelessWidget {
                           Text(
                             '${Formatters.formatBytes(swapUsed)} / ${Formatters.formatBytes(swapTotal)} (${swapPercent.toStringAsFixed(1)}%)',
                             style: TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 10,
                               color: DeckColors.textSecondary(context),
                               fontFamily: 'monospace',
                             ),
@@ -252,7 +252,7 @@ class MemorySwapCard extends StatelessWidget {
                           child: Text(
                             l10n.dashboard_swap,
                             style: TextStyle(
-                              fontSize: 12.5,
+                              fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: DeckColors.textPrimary(context),
                             ),
@@ -274,7 +274,7 @@ class MemorySwapCard extends StatelessWidget {
                       ),
                       child: Text(
                         l10n.dashboard_swap_disabled,
-                        style: TextStyle(fontSize: 10.5, color: DeckColors.textMuted(context)),
+                        style: TextStyle(fontSize: 10, color: DeckColors.textMuted(context)),
                       ),
                     )
                   else ...[
@@ -295,7 +295,7 @@ class MemorySwapCard extends StatelessWidget {
                       child: Text(
                         isSwapActive ? l10n.dashboard_swap_warning : l10n.dashboard_swap_safe,
                         style: TextStyle(
-                          fontSize: 10.5,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                           color: isSwapActive ? DeckColors.statusWarning : DeckColors.statusOnline,
                         ),
@@ -353,12 +353,12 @@ class MemorySwapCard extends StatelessWidget {
           child: Text.rich(
             TextSpan(
               text: '$label: ',
-              style: TextStyle(fontSize: 10.5, color: DeckColors.textMuted(context)),
+              style: TextStyle(fontSize: 10, color: DeckColors.textMuted(context)),
               children: [
                 TextSpan(
                   text: value,
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
                     color: DeckColors.textPrimary(context),
                     fontFamily: 'monospace',

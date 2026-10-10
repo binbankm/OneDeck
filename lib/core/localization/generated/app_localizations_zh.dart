@@ -357,7 +357,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settings_author => '打造下一代全平台 1Panel 体验';
 
   @override
-  String get dashboard_trend_title => '实时监控趋势 (最近 60 秒心跳)';
+  String get dashboard_trend_title => '实时监控趋势';
+
+  @override
+  String get dashboard_live_badge => '实时';
 
   @override
   String get dashboard_tab_cpu => 'CPU 趋势';
@@ -475,7 +478,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dashboard_inodes => 'Inode';
 
   @override
-  String get dashboard_load_detail => '系统平均负载 (Load Average)';
+  String get dashboard_load_detail => '系统平均负载';
 
   @override
   String get dashboard_load_1m => '1 分钟';

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -232,93 +233,97 @@ class _TopProcessesCardState extends State<TopProcessesCard> {
                           ? (p.percent / 100).clamp(0.0, 1.0)
                           : ((p.memory / (1024 * 1024 * 1024 * 4)).clamp(0.0, 1.0));
 
-                      return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: DeckColors.canvas(context),
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: DeckColors.subtleBorder(context), width: 0.6),
-                        ),
-                        child: Row(
-                          children: [
-                            // Rank
-                            SizedBox(
-                              width: 22,
-                              child: Text(
-                                '#$rank',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: isTop ? DeckColors.accentIndigo : DeckColors.textMuted(context),
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
+                          onTap: () => _showProcessDetails(context, p),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: DeckColors.canvas(context),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: DeckColors.subtleBorder(context), width: 0.6),
                             ),
-                            const SizedBox(width: 6),
-                            // Process Name & PID/User
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Tooltip(
-                                    message: p.cmd.isNotEmpty ? p.cmd : p.name,
-                                    child: Text(
-                                      p.name.isNotEmpty ? p.name : 'unknown',
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                      style: TextStyle(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w600,
-                                        color: DeckColors.textPrimary(context),
-                                        fontFamily: 'monospace',
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'PID: ${p.pid} · ${p.user.isNotEmpty ? p.user : 'system'}',
+                            child: Row(
+                              children: [
+                                // Rank
+                                SizedBox(
+                                  width: 22,
+                                  child: Text(
+                                    '#$rank',
                                     style: TextStyle(
-                                      fontSize: 10.5,
-                                      color: DeckColors.textMuted(context),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: isTop ? DeckColors.accentIndigo : DeckColors.textMuted(context),
                                       fontFamily: 'monospace',
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Value & Mini Progress Bar
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  valueStr,
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: isTop ? DeckColors.accentCyan : DeckColors.textPrimary(context),
-                                    fontFamily: 'monospace',
+                                ),
+                                const SizedBox(width: 6),
+                                // Process Name & PID/User
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        p.name.isNotEmpty ? p.name : 'unknown',
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: DeckColors.textPrimary(context),
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'PID: ${p.pid} · ${p.user.isNotEmpty ? p.user : 'system'}',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: DeckColors.textMuted(context),
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 3),
-                                SizedBox(
-                                  width: 60,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(2),
-                                    child: LinearProgressIndicator(
-                                      value: percentRatio,
-                                      minHeight: 3,
-                                      backgroundColor: DeckColors.subtleBorder(context),
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        isTop ? DeckColors.accentCyan : DeckColors.accentIndigo.withValues(alpha: 0.6),
+                                const SizedBox(width: 8),
+                                // Value & Mini Progress Bar
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      valueStr,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: isTop ? DeckColors.accentCyan : DeckColors.textPrimary(context),
+                                        fontFamily: 'monospace',
                                       ),
                                     ),
-                                  ),
+                                    const SizedBox(height: 3),
+                                    SizedBox(
+                                      width: 60,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(2),
+                                        child: LinearProgressIndicator(
+                                          value: percentRatio,
+                                          minHeight: 3,
+                                          backgroundColor: DeckColors.subtleBorder(context),
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            isTop ? DeckColors.accentCyan : DeckColors.accentIndigo.withValues(alpha: 0.6),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
                       );
                     }).toList(),
@@ -383,91 +388,95 @@ class _TopProcessesCardState extends State<TopProcessesCard> {
                           ? (p.percent / 100).clamp(0.0, 1.0)
                           : ((p.memory / (1024 * 1024 * 1024 * 4)).clamp(0.0, 1.0));
 
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 24,
-                              child: Text(
-                                '#$rank',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: isTop ? DeckColors.accentIndigo : DeckColors.textMuted(context),
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 4,
-                              child: Tooltip(
-                                message: p.cmd.isNotEmpty ? p.cmd : p.name,
-                                child: Text(
-                                  p.name.isNotEmpty ? p.name : 'unknown',
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: DeckColors.textPrimary(context),
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                '${p.pid}',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: DeckColors.textSecondary(context),
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                p.user.isNotEmpty ? p.user : 'system',
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: DeckColors.textMuted(context),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    valueStr,
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(6),
+                          onTap: () => _showProcessDetails(context, p),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 24,
+                                  child: Text(
+                                    '#$rank',
                                     style: TextStyle(
-                                      fontSize: 11.5,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: isTop ? DeckColors.accentCyan : DeckColors.textPrimary(context),
+                                      color: isTop ? DeckColors.accentIndigo : DeckColors.textMuted(context),
                                       fontFamily: 'monospace',
                                     ),
                                   ),
-                                  const SizedBox(height: 3),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(2),
-                                    child: LinearProgressIndicator(
-                                      value: percentRatio,
-                                      minHeight: 3,
-                                      backgroundColor: DeckColors.subtleBorder(context),
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        isTop ? DeckColors.accentCyan : DeckColors.accentIndigo.withValues(alpha: 0.6),
-                                      ),
+                                ),
+                                Expanded(
+                                  flex: 4,
+                                  child: Text(
+                                    p.name.isNotEmpty ? p.name : 'unknown',
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: DeckColors.textPrimary(context),
+                                      fontFamily: 'monospace',
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    '${p.pid}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: DeckColors.textSecondary(context),
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text(
+                                    p.user.isNotEmpty ? p.user : 'system',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: DeckColors.textMuted(context),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 3,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        valueStr,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: isTop ? DeckColors.accentCyan : DeckColors.textPrimary(context),
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                      const SizedBox(height: 3),
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(2),
+                                        child: LinearProgressIndicator(
+                                          value: percentRatio,
+                                          minHeight: 3,
+                                          backgroundColor: DeckColors.subtleBorder(context),
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            isTop ? DeckColors.accentCyan : DeckColors.accentIndigo.withValues(alpha: 0.6),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       );
                     }),
@@ -475,6 +484,182 @@ class _TopProcessesCardState extends State<TopProcessesCard> {
                 );
               },
             ),
+        ],
+      ),
+    );
+  }
+
+  void _showProcessDetails(BuildContext context, Process p) {
+    final l10n = context.l10n;
+    final cmd = p.cmd.isNotEmpty ? p.cmd : p.name;
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: DeckColors.card(dialogCtx),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: DeckColors.subtleBorder(dialogCtx), width: 0.8),
+        ),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+        contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: DeckColors.accentIndigo.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(LucideIcons.cpu, size: 18, color: DeckColors.accentIndigo),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    p.name.isNotEmpty ? p.name : 'unknown',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: DeckColors.textPrimary(dialogCtx),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'PID: ${p.pid} · User: ${p.user.isNotEmpty ? p.user : "system"}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: DeckColors.textMuted(dialogCtx),
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: DeckColors.canvas(dialogCtx),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: DeckColors.subtleBorder(dialogCtx), width: 0.6),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('CPU', style: TextStyle(fontSize: 10, color: DeckColors.textMuted(dialogCtx))),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${p.percent.toStringAsFixed(1)}%',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: DeckColors.accentIndigo,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: DeckColors.canvas(dialogCtx),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: DeckColors.subtleBorder(dialogCtx), width: 0.6),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Memory', style: TextStyle(fontSize: 10, color: DeckColors.textMuted(dialogCtx))),
+                        const SizedBox(height: 2),
+                        Text(
+                          Formatters.formatBytes(p.memory),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: DeckColors.accentCyan,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Command / 完整路径',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: DeckColors.textSecondary(dialogCtx),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 180),
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: DeckColors.canvas(dialogCtx),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: DeckColors.subtleBorder(dialogCtx), width: 0.6),
+              ),
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  cmd,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: DeckColors.textPrimary(dialogCtx),
+                    fontFamily: 'monospace',
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: cmd));
+              Navigator.of(dialogCtx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    '已复制完整命令到剪贴板',
+                    style: TextStyle(color: DeckColors.textPrimary(context)),
+                  ),
+                  backgroundColor: DeckColors.card(context),
+                  duration: const Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            icon: const Icon(LucideIcons.copy, size: 15),
+            label: Text(l10n.common_copy),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: Text(l10n.common_close),
+          ),
         ],
       ),
     );

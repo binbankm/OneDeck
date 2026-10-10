@@ -360,7 +360,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings_author => 'Crafting the next-gen 1Panel experience';
 
   @override
-  String get dashboard_trend_title => 'Real-Time Trends (Last 60s Heartbeat)';
+  String get dashboard_trend_title => 'Real-Time Trends';
+
+  @override
+  String get dashboard_live_badge => 'LIVE';
 
   @override
   String get dashboard_tab_cpu => 'CPU Trend';

@@ -30,24 +30,50 @@ class NebulaTrendChart extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with Pulse Dot
+          // Header with Live Pulse Badge
           Row(
             children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: DeckColors.statusOnline,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
               Text(
                 l10n.dashboard_trend_title,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                   color: DeckColors.textPrimary(context),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                decoration: BoxDecoration(
+                  color: DeckColors.statusOnline.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: DeckColors.statusOnline.withValues(alpha: 0.25),
+                    width: 0.7,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: const BoxDecoration(
+                        color: DeckColors.statusOnline,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4.5),
+                    Text(
+                      l10n.dashboard_live_badge,
+                      style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: DeckColors.statusOnline,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -111,7 +137,7 @@ class NebulaTrendChart extends ConsumerWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      fontSize: 11.5,
+                                      fontSize: 11,
                                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                                       color: isSelected
                                           ? DeckColors.textPrimary(context)

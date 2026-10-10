@@ -23,6 +23,7 @@ import '../widgets/system_load_and_cores_card.dart';
 import '../widgets/memory_swap_card.dart';
 import '../widgets/disk_io_card.dart';
 import '../widgets/gpu_card.dart';
+import '../widgets/server_os_avatar.dart';
 
 /// The central cockpit overview dashboard for OneDeck with complete internationalization.
 class DashboardScreen extends ConsumerWidget {
@@ -133,7 +134,8 @@ class DashboardScreen extends ConsumerWidget {
     final downRate = dashState.netDownHistory.lastOrNull ?? 0.0;
     final upRate = dashState.netUpHistory.lastOrNull ?? 0.0;
     final netStr = '↓ ${Formatters.formatNetworkRate(downRate)}';
-    final netSub = '↑ ${Formatters.formatNetworkRate(upRate)} · ${l10n.dashboard_net_total}: ${Formatters.formatBytes(current?.netBytesRecv ?? 0)}';
+    final netTotal = Formatters.formatBytes(current?.netBytesRecv ?? 0);
+    final netSub = '↑ ${Formatters.formatNetworkRate(upRate)} · $netTotal';
 
     final isDesktopPlatform = !kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux);
     final listView = ListView(
@@ -157,19 +159,19 @@ class DashboardScreen extends ConsumerWidget {
                 );
 
                 final host = base?.ipV4Addr.isNotEmpty == true ? base!.ipV4Addr : server.host;
-                final fullAddr = server.port > 0 ? '$host:${server.port}' : host;
                 final addrTile = _buildSpecTile(
                   context,
                   icon: LucideIcons.globe,
                   label: l10n.dashboard_hero_address,
-                  value: fullAddr,
+                  value: host,
                   accentColor: DeckColors.accentCyan,
+                  isMonospace: true,
                   trailing: Icon(LucideIcons.copy, size: 11, color: DeckColors.textMuted(context)),
                   onTap: () {
-                    Clipboard.setData(ClipboardData(text: fullAddr));
+                    Clipboard.setData(ClipboardData(text: host));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('${l10n.dashboard_ip_copied}: $fullAddr'),
+                        content: Text('${l10n.dashboard_ip_copied}: $host'),
                         duration: const Duration(seconds: 1),
                       ),
                     );
@@ -182,20 +184,19 @@ class DashboardScreen extends ConsumerWidget {
                   label: l10n.metric_uptime,
                   value: Formatters.formatUptime(current?.runningTime, current?.uptime, Localizations.localeOf(context).languageCode),
                   accentColor: DeckColors.statusOnline,
+                  isMonospace: true,
                 );
 
-                final cpuModel = base?.cpuModelName.isNotEmpty == true
+                final rawCpu = base?.cpuModelName.isNotEmpty == true
                     ? base!.cpuModelName
                     : (base != null && base.cpuCores > 0 ? '${base.cpuCores} ${l10n.dashboard_cpu_cores}' : '4 Cores');
-                final cpuTile = Tooltip(
-                  message: cpuModel,
-                  child: _buildSpecTile(
-                    context,
-                    icon: LucideIcons.cpu,
-                    label: l10n.dashboard_hero_cpu,
-                    value: cpuModel,
-                    accentColor: DeckColors.accentPurple,
-                  ),
+                final cleanCpu = _cleanCpuModel(rawCpu);
+                final cpuTile = _buildSpecTile(
+                  context,
+                  icon: LucideIcons.cpu,
+                  label: l10n.dashboard_hero_cpu,
+                  value: cleanCpu,
+                  accentColor: DeckColors.accentPurple,
                 );
 
                 Widget specsWidget;
@@ -214,34 +215,43 @@ class DashboardScreen extends ConsumerWidget {
                 } else if (!isWide) {
                   specsWidget = Column(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(child: osTile),
-                          const SizedBox(width: 8),
-                          Expanded(child: addrTile),
-                        ],
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(child: osTile),
+                            const SizedBox(width: 8),
+                            Expanded(child: addrTile),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(child: uptimeTile),
-                          const SizedBox(width: 8),
-                          Expanded(child: cpuTile),
-                        ],
+                      IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(child: uptimeTile),
+                            const SizedBox(width: 8),
+                            Expanded(child: cpuTile),
+                          ],
+                        ),
                       ),
                     ],
                   );
                 } else {
-                  specsWidget = Row(
-                    children: [
-                      Expanded(child: osTile),
-                      const SizedBox(width: 8),
-                      Expanded(child: addrTile),
-                      const SizedBox(width: 8),
-                      Expanded(child: uptimeTile),
-                      const SizedBox(width: 8),
-                      Expanded(child: cpuTile),
-                    ],
+                  specsWidget = IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: osTile),
+                        const SizedBox(width: 8),
+                        Expanded(child: addrTile),
+                        const SizedBox(width: 8),
+                        Expanded(child: uptimeTile),
+                        const SizedBox(width: 8),
+                        Expanded(child: cpuTile),
+                      ],
+                    ),
                   );
                 }
 
@@ -276,26 +286,39 @@ class DashboardScreen extends ConsumerWidget {
                 );
 
                 final statusBadge = Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
                   decoration: BoxDecoration(
-                    color: (isOnline ? DeckColors.statusOnline : DeckColors.statusError).withValues(alpha: 0.1),
+                    color: (isOnline ? DeckColors.statusOnline : DeckColors.statusError).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: (isOnline ? DeckColors.statusOnline : DeckColors.statusError).withValues(alpha: 0.25),
+                      color: (isOnline ? DeckColors.statusOnline : DeckColors.statusError).withValues(alpha: 0.35),
                       width: 0.8,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isOnline ? DeckColors.statusOnline : DeckColors.statusError).withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        spreadRadius: -1,
+                      ),
+                    ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       DeckStatusDot(isOnline: isOnline),
                       const SizedBox(width: 4.5),
-                      Text(
-                        isOnline ? l10n.server_status_online : l10n.dashboard_auth_failed,
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
-                          color: isOnline ? DeckColors.statusOnline : DeckColors.statusError,
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            isOnline ? l10n.server_status_online : l10n.dashboard_auth_failed,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: isOnline ? DeckColors.statusOnline : DeckColors.statusError,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -305,29 +328,10 @@ class DashboardScreen extends ConsumerWidget {
                 final iconSize = isWide ? 44.0 : 38.0;
                 final headerWidget = Row(
                   children: [
-                    Container(
-                      width: iconSize,
-                      height: iconSize,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [DeckColors.accentIndigo, DeckColors.accentCyan],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(isWide ? 12 : 10),
-                        boxShadow: [
-                          BoxShadow(
-                            color: DeckColors.accentIndigo.withValues(alpha: 0.22),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        LucideIcons.server,
-                        color: Colors.white,
-                        size: isWide ? 22 : 19,
-                      ),
+                    ServerOsAvatar(
+                      distro: base?.prettyDistro ?? base?.platformFamily ?? base?.os,
+                      size: iconSize,
+                      borderRadius: isWide ? 12 : 10,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -335,9 +339,7 @@ class DashboardScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            base?.hostname.isNotEmpty == true
-                                ? '${server.name} (${base!.hostname})'
-                                : server.name,
+                            server.name,
                             style: TextStyle(
                               fontSize: isWide ? 17 : 15.5,
                               fontWeight: FontWeight.bold,
@@ -455,13 +457,20 @@ class DashboardScreen extends ConsumerWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final isWide = constraints.maxWidth > 700;
+              final cardWidth = isWide
+                  ? (constraints.maxWidth - 36) / 4
+                  : (constraints.maxWidth - 12) / 2;
+              final kpiRatio = isWide
+                  ? 1.28
+                  : (cardWidth < 165 ? 1.10 : (cardWidth < 185 ? 1.16 : 1.22));
+
               return GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: isWide ? 4 : 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: isWide ? 1.28 : 1.22,
+                childAspectRatio: kpiRatio,
                 children: [
                   _buildKpiCard(
                     context,
@@ -577,13 +586,20 @@ class DashboardScreen extends ConsumerWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final isWide = constraints.maxWidth > 700;
+              final cardWidth = isWide
+                  ? (constraints.maxWidth - 36) / 4
+                  : (constraints.maxWidth - 12) / 2;
+              final shortcutRatio = isWide
+                  ? 2.3
+                  : (cardWidth < 175 ? 1.70 : 1.95);
+
               return GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisCount: isWide ? 4 : 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: isWide ? 2.3 : 2.0,
+                childAspectRatio: shortcutRatio,
                 children: [
                   _buildShortcutCard(
                     context,
@@ -639,22 +655,128 @@ class DashboardScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildSpecRow(context, l10n.dashboard_spec_hostname, base.hostname),
-                  _buildSpecDivider(context),
-                  _buildSpecRow(context, l10n.dashboard_spec_os, '${base.prettyDistro} (${base.platformFamily})'),
-                  _buildSpecDivider(context),
-                  _buildSpecRow(context, l10n.dashboard_spec_kernel, '${base.kernelArch} (${base.kernelVersion})'),
-                  _buildSpecDivider(context),
+                  // 1. Hostname
                   _buildSpecRow(
                     context,
-                    l10n.dashboard_spec_cpu,
-                    '${base.cpuModelName.isNotEmpty ? base.cpuModelName : l10n.metric_cpu} (${base.cpuCores} / ${base.cpuLogicalCores} ${l10n.dashboard_spec_cores_detail})',
+                    icon: LucideIcons.server,
+                    label: l10n.dashboard_spec_hostname,
+                    value: base.hostname.isNotEmpty ? base.hostname : 'unknown',
+                    copyValue: base.hostname,
                   ),
                   _buildSpecDivider(context),
+
+                  // 2. OS
                   _buildSpecRow(
                     context,
-                    l10n.dashboard_spec_proxy,
-                    base.systemProxy.isNotEmpty ? base.systemProxy : l10n.dashboard_spec_proxy_none,
+                    icon: LucideIcons.monitor,
+                    label: l10n.dashboard_spec_os,
+                    value: base.prettyDistro.isNotEmpty ? base.prettyDistro : base.os,
+                  ),
+                  _buildSpecDivider(context),
+
+                  // 3. Kernel & Arch
+                  _buildSpecRow(
+                    context,
+                    icon: LucideIcons.binary,
+                    label: l10n.dashboard_spec_kernel,
+                    value: base.kernelArch.isNotEmpty ? base.kernelArch : 'x86_64',
+                    subtitle: base.kernelVersion.isNotEmpty ? base.kernelVersion : null,
+                    copyValue: '${base.kernelArch} ${base.kernelVersion}'.trim(),
+                  ),
+                  _buildSpecDivider(context),
+
+                  // 4. CPU & Cores Badge
+                  Builder(
+                    builder: (context) {
+                      final cleanCpu = _cleanCpuModel(base.cpuModelName.isNotEmpty ? base.cpuModelName : l10n.metric_cpu);
+                      final coresBadge = Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: DeckColors.accentIndigo.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: DeckColors.accentIndigo.withValues(alpha: 0.25),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text(
+                          '${base.cpuCores} / ${base.cpuLogicalCores} ${l10n.dashboard_spec_cores_detail}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: DeckColors.accentIndigo,
+                          ),
+                        ),
+                      );
+
+                      return _buildSpecRow(
+                        context,
+                        icon: LucideIcons.cpu,
+                        label: l10n.dashboard_spec_cpu,
+                        value: cleanCpu,
+                        customBadge: coresBadge,
+                        copyValue: cleanCpu,
+                      );
+                    },
+                  ),
+                  _buildSpecDivider(context),
+
+                  // 5. System Proxy
+                  Builder(
+                    builder: (context) {
+                      final rawProxy = base.systemProxy.trim();
+                      final hasProxy = rawProxy.isNotEmpty &&
+                          rawProxy.toLowerCase() != 'noproxy' &&
+                          rawProxy.toLowerCase() != 'none' &&
+                          rawProxy.toLowerCase() != 'null';
+
+                      if (!hasProxy) {
+                        return _buildSpecRow(
+                          context,
+                          icon: LucideIcons.globe,
+                          label: l10n.dashboard_spec_proxy,
+                          value: '',
+                          customBadge: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: DeckColors.canvas(context),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: DeckColors.subtleBorder(context), width: 0.6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 5,
+                                  height: 5,
+                                  decoration: const BoxDecoration(
+                                    color: DeckColors.statusOnline,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  l10n.dashboard_spec_proxy_none,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: DeckColors.textMuted(context),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      return _buildSpecRow(
+                        context,
+                        icon: LucideIcons.globe,
+                        label: l10n.dashboard_spec_proxy,
+                        value: rawProxy,
+                        copyValue: rawProxy,
+                      );
+                    },
                   ),
                 ],
               ),
@@ -674,13 +796,38 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSpecRow(BuildContext context, String label, String value) {
+  Widget _buildSpecRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    String? subtitle,
+    Widget? customBadge,
+    String? copyValue,
+  }) {
+    final copyTarget = copyValue ?? value;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: subtitle != null || customBadge != null
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
+          // Left: Icon + Label
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: DeckColors.canvas(context),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: DeckColors.subtleBorder(context).withValues(alpha: 0.6),
+                width: 0.6,
+              ),
+            ),
+            child: Icon(icon, size: 14, color: DeckColors.textSecondary(context)),
+          ),
+          const SizedBox(width: 8),
           Text(
             label,
             style: TextStyle(
@@ -690,18 +837,75 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
-                color: DeckColors.textPrimary(context),
-                fontWeight: FontWeight.w600,
-                fontFamily: 'monospace',
-              ),
+          // Right: Value + optional Subtitle / Badge
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (value.isNotEmpty)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          value,
+                          textAlign: TextAlign.end,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: DeckColors.textPrimary(context),
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                      if (copyValue != null && copyTarget.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(4),
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: copyTarget));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('已复制: $copyTarget'),
+                                duration: const Duration(seconds: 1),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(2),
+                            child: Icon(
+                              LucideIcons.copy,
+                              size: 12,
+                              color: DeckColors.textMuted(context),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                if (customBadge != null) ...[
+                  if (value.isNotEmpty) const SizedBox(height: 4),
+                  customBadge,
+                ] else if (subtitle != null && subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    textAlign: TextAlign.end,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: DeckColors.textMuted(context),
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],
@@ -717,6 +921,16 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
+  static String _cleanCpuModel(String raw) {
+    if (raw.isEmpty) return raw;
+    var clean = raw.replaceAll(RegExp(r'[\(\[](?:R|TM|r|tm)[\)\]]'), '');
+    clean = clean.replaceAll(RegExp(r'\s+Processor\b', caseSensitive: false), '');
+    clean = clean.replaceAll(RegExp(r'\s+CPU\s*@.*$', caseSensitive: false), '');
+    clean = clean.replaceAll(RegExp(r'\s*@\s*[\d\.]+\s*[GgMm][Hh][Zz].*$'), '');
+    clean = clean.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return clean.isEmpty ? raw : clean;
+  }
+
   Widget _buildSpecTile(
     BuildContext context, {
     required IconData icon,
@@ -725,28 +939,52 @@ class DashboardScreen extends ConsumerWidget {
     Color? accentColor,
     VoidCallback? onTap,
     Widget? trailing,
+    bool isMonospace = false,
+    int maxLines = 2,
   }) {
     final effectiveAccent = accentColor ?? DeckColors.textSecondary(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final tile = Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: DeckColors.canvas(context),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  Colors.white.withValues(alpha: 0.05),
+                  Colors.white.withValues(alpha: 0.02),
+                ]
+              : [
+                  Colors.black.withValues(alpha: 0.04),
+                  Colors.black.withValues(alpha: 0.01),
+                ],
+        ),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: DeckColors.subtleBorder(context),
-          width: 0.8,
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.10)
+              : Colors.black.withValues(alpha: 0.06),
+          width: 0.7,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                size: 13,
-                color: effectiveAccent,
+              Container(
+                padding: const EdgeInsets.all(3.5),
+                decoration: BoxDecoration(
+                  color: effectiveAccent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Icon(
+                  icon,
+                  size: 12,
+                  color: effectiveAccent,
+                ),
               ),
               const SizedBox(width: 5),
               Expanded(
@@ -755,7 +993,7 @@ class DashboardScreen extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 10,
                     fontWeight: FontWeight.w500,
                     color: DeckColors.textMuted(context),
                   ),
@@ -767,13 +1005,14 @@ class DashboardScreen extends ConsumerWidget {
           const SizedBox(height: 5),
           Text(
             value,
-            maxLines: 1,
+            maxLines: maxLines,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              fontFamily: 'monospace',
+              fontFamily: isMonospace ? 'monospace' : null,
               color: DeckColors.textPrimary(context),
+              height: 1.25,
             ),
           ),
         ],
@@ -873,43 +1112,51 @@ class DashboardScreen extends ConsumerWidget {
         ref.read(activeNavIdProvider.notifier).state = navId;
       },
       child: DeckCard(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
                 color: DeckColors.accentIndigo.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(9),
               ),
-              child: Icon(icon, size: 18, color: DeckColors.accentIndigo),
+              child: Icon(icon, size: 17, color: DeckColors.accentIndigo),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: DeckColors.textPrimary(context),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: DeckColors.textPrimary(context),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     countText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 10,
                       color: DeckColors.textMuted(context),
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, size: 16, color: DeckColors.textMuted(context)),
+            const SizedBox(width: 2),
+            Icon(Icons.chevron_right_rounded, size: 15, color: DeckColors.textMuted(context)),
           ],
         ),
       ),

@@ -206,7 +206,7 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
               // Host & Port Row (Flexible layout with safe fixed port width)
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final isCompact = constraints.maxWidth < 280;
+                  final isCompact = constraints.maxWidth < 320;
                   final hostField = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -380,7 +380,10 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.bolt_rounded, size: 16),
-                    label: Text(l10n.server_test_connection),
+                    label: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(l10n.server_test_connection),
+                    ),
                   );
 
                   final actionBtns = Row(
@@ -398,12 +401,12 @@ class _AddServerCardState extends ConsumerState<AddServerCard> {
                     ],
                   );
 
-                  if (constraints.maxWidth < 280) {
+                  if (constraints.maxWidth < 360) {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         testBtn,
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [actionBtns],

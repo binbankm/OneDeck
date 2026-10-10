@@ -160,7 +160,7 @@ class DiskIoCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 11.5,
+                fontSize: 11,
                 color: DeckColors.textSecondary(context),
               ),
             ),
@@ -169,7 +169,7 @@ class DiskIoCard extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: FontWeight.bold,
               color: DeckColors.textPrimary(context),
               fontFamily: 'monospace',
@@ -213,7 +213,7 @@ class DiskIoCard extends StatelessWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 10.5, color: DeckColors.textMuted(context)),
+                  style: TextStyle(fontSize: 10, color: DeckColors.textMuted(context)),
                 ),
                 const SizedBox(height: 2),
                 Text(
