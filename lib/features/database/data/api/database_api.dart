@@ -246,8 +246,8 @@ class DatabaseApi {
   }
 
   /// Install redis-cli
-  Future<ApiResponse<void>> postDatabasesRedisInstallCli({Map<String, dynamic>? queryParameters}) async {
-    return client.post<void>('/databases/redis/install/cli', queryParameters: queryParameters);
+  Future<ApiResponse<void>> postDatabasesRedisInstallCli({Map<String, dynamic>? data, Map<String, dynamic>? queryParameters}) async {
+    return client.post<void>('/databases/redis/install/cli', data: data ?? const <String, dynamic>{}, queryParameters: queryParameters);
   }
 
   /// Change redis password
