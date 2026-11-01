@@ -35,7 +35,42 @@ public enum L10n {
         AppState.shared.language
     }
 
-    private static var isChinese: Bool {
+    private static var systemLanguage: (isZh: Bool, isHant: Bool) {
+        var candidates: [String] = []
+        if let firstPref = Locale.preferredLanguages.first {
+            candidates.append(firstPref)
+        }
+        candidates.append(Locale.current.identifier)
+        if let langCode = Locale.current.language.languageCode?.identifier {
+            candidates.append(langCode)
+        }
+        candidates.append(contentsOf: Locale.preferredLanguages)
+
+        for lang in candidates {
+            let lower = lang.lowercased()
+            if lower.contains("zh-hant") || lower.contains("zh-hk") || lower.contains("zh-tw") || lower.contains("zh-mo") ||
+               lower.contains("zh_hant") || lower.contains("zh_hk") || lower.contains("zh_tw") || lower.contains("zh_mo") {
+                return (true, true)
+            }
+            if lower.hasPrefix("zh") || lower.contains("zh-hans") || lower.contains("zh_cn") || lower.contains("chinese") {
+                return (true, false)
+            }
+        }
+        return (false, false)
+    }
+
+    public static var isEnglish: Bool {
+        switch currentLanguage {
+        case .en:
+            return true
+        case .zhHans, .zhHant:
+            return false
+        case .system:
+            return !systemLanguage.isZh
+        }
+    }
+
+    public static var isChinese: Bool {
         switch currentLanguage {
         case .zhHans:
             return true
@@ -44,11 +79,7 @@ public enum L10n {
         case .en:
             return false
         case .system:
-            let preferred = Locale.preferredLanguages.first ?? "en"
-            if preferred.hasPrefix("zh-Hant") || preferred.hasPrefix("zh-HK") || preferred.hasPrefix("zh-TW") || preferred.hasPrefix("zh-MO") {
-                return false
-            }
-            return preferred.hasPrefix("zh")
+            return systemLanguage.isZh && !systemLanguage.isHant
         }
     }
 
@@ -56,20 +87,29 @@ public enum L10n {
         switch currentLanguage {
         case .zhHant:
             return true
-        case .system:
-            let preferred = Locale.preferredLanguages.first ?? "en"
-            return preferred.hasPrefix("zh-Hant") || preferred.hasPrefix("zh-HK") || preferred.hasPrefix("zh-TW") || preferred.hasPrefix("zh-MO")
-        default:
+        case .zhHans, .en:
             return false
+        case .system:
+            return systemLanguage.isZh && systemLanguage.isHant
         }
     }
 
     public static func tr(zh: String, en: String, hant: String? = nil) -> String {
-        if isChinese {
+        switch currentLanguage {
+        case .en:
+            return en
+        case .zhHans:
             return zh
-        } else if isTraditionalChinese {
+        case .zhHant:
             return hant ?? zh
-        } else {
+        case .system:
+            let sys = systemLanguage
+            if sys.isZh {
+                if sys.isHant {
+                    return hant ?? zh
+                }
+                return zh
+            }
             return en
         }
     }
@@ -395,6 +435,7 @@ public enum L10n {
         public static var reportPendingCalibration: String { tr(zh: "待导入日志校准", en: "Pending Import", hant: "待匯入日誌校準") }
 
         public static var guideTitle: String { tr(zh: "获取官方电芯日志", en: "Analytics Log Guide", hant: "取得官方電芯日誌") }
+        public static var guideStepsHeader: String { tr(zh: "操作步骤", en: "Instructions", hant: "操作步驟") }
         public static var guideStep1: String {
             tr(
                 zh: "1. 打开【设置】 > 【隐私与安全性】 > 【分析与改进】",
@@ -437,7 +478,7 @@ public enum L10n {
         public static var calibrateDesc: String { tr(zh: "校准第三方电芯容量与续航估算", en: "Calibrate cell capacity & battery life", hant: "校準第三方電芯容量與續航估算") }
         public static var chargeWaveform: String { tr(zh: "充电功率曲线", en: "Charging Curve", hant: "充電功率曲線") }
         public static var dischargeWaveform: String { tr(zh: "放电功率曲线", en: "Discharging Curve", hant: "放電功率曲線") }
-        public static var orPasteSnippet: String { tr(zh: "或粘贴日志文本", en: "Or Paste Log Snippet", hant: "或貼上日誌文字") }
+        public static var orPasteSnippet: String { tr(zh: "或粘贴日志文本", en: "Or Paste Text", hant: "或貼上日誌文字") }
         public static var clearRecord: String { tr(zh: "清除记录", en: "Reset Data", hant: "清除記錄") }
         public static var errLogDecoding: String { tr(zh: "无法解码日志文件编码", en: "Unable to decode log file", hant: "無法解碼日誌檔案編碼") }
         public static var errCycleNotFound: String { tr(zh: "未在日志中找到电池循环次数 (last_value_CycleCount)", en: "Cycle count (last_value_CycleCount) not found in log", hant: "未在日誌中找到電池循環次數 (last_value_CycleCount)") }
@@ -446,24 +487,146 @@ public enum L10n {
     // MARK: - Network
     public enum Network {
         public static var title: String { tr(zh: "网络", en: "Network", hant: "網絡") }
-        public static var wifiStatus: String { tr(zh: "无线局域网", en: "Wi-Fi", hant: "無線區域網絡") }
+        public static var linkStatusTitle: String { tr(zh: "网络链路", en: "Network Link", hant: "網絡鏈路") }
         public static var connected: String { tr(zh: "已连接", en: "Connected", hant: "已連線") }
-        public static var ssid: String { tr(zh: "网络名称", en: "SSID", hant: "網絡名稱") }
+        public static var disconnected: String { tr(zh: "未连接", en: "Disconnected", hant: "未連線") }
+        public static var interfaceType: String { tr(zh: "链路制式", en: "Link Type", hant: "鏈路制式") }
+        public static var wifi: String { tr(zh: "Wi-Fi", en: "Wi-Fi", hant: "Wi-Fi") }
+        public static var cellular: String { tr(zh: "蜂窝移动网络", en: "Cellular", hant: "行動網絡") }
+        public static var wired: String { tr(zh: "有线以太网", en: "Ethernet", hant: "有線乙太網") }
+        public static var hotspot: String { tr(zh: "个人热点", en: "Hotspot", hant: "個人熱點") }
+
         public static var localIP: String { tr(zh: "局域网 IP", en: "Local IP", hant: "區域網絡 IP") }
-        public static var gateway: String { tr(zh: "网关", en: "Gateway", hant: "閘道") }
-        public static var cellular: String { tr(zh: "蜂窝网络", en: "Cellular", hant: "行動網絡") }
-        public static var carrier: String { tr(zh: "运营商", en: "Carrier", hant: "電信業者") }
-        public static var radioTech: String { tr(zh: "网络制式", en: "Radio RAT", hant: "網絡制式") }
+        public static var subnetMask: String { tr(zh: "子网掩码", en: "Subnet Mask", hant: "子網遮罩") }
+        public static var gateway: String { tr(zh: "默认网关", en: "Gateway", hant: "預設閘道") }
+        public static var gatewayShort: String { tr(zh: "网关", en: "Gateway", hant: "閘道") }
+        public static var broadcastIP: String { tr(zh: "广播地址", en: "Broadcast", hant: "廣播位址") }
+        public static var dnsServer: String { tr(zh: "DNS 服务器", en: "DNS Server", hant: "DNS 伺服器") }
+
+        public static var trafficTitle: String { tr(zh: "实时流量", en: "Traffic", hant: "即時流量") }
+        public static var downloadSpeed: String { tr(zh: "下行速率", en: "Download", hant: "下行速率") }
+        public static var uploadSpeed: String { tr(zh: "上行速率", en: "Upload", hant: "上行速率") }
+        public static var totalIn: String { tr(zh: "入站总量", en: "Total In", hant: "入站總量") }
+        public static var totalOut: String { tr(zh: "出站总量", en: "Total Out", hant: "出站總量") }
+
+        public static var latencyTitle: String { tr(zh: "网络延迟", en: "Latency", hant: "網絡延遲") }
+        public static var latency: String { tr(zh: "网络延迟", en: "Latency", hant: "網絡延遲") }
+        public static var latencyLive: String { tr(zh: "实时探测", en: "Live", hant: "即時探測") }
+        public static var latencyBenchmark: String { tr(zh: "DNS 基准", en: "DNS", hant: "DNS 基準") }
+        public static var pingTarget: String { tr(zh: "探测节点", en: "Target Node", hant: "探測節點") }
+        public static var jitter: String { tr(zh: "抖动", en: "Jitter", hant: "抖動") }
+        public static var packetLoss: String { tr(zh: "丢包", en: "Loss", hant: "丟包") }
+        public static var qualityOptimal: String { tr(zh: "极佳 (<25ms)", en: "Optimal (<25ms)", hant: "極佳 (<25ms)") }
+        public static var qualityGood: String { tr(zh: "良好 (<60ms)", en: "Good (<60ms)", hant: "良好 (<60ms)") }
+        public static var qualityFair: String { tr(zh: "一般 (<120ms)", en: "Fair (<120ms)", hant: "一般 (<120ms)") }
+        public static var qualityPoor: String { tr(zh: "拥塞 (≥120ms)", en: "Poor (≥120ms)", hant: "擁塞 (≥120ms)") }
+        public static var msSuffix: String { tr(zh: "毫秒", en: "ms", hant: "毫秒") }
+
+        public static var publicIPTitle: String { tr(zh: "公网出口", en: "Public IP", hant: "公網出口") }
         public static var publicIP: String { tr(zh: "公网 IP", en: "Public IP", hant: "公網 IP") }
-        public static var pingTest: String { tr(zh: "Ping 延迟", en: "Ping Latency", hant: "Ping 延遲") }
-        public static var msDns: String { tr(zh: "毫秒 (1.1.1.1 DNS)", en: "ms (1.1.1.1 DNS)", hant: "毫秒 (1.1.1.1 DNS)") }
-        public static var lanScan: String { tr(zh: "局域网扫描", en: "LAN Scan", hant: "區域網絡掃描") }
-        public static func devicesDiscovered(count: Int) -> String {
-            tr(zh: "发现 \(count) 台设备", en: "\(count) Devices Found", hant: "發現 \(count) 台裝置")
+        public static var carrierIsp: String { tr(zh: "运营商 / ASN", en: "ISP & ASN", hant: "電信業者 / ASN") }
+        public static var geoCity: String { tr(zh: "地理位置", en: "Location", hant: "地理位置") }
+        public static var refreshGeoIP: String { tr(zh: "刷新", en: "Refresh", hant: "重新整理") }
+        public static var refresh: String { tr(zh: "刷新", en: "Refresh", hant: "重新整理") }
+        public static var querying: String { tr(zh: "查询中...", en: "Querying...", hant: "查詢中...") }
+        public static var proxyExit: String { tr(zh: "代理出口", en: "Proxy Exit", hant: "代理出口") }
+
+        public static var lanScanTitle: String { tr(zh: "局域网发现", en: "LAN Discovery", hant: "區域網絡發現") }
+        public static var startScan: String { tr(zh: "发现设备", en: "Discover", hant: "發現設備") }
+        public static var scanning: String { tr(zh: "扫描中...", en: "Scanning...", hant: "掃描中...") }
+        public static var scanComplete: String { tr(zh: "扫描完成", en: "Complete", hant: "掃描完成") }
+        public static func devicesCountText(count: Int) -> String {
+            tr(zh: "已发现 \(count) 台设备", en: "\(count) Devices", hant: "已發現 \(count) 台設備")
         }
-        public static var wol: String { tr(zh: "网络唤醒 (WOL)", en: "Wake-on-LAN", hant: "網絡喚醒 (WOL)") }
-        public static var sendWol: String { tr(zh: "发送唤醒包", en: "Send Magic Packet", hant: "發送喚醒包") }
-        public static var portScan: String { tr(zh: "端口扫描", en: "Port Scanner", hant: "通訊埠掃描") }
+
+        public static var wolTitle: String { tr(zh: "网络唤醒", en: "Wake-on-LAN", hant: "網絡喚醒") }
+        public static var wolPortBadge: String { tr(zh: "UDP · 端口 9", en: "UDP · Port 9", hant: "UDP · 埠 9") }
+        public static var macAddress: String { tr(zh: "目标 MAC 地址", en: "Target MAC Address", hant: "目標 MAC 位址") }
+        public static var sendWol: String { tr(zh: "发送唤醒包", en: "Send Packet", hant: "發送喚醒包") }
+        public static var wolSuccess: String { tr(zh: "魔术包已广播至局域网", en: "Magic Packet Broadcasted", hant: "魔術包已廣播至區域網絡") }
+        public static var wolInvalidMac: String { tr(zh: "请输入有效 12 位 MAC 地址", en: "Invalid 12-digit MAC", hant: "請輸入有效 12 位 MAC 位址") }
+        public static var wolDesc: String { tr(zh: "广播 102 字节魔术包", en: "102-byte Magic Packet", hant: "廣播 102 位元組魔術包") }
+        public static var presets: String { tr(zh: "快捷预设", en: "Presets", hant: "快捷預設") }
+        public static var presetNas: String { tr(zh: "NAS 主机", en: "NAS Server", hant: "NAS 主機") }
+        public static var presetWorkstation: String { tr(zh: "工作站 PC", en: "Workstation", hant: "工作站 PC") }
+        public static var presetMedia: String { tr(zh: "家庭影音", en: "Home Theater", hant: "家庭影音") }
+        public static var copied: String { tr(zh: "已复制", en: "Copied", hant: "已複製") }
+        public static var expensiveCellular: String { tr(zh: "计费网络", en: "Metered", hant: "計費網絡") }
+        public static var lowDataMode: String { tr(zh: "低数据模式", en: "Low Data", hant: "低數據模式") }
+        public static var noLanDevices: String { tr(zh: "未发现活动 Bonjour 服务", en: "No Bonjour Services Found", hant: "未發現活動 Bonjour 服務") }
+        public static var noLanDevicesHint: String { tr(zh: "请确认同局域网设备已开启共享服务", en: "Check local devices have sharing enabled", hant: "請確認同區域網絡設備已開啟共享服務") }
+        public static var lanScanDesc: String { tr(zh: "自动发现本地 mDNS 设备", en: "Auto-discover local mDNS devices", hant: "自動發現本地 mDNS 設備") }
+
+        // Hardware interface specs
+        public static var mtu: String { tr(zh: "最大传输单元", en: "MTU", hant: "最大傳輸單元") }
+        public static var linkSpeed: String { tr(zh: "协商速率", en: "Link Speed", hant: "協商速率") }
+        public static var subnetRange: String { tr(zh: "网段", en: "Subnet", hant: "網段") }
+
+        // Multi-Node DNS Benchmark
+        public static var dnsBenchmarkTitle: String { tr(zh: "DNS 延迟基准", en: "DNS Benchmark", hant: "DNS 延遲基準") }
+        public static var dnsBenchmarkDesc: String { tr(zh: "并发探测主流公共 DNS 解析延迟", en: "Benchmark public DNS latency", hant: "並發探測主流公共 DNS 解析延遲") }
+        public static var runBenchmark: String { tr(zh: "并发测速", en: "Benchmark", hant: "並發測速") }
+        public static var fastestNode: String { tr(zh: "最优线路", en: "Fastest", hant: "最優線路") }
+
+        // Port Scanner
+        public static var portScanTitle: String { tr(zh: "端口扫描", en: "Port Scanner", hant: "埠掃描") }
+        public static var portScanDesc: String { tr(zh: "探测主机常用服务端口", en: "Scan common service ports", hant: "探測主機常用服務埠") }
+        public static var checkPorts: String { tr(zh: "扫描端口", en: "Scan Ports", hant: "掃描埠") }
+        public static var portOpen: String { tr(zh: "开放", en: "Open", hant: "開放") }
+        public static var portClosed: String { tr(zh: "关闭", en: "Closed", hant: "關閉") }
+        public static var targetHost: String { tr(zh: "目标主机", en: "Target Host", hant: "目標主機") }
+
+        // DNS Lookup & Dig
+        public static var dnsLookupTitle: String { tr(zh: "域名解析", en: "DNS Lookup", hant: "網域名稱解析") }
+        public static var dnsPortBadge: String { tr(zh: "POSIX · 端口 53", en: "POSIX · Port 53", hant: "POSIX · 埠 53") }
+        public static var dnsRecordA: String { tr(zh: "A 记录 (IPv4)", en: "A Record (IPv4)", hant: "A 記錄 (IPv4)") }
+        public static var dnsRecordAaaa: String { tr(zh: "AAAA 记录 (IPv6)", en: "AAAA Record (IPv6)", hant: "AAAA 記錄 (IPv6)") }
+        public static var dnsLookupDesc: String { tr(zh: "POSIX 原生解析 A / AAAA 记录", en: "POSIX A / AAAA lookup", hant: "POSIX 原生解析 A / AAAA 記錄") }
+        public static var domainInputPlaceholder: String { tr(zh: "输入域名 (如 apple.com)", en: "Domain (e.g. apple.com)", hant: "輸入網域名稱 (如 apple.com)") }
+        public static var resolveDomain: String { tr(zh: "解析", en: "Resolve", hant: "解析") }
+        public static var queryTime: String { tr(zh: "解析耗时", en: "Query Time", hant: "解析耗時") }
+
+        // Active Speed Test
+        public static var speedTestTitle: String { tr(zh: "带宽测速", en: "Speed Test", hant: "頻寬測速") }
+        public static var startSpeedTest: String { tr(zh: "开始测速", en: "Start Test", hant: "開始測速") }
+        public static var peakSpeed: String { tr(zh: "峰值带宽", en: "Peak", hant: "峰值頻寬") }
+        public static func peakSpeedFormatted(mbps: Double) -> String {
+            tr(zh: "峰值 \(String(format: "%.1f", mbps)) Mbps", en: "Peak \(String(format: "%.1f", mbps)) Mbps", hant: "峰值 \(String(format: "%.1f", mbps)) Mbps")
+        }
+        public static var avgSpeed: String { tr(zh: "平均速率", en: "Average", hant: "平均速率") }
+        public static var speedTesting: String { tr(zh: "测速中...", en: "Testing...", hant: "測速中...") }
+        public static var speedStagePing: String { tr(zh: "探测延迟...", en: "Probing Ping...", hant: "探測延遲...") }
+        public static var speedStageDownload: String { tr(zh: "下行测速...", en: "Testing Download...", hant: "下行測速...") }
+        public static var speedStageUpload: String { tr(zh: "上行测速...", en: "Testing Upload...", hant: "上行測速...") }
+        public static var speedStageCompleted: String { tr(zh: "测速完成", en: "Completed", hant: "測速完成") }
+        public static var speedTestRestart: String { tr(zh: "重新测速", en: "Retest", hant: "重新測速") }
+        public static var speedTestStop: String { tr(zh: "停止测速", en: "Stop", hant: "停止測速") }
+        public static var speedRating: String { tr(zh: "网络评级", en: "Rating", hant: "網絡評級") }
+        public static func speedTestRatingText(for downMbps: Double) -> String {
+            if downMbps >= 300.0 {
+                return tr(zh: "S · 极速千兆", en: "S · Gigabit Ultra", hant: "S · 極速千兆")
+            } else if downMbps >= 100.0 {
+                return tr(zh: "A+ · 卓越极速", en: "A+ · Excellent", hant: "A+ · 卓越極速")
+            } else if downMbps >= 50.0 {
+                return tr(zh: "A · 高速优质", en: "A · High Speed", hant: "A · 高速優質")
+            } else if downMbps >= 20.0 {
+                return tr(zh: "B · 良好流畅", en: "B · Good", hant: "B · 良好流暢")
+            } else {
+                return tr(zh: "C · 基础网络", en: "C · Basic", hant: "C · 基礎網絡")
+            }
+        }
+        public static var serverNode: String { tr(zh: "测试节点", en: "Server Node", hant: "測試節點") }
+        public static var cellularGen: String { tr(zh: "网络制式", en: "Cellular Standard", hant: "網絡制式") }
+        public static var carrier: String { tr(zh: "运营商", en: "Carrier", hant: "電信業者") }
+        public static var wifiGen: String { tr(zh: "Wi-Fi 规格", en: "Wi-Fi Spec", hant: "Wi-Fi 規格") }
+        public static var speedReady: String { tr(zh: "待测速", en: "Ready", hant: "待測速") }
+        public static var collapse: String { tr(zh: "收起", en: "Collapse", hant: "收起") }
+        public static var expandDetails: String { tr(zh: "详情", en: "Details", hant: "詳情") }
+        public static var clearResults: String { tr(zh: "清除", en: "Clear", hant: "清除") }
+        public static var lastSpeedTest: String { tr(zh: "上次测速", en: "Last Test", hant: "上次測速") }
+        public static var speedTestHistory: String { tr(zh: "测速历史", en: "Test History", hant: "測速歷史") }
+        public static var clearHistory: String { tr(zh: "清空", en: "Clear", hant: "清空") }
+        public static var noSpeedTestHistory: String { tr(zh: "暂无测速记录", en: "No Records", hant: "暫無測速記錄") }
     }
 
     // MARK: - Tools

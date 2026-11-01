@@ -73,7 +73,7 @@ struct BatteryLongevityCard: View {
             // MARK: - 3. 2-Tile Scientific Longevity Metrics
             HStack(spacing: 10) {
                 // Metric 1: Degradation Rate Per Cycle
-                longevityTile(
+                LongevityTile(
                     icon: "chart.line.downtrend.xyaxis",
                     label: L10n.Battery.cycleDegradationRate,
                     value: degradationRateText,
@@ -83,7 +83,7 @@ struct BatteryLongevityCard: View {
                 )
 
                 // Metric 2: Margin to Apple 80% Service Threshold
-                longevityTile(
+                LongevityTile(
                     icon: "shield.lefthalf.filled.badge.checkmark",
                     label: L10n.Battery.serviceThresholdMargin,
                     value: serviceMarginText,
@@ -132,242 +132,122 @@ struct BatteryLongevityCard: View {
     }
 
     // MARK: - Degradation Curve Section
+    @ViewBuilder
     private var degradationCurveSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Row 1: Chart Title & 3-Item Legend
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.Battery.degradationChartTitle)
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                        .lineLimit(1)
-
-                    Text(L10n.Battery.degradationChartSubtitle)
-                        .font(.system(size: 9.5, weight: .medium))
-                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 8)
-
-                // 3-Item Clean Legend
-                HStack(spacing: 7) {
-                    // Actual
-                    HStack(spacing: 3) {
-                        Circle()
-                            .fill(appState.accentColor)
-                            .frame(width: 5, height: 5)
-                        Text(L10n.Battery.degradationActualCurve)
-                            .font(.system(size: 8.5, weight: .semibold, design: .rounded))
-                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                    }
-
-                    // Apple Spec
-                    HStack(spacing: 3) {
-                        Rectangle()
-                            .fill(Theme.textTertiary(for: colorScheme))
-                            .frame(width: 7, height: 1.2)
-                        Text(L10n.Battery.degradationAppleBaseline)
-                            .font(.system(size: 8.5, weight: .medium, design: .rounded))
-                            .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                    }
-
-                    // 80% Service Line
-                    HStack(spacing: 3) {
-                        Rectangle()
-                            .fill(Color.red.opacity(0.85))
-                            .frame(width: 7, height: 1.2)
-                        Text(L10n.Battery.degradationServiceThreshold)
-                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color.red.opacity(0.85))
-                    }
-                }
-            }
-
-            // Row 2: Swift Charts Degradation Plot
-            let maxDomain = maxCycleDomain
-            let ticks = xAxisTicks
-
-            Chart {
-                // 1. Apple Official Standard Degradation Baseline (Dashed)
-                ForEach(Self.appleStandardCurve) { pt in
-                    LineMark(
-                        x: .value(L10n.Battery.degradationCycleAxis, pt.cycle),
-                        y: .value(L10n.Battery.degradationHealthAxis, pt.health)
-                    )
-                    .interpolationMethod(.monotone)
-                    .lineStyle(StrokeStyle(lineWidth: 1.3, dash: [4, 3]))
-                    .foregroundStyle(Theme.textTertiary(for: colorScheme).opacity(0.65))
-                }
-
-                // 2. Apple 80% Service Threshold Rule Line (Zero collision, clean red rule)
-                RuleMark(y: .value("Service Limit", 80.0))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
-                    .foregroundStyle(Color.red.opacity(0.75))
-
-                // 3. Device Actual Degradation Path (when BMS data loaded)
-                if battery.hasImportedBMS && battery.cycleCountDisplay > 0 {
-                    // Actual Past Trajectory Curve
-                    ForEach(actualDegradationCurve) { pt in
-                        LineMark(
-                            x: .value(L10n.Battery.degradationCycleAxis, pt.cycle),
-                            y: .value(L10n.Battery.degradationHealthAxis, pt.health)
-                        )
-                        .interpolationMethod(.monotone)
-                        .lineStyle(StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
-                        .foregroundStyle(appState.accentColor)
-
-                        AreaMark(
-                            x: .value(L10n.Battery.degradationCycleAxis, pt.cycle),
-                            yStart: .value(L10n.Battery.degradationHealthAxis, 70.0),
-                            yEnd: .value(L10n.Battery.degradationHealthAxis, pt.health)
-                        )
-                        .interpolationMethod(.monotone)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [
-                                    appState.accentColor.opacity(0.18),
-                                    appState.accentColor.opacity(0.0)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                    }
-
-                    // Predictive Future Trajectory (Subtle Dashed Projection)
-                    ForEach(projectedDegradationCurve) { pt in
-                        LineMark(
-                            x: .value(L10n.Battery.degradationCycleAxis, pt.cycle),
-                            y: .value(L10n.Battery.degradationHealthAxis, pt.health)
-                        )
-                        .interpolationMethod(.monotone)
-                        .lineStyle(StrokeStyle(lineWidth: 1.6, dash: [3, 3]))
-                        .foregroundStyle(appState.accentColor.opacity(0.65))
-                    }
-
-                    // Current Point Pin (Glow Halo & PointMark)
-                    PointMark(
-                        x: .value(L10n.Battery.degradationCycleAxis, Double(battery.cycleCountDisplay)),
-                        y: .value(L10n.Battery.degradationHealthAxis, battery.healthPercentDisplay)
-                    )
-                    .symbolSize(36)
-                    .foregroundStyle(appState.accentColor)
-                    .annotation(
-                        position: battery.healthPercentDisplay >= 92.0 ? .bottom : .top,
-                        alignment: .center,
-                        spacing: 8
-                    ) {
-                        HStack(spacing: 3) {
-                            Text("\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit)")
-                                .font(.system(size: 8.5, weight: .bold, design: .rounded))
-                            Text("•")
-                                .font(.system(size: 7))
-                            Text(String(format: "%.1f%%", battery.healthPercentDisplay))
-                                .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2.5)
-                        .background(colorScheme == .dark ? Color(white: 0.10).opacity(0.92) : Color.white.opacity(0.95))
-                        .foregroundStyle(appState.accentColor)
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule()
-                                .stroke(appState.accentColor.opacity(0.4), lineWidth: 0.8)
-                        )
-                        .shadow(color: appState.accentColor.opacity(0.35), radius: 4, x: 0, y: 1.5)
-                    }
-                }
-            }
-            .chartXScale(domain: 0...maxDomain)
-            .chartYScale(domain: 68...106)
-            .chartXAxis {
-                AxisMarks(values: ticks) { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
-                        .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
-                    AxisValueLabel(anchor: .center) {
-                        if let cycle = value.as(Double.self) {
-                            Text("\(Int(cycle))")
-                                .font(.system(size: 8.5, weight: .medium, design: .monospaced))
-                                .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                                .lineLimit(1)
-                                .fixedSize()
-                        }
-                    }
-                }
-            }
-            .chartYAxis {
-                AxisMarks(values: [70, 80, 90, 100]) { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
-                        .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
-                    AxisValueLabel() {
-                        if let health = value.as(Double.self) {
-                            Text("\(Int(health))%")
-                                .font(.system(size: 8.5, weight: .medium, design: .monospaced))
-                                .foregroundStyle(
-                                    health == 80.0
-                                    ? Color.red.opacity(0.85)
-                                    : Theme.textTertiary(for: colorScheme)
-                                )
-                        }
-                    }
-                }
-            }
-            .frame(height: 130)
-            .padding(.horizontal, 4)
-
-            // Row 3: Benchmark Health Insight Capsule
-            if battery.hasImportedBMS && battery.cycleCountDisplay > 0 {
-                let currentCycle = Double(battery.cycleCountDisplay)
-                // Apple spec baseline at current cycles:
-                let specHealthAtCurrent = max(60.0, 100.0 - (currentCycle / 500.0) * 20.0)
-                let delta = battery.healthPercentDisplay - specHealthAtCurrent
-
-                HStack(spacing: 5) {
-                    Image(systemName: delta >= 0 ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(delta >= 0 ? appState.accentColor : .yellow)
-
-                    Text(delta >= 0
-                         ? "\(L10n.Battery.baselineAbove) +\(String(format: "%.1f%%", delta))"
-                         : "\(L10n.Battery.baselineBelow) \(String(format: "%.1f%%", delta))")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(delta >= 0 ? appState.accentColor : .yellow)
-
-                    Spacer()
-
-                    Text(gradeText)
-                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                }
-                .padding(.horizontal, 9)
-                .padding(.vertical, 4.5)
-                .background(
-                    (delta >= 0 ? appState.accentColor : Color.yellow).opacity(0.10)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-            } else if !battery.hasImportedBMS {
-                HStack(spacing: 4) {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 9))
-                    Text(L10n.Battery.degradationImportHint)
-                        .font(.system(size: 9.5, weight: .medium))
-                }
-                .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                .padding(.top, 2)
-            }
+            chartLegendHeaderRow
+            BatteryAgingCurveChart(
+                battery: battery,
+                appState: appState,
+                maxDomain: maxCycleDomain,
+                ticks: xAxisTicks,
+                actualDegradationCurve: actualDegradationCurve,
+                projectedDegradationCurve: projectedDegradationCurve,
+                appleStandardCurve: Self.appleStandardCurve
+            )
+            insightCapsuleRow
         }
         .padding(10)
         .background(colorScheme == .dark ? Color.white.opacity(0.025) : Color.black.opacity(0.02))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
+    @ViewBuilder
+    private var chartLegendHeaderRow: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L10n.Battery.degradationChartTitle)
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .lineLimit(1)
+
+                Text(L10n.Battery.degradationChartSubtitle)
+                    .font(.system(size: 9.5, weight: .medium))
+                    .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 7) {
+                HStack(spacing: 3) {
+                    Circle()
+                        .fill(appState.accentColor)
+                        .frame(width: 5, height: 5)
+                    Text(L10n.Battery.degradationActualCurve)
+                        .font(.system(size: 8.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                }
+
+                HStack(spacing: 3) {
+                    Rectangle()
+                        .fill(Theme.textTertiary(for: colorScheme))
+                        .frame(width: 7, height: 1.2)
+                    Text(L10n.Battery.degradationAppleBaseline)
+                        .font(.system(size: 8.5, weight: .medium, design: .rounded))
+                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                }
+
+                HStack(spacing: 3) {
+                    Rectangle()
+                        .fill(Color.red.opacity(0.85))
+                        .frame(width: 7, height: 1.2)
+                    Text(L10n.Battery.degradationServiceThreshold)
+                        .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.red.opacity(0.85))
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var insightCapsuleRow: some View {
+        if battery.hasImportedBMS && battery.cycleCountDisplay > 0 {
+            let currentCycle: Double = Double(battery.cycleCountDisplay)
+            let specHealthAtCurrent: Double = max(60.0, 100.0 - (currentCycle / 500.0) * 20.0)
+            let delta: Double = battery.healthPercentDisplay - specHealthAtCurrent
+            let isPositive: Bool = delta >= 0
+            let badgeColor: Color = isPositive ? appState.accentColor : Color.yellow
+            let deltaFormatted: String = String(format: "%.1f%%", delta)
+            let deltaText: String = isPositive ? "\(L10n.Battery.baselineAbove) +\(deltaFormatted)" : "\(L10n.Battery.baselineBelow) \(deltaFormatted)"
+
+            HStack(spacing: 5) {
+                Image(systemName: isPositive ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(badgeColor)
+
+                Text(deltaText)
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(badgeColor)
+
+                Spacer()
+
+                Text(gradeText)
+                    .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4.5)
+            .background(badgeColor.opacity(0.10))
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        } else if !battery.hasImportedBMS {
+            HStack(spacing: 4) {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 9))
+                Text(L10n.Battery.degradationImportHint)
+                    .font(.system(size: 9.5, weight: .medium))
+            }
+            .foregroundStyle(Theme.textTertiary(for: colorScheme))
+            .padding(.top, 2)
+        }
+    }
+
     // MARK: - Curve Domain & Ticks
     private var maxCycleDomain: Double {
         let cycles = Double(battery.cycleCountDisplay)
-        if cycles <= 450 { return 600.0 }
-        if cycles <= 700 { return 800.0 }
-        return Double(((Int(cycles) + 199) / 200) * 200)
+        if cycles <= 450 { return 650.0 }
+        if cycles <= 700 { return 850.0 }
+        return Double(((Int(cycles) + 199) / 200) * 200) + 50.0
     }
 
     private var xAxisTicks: [Double] {
@@ -420,58 +300,6 @@ struct BatteryLongevityCard: View {
             DegradationPoint(id: "proj-mid", cycle: midCycle, health: midHealth),
             DegradationPoint(id: "proj-end", cycle: maxDomain, health: endHealth)
         ]
-    }
-
-    // MARK: - Subviews
-    @ViewBuilder
-    private func longevityTile(
-        icon: String,
-        label: String,
-        value: String,
-        unit: String,
-        subtitle: String,
-        accent: Color
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(accent)
-
-                Text(label)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-            }
-
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(value)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-
-                if !unit.isEmpty {
-                    Text(unit)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                        .lineLimit(1)
-                }
-            }
-
-            Text(subtitle)
-                .font(.system(size: 9.5, weight: .medium))
-                .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     @ViewBuilder
@@ -592,5 +420,200 @@ struct BatteryLongevityCard: View {
                 showCopiedToast = false
             }
         }
+    }
+}
+
+// MARK: - Isolated Aging Curve Chart View (Prevents Swift Type-Checker Exponential Slowdown)
+private struct BatteryAgingCurveChart: View {
+    @Bindable var battery: BatteryService
+    @Bindable var appState: AppState
+    let maxDomain: Double
+    let ticks: [Double]
+    let actualDegradationCurve: [DegradationPoint]
+    let projectedDegradationCurve: [DegradationPoint]
+    let appleStandardCurve: [DegradationPoint]
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Chart {
+            // 1. Apple Official Standard Degradation Baseline (Dashed)
+            ForEach(appleStandardCurve) { pt in
+                LineMark(
+                    x: .value(L10n.Battery.degradationCycleAxis, pt.cycle),
+                    y: .value(L10n.Battery.degradationHealthAxis, pt.health)
+                )
+                .interpolationMethod(.monotone)
+                .lineStyle(StrokeStyle(lineWidth: 1.3, dash: [4, 3]))
+                .foregroundStyle(Theme.textTertiary(for: colorScheme).opacity(0.65))
+            }
+
+            // 2. Apple 80% Service Threshold Rule Line
+            RuleMark(y: .value("Service Limit", 80.0))
+                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                .foregroundStyle(Color.red.opacity(0.75))
+
+            // 3. Device Actual Degradation Path (when BMS data loaded)
+            if battery.hasImportedBMS && battery.cycleCountDisplay > 0 {
+                // Actual Past Trajectory Curve
+                ForEach(actualDegradationCurve) { pt in
+                    LineMark(
+                        x: .value(L10n.Battery.degradationCycleAxis, pt.cycle),
+                        y: .value(L10n.Battery.degradationHealthAxis, pt.health)
+                    )
+                    .interpolationMethod(.monotone)
+                    .lineStyle(StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+                    .foregroundStyle(appState.accentColor)
+
+                    AreaMark(
+                        x: .value(L10n.Battery.degradationCycleAxis, pt.cycle),
+                        yStart: .value(L10n.Battery.degradationHealthAxis, 70.0),
+                        yEnd: .value(L10n.Battery.degradationHealthAxis, pt.health)
+                    )
+                    .interpolationMethod(.monotone)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [
+                                appState.accentColor.opacity(0.18),
+                                appState.accentColor.opacity(0.0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                }
+
+                // Predictive Future Trajectory
+                ForEach(projectedDegradationCurve) { pt in
+                    LineMark(
+                        x: .value(L10n.Battery.degradationCycleAxis, pt.cycle),
+                        y: .value(L10n.Battery.degradationHealthAxis, pt.health)
+                    )
+                    .interpolationMethod(.monotone)
+                    .lineStyle(StrokeStyle(lineWidth: 1.6, dash: [3, 3]))
+                    .foregroundStyle(appState.accentColor.opacity(0.65))
+                }
+
+                // Current Point Pin (Glow Halo & PointMark)
+                PointMark(
+                    x: .value(L10n.Battery.degradationCycleAxis, Double(battery.cycleCountDisplay)),
+                    y: .value(L10n.Battery.degradationHealthAxis, battery.healthPercentDisplay)
+                )
+                .symbolSize(36)
+                .foregroundStyle(appState.accentColor)
+                .annotation(
+                    position: battery.healthPercentDisplay >= 92.0 ? .bottom : .top,
+                    alignment: .center,
+                    spacing: 8
+                ) {
+                    HStack(spacing: 3) {
+                        Text("\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit)")
+                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                        Text("•")
+                            .font(.system(size: 7))
+                        Text(String(format: "%.1f%%", battery.healthPercentDisplay))
+                            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2.5)
+                    .background(colorScheme == .dark ? Color(white: 0.10).opacity(0.92) : Color.white.opacity(0.95))
+                    .foregroundStyle(appState.accentColor)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(appState.accentColor.opacity(0.4), lineWidth: 0.8)
+                    )
+                    .shadow(color: appState.accentColor.opacity(0.35), radius: 4, x: 0, y: 1.5)
+                }
+            }
+        }
+        .chartXScale(domain: 0...maxDomain)
+        .chartYScale(domain: 68...106)
+        .chartXAxis {
+            AxisMarks(values: ticks) { value in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
+                    .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                let cycleVal = value.as(Double.self) ?? 0
+                AxisValueLabel(anchor: cycleVal >= maxDomain * 0.8 ? .topTrailing : .top) {
+                    Text("\(Int(cycleVal))")
+                        .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks(values: [70, 80, 90, 100]) { value in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
+                    .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                AxisValueLabel {
+                    if let health = value.as(Double.self) {
+                        Text("\(Int(health))%")
+                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                            .foregroundStyle(
+                                health == 80.0
+                                ? Color.red.opacity(0.85)
+                                : Theme.textTertiary(for: colorScheme)
+                            )
+                    }
+                }
+            }
+        }
+        .frame(height: 130)
+        .padding(.horizontal, 4)
+    }
+}
+
+// MARK: - Extracted Longevity Bento Tile
+private struct LongevityTile: View {
+    let icon: String
+    let label: String
+    let value: String
+    let unit: String
+    let subtitle: String
+    let accent: Color
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(accent)
+
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(value)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(1)
+                }
+            }
+
+            Text(subtitle)
+                .font(.system(size: 9.5, weight: .medium))
+                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }

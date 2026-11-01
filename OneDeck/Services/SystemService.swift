@@ -292,13 +292,9 @@ public final class SystemService {
         sessionTotalOutBytes.formattedBytes
     }
 
-    // Dynamic localized active interface name
+    // Dynamic localized active interface name (Synchronized with NetworkService NWPathMonitor & CoreTelephony)
     public var activeInterfaceName: String {
-        if activeInterfaceRaw.hasPrefix("pdp_ip") {
-            return L10n.Overview.cellularRadio
-        } else {
-            return "Wi-Fi (\(activeInterfaceRaw))"
-        }
+        NetworkService.shared.activeInterfaceSummary
     }
 
     // MARK: - Memory (Bytes)

@@ -3,144 +3,59 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network Tab: Wi-Fi, Cellular, Ping Latency, LAN Discovery & WOL.
+//  Network Tab: Real-Time Darwin POSIX Network Intelligence Orchestrator.
 //
 
 import SwiftUI
 
 struct NetworkView: View {
     @Bindable var appState = AppState.shared
+    @Bindable var net = NetworkService.shared
     @Environment(\.colorScheme) private var colorScheme
-    @State private var pingLatency: Int = 18
 
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
-                ScrollView {
+                ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 16) {
-                    // MARK: - Wi-Fi Status Card
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack {
-                            Label(L10n.Network.wifiStatus, systemImage: "wifi")
-                                .font(.system(.headline, design: .rounded))
-                                .foregroundStyle(appState.accentColor)
-                            Spacer()
-                            Text(L10n.Network.connected)
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(appState.accentColor.opacity(0.15))
-                                .foregroundStyle(appState.accentColor)
-                                .clipShape(Capsule())
-                        }
+                        // MARK: - 1. Hero Link & Network Interface HUD
+                        NetworkHeroCard()
 
-                        Divider().opacity(0.3)
+                        // MARK: - 2. Real POSIX Latency & Jitter Monitor
+                        NetworkLatencyCard()
 
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            netItem(label: L10n.Network.ssid, value: "Home-Wi-Fi-5G")
-                            netItem(label: L10n.Network.localIP, value: "192.168.1.108")
-                            netItem(label: L10n.Network.gateway, value: "192.168.1.1")
-                            netItem(label: L10n.Network.publicIP, value: "114.88.23.15")
-                        }
+                        // MARK: - 3. Live Throughput Waveform (Download/Upload)
+                        NetworkTrafficCard()
+
+                        // MARK: - 4. Public Gateway & GeoIP Resolver
+                        NetworkPublicIPCard()
+
+                        // MARK: - 5. LAN Bonjour mDNS Device Scanner
+                        NetworkLanScannerCard()
+
+                        // MARK: - 6. Common Services & Port Scanner
+                        NetworkPortScannerCard()
+
+                        // MARK: - 7. POSIX DNS Domain Resolution (Dig)
+                        NetworkDnsLookupCard()
+
+                        // MARK: - 8. Wake-on-LAN Magic Packet Dispatcher
+                        NetworkWolCard()
                     }
-                    .bentoCard(accent: appState.accentColor)
-
-                    // MARK: - Ping Latency Card
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Label(L10n.Network.pingTest, systemImage: "waveform.path.ecg")
-                                .font(.system(.headline, design: .rounded))
-                                .foregroundStyle(appState.accentColor)
-                            Spacer()
-                            Button {
-                                Haptics.tick()
-                                pingLatency = Int.random(in: 12...28)
-                            } label: {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.subheadline)
-                                    .foregroundStyle(appState.accentColor)
-                            }
-                        }
-
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Text("\(pingLatency)")
-                                .font(.system(size: 38, weight: .bold, design: .rounded))
-                                .monospacedDigit()
-                                .foregroundStyle(appState.accentColor)
-                            Text(L10n.Network.msDns)
-                                .font(.subheadline)
-                                .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                        }
-                    }
-                    .bentoCard(accent: appState.accentColor)
-
-                    // MARK: - LAN Scanner & WOL Tools Grid
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                        Button {
-                            Haptics.impact(.medium)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Image(systemName: "bonjour")
-                                    .font(.title2)
-                                    .foregroundStyle(appState.accentColor)
-                                Text(L10n.Network.lanScan)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                                Text(L10n.Network.devicesDiscovered(count: 12))
-                                    .font(.caption2)
-                                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .bentoCard(accent: appState.accentColor)
-                        }
-                        .buttonStyle(.plain)
-
-                        Button {
-                            Haptics.success()
-                        } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Image(systemName: "power.circle.fill")
-                                    .font(.title2)
-                                    .foregroundStyle(appState.accentColor)
-                                Text(L10n.Network.wol)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                                Text(L10n.Network.sendWol)
-                                    .font(.caption2)
-                                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .bentoCard(accent: appState.accentColor)
-                        }
-                        .buttonStyle(.plain)
-                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .frame(width: geometry.size.width)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .frame(width: geometry.size.width)
+                .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             }
-            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
-        }
-        .background(Theme.background(for: colorScheme).ignoresSafeArea())
-        .navigationTitle(L10n.Network.title)
-        }
-    }
-
-    @ViewBuilder
-    private func netItem(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(Theme.textSecondary(for: colorScheme))
-            Text(value)
-                .font(.subheadline)
-                .fontDesign(.monospaced)
-                .fontWeight(.medium)
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+            .background(Theme.background(for: colorScheme).ignoresSafeArea())
+            .navigationTitle(L10n.Network.title)
+            .onAppear {
+                net.startMonitoring()
+            }
+            .onDisappear {
+                net.stopMonitoring()
+            }
         }
     }
 }
-

@@ -63,13 +63,13 @@ struct OverviewMemoryStorageCard: View {
                 // 2x2 Bento Stat Grid (Rock-Solid Geometry, Zero Line-Breaks)
                 VStack(spacing: 8) {
                     HStack(spacing: 10) {
-                        memoryStatCell(
+                        MemoryStatCell(
                             label: L10n.Overview.memoryActive,
                             color: appState.accentColor,
                             value: system.activeMemory.formattedBytes
                         )
 
-                        memoryStatCell(
+                        MemoryStatCell(
                             label: L10n.Overview.memoryWired,
                             color: appState.accentColor.opacity(0.65),
                             value: system.wiredMemory.formattedBytes
@@ -77,13 +77,13 @@ struct OverviewMemoryStorageCard: View {
                     }
 
                     HStack(spacing: 10) {
-                        memoryStatCell(
+                        MemoryStatCell(
                             label: L10n.Overview.memoryCompressed,
                             color: appState.accentColor.opacity(0.35),
                             value: system.compressedMemory.formattedBytes
                         )
 
-                        memoryStatCell(
+                        MemoryStatCell(
                             label: L10n.Overview.memoryFree,
                             color: colorScheme == .dark ? Color.white.opacity(0.35) : Color.black.opacity(0.35),
                             value: system.freeMemory.formattedBytes
@@ -203,9 +203,14 @@ struct OverviewMemoryStorageCard: View {
         .bentoCard(accent: appState.accentColor)
     }
 
-    // MARK: - Subviews
-    @ViewBuilder
-    private func memoryStatCell(label: String, color: Color, value: String) -> some View {
+// MARK: - Subviews (Extracted Struct to Prevent Type-Checker Bottlenecks)
+private struct MemoryStatCell: View {
+    let label: String
+    let color: Color
+    let value: String
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 5) {
                 Circle()
@@ -231,5 +236,6 @@ struct OverviewMemoryStorageCard: View {
         .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
+}
 }
 

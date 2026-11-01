@@ -386,7 +386,7 @@ struct BatteryThermalChassisCard: View {
         .allowsHitTesting(false)
     }
 
-    // MARK: - Layer 3: Hardware X-Ray Blueprint Overlay (Follows Real Chip & Real Hardware)
+    // MARK: - Layer 3: Hardware X-Ray Blueprint (Modularized to Prevent Type-Checker Stalls)
     @ViewBuilder
     private func hardwareXRayBlueprint(w: CGFloat, h: CGFloat) -> some View {
         let isXRay = (viewMode == .xray)
@@ -394,58 +394,74 @@ struct BatteryThermalChassisCard: View {
         let strokeAlpha = isXRay ? 0.75 : 0.35
         let fillAlpha = isXRay ? (isDark ? 0.14 : 0.08) : (isDark ? 0.05 : 0.03)
 
-        // 1. Camera Module (Follows Device: Triple lens for Pro, Dual for standard)
+        cameraModuleBlueprint(w: w, h: h, isDark: isDark, fillAlpha: fillAlpha, strokeAlpha: strokeAlpha)
+        batteryPackBlueprint(w: w, h: h, isDark: isDark, fillAlpha: fillAlpha, isXRay: isXRay)
+        wirelessCoilBlueprint(w: w, h: h, isDark: isDark, strokeAlpha: strokeAlpha)
+        socMotherboardBlueprint(w: w, h: h, isDark: isDark, fillAlpha: fillAlpha, isXRay: isXRay)
+        pmicDockBlueprint(w: w, h: h, isDark: isDark, fillAlpha: fillAlpha, isXRay: isXRay)
+    }
+
+    @ViewBuilder
+    private func cameraModuleBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, fillAlpha: Double, strokeAlpha: Double) -> some View {
+        let baseColor: Color = isDark ? Color.white : Color.black
         ZStack {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha))
+                .fill(baseColor.opacity(fillAlpha))
                 .overlay(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .stroke((isDark ? Color.white : Color.black).opacity(strokeAlpha * 0.6), lineWidth: 0.8)
+                        .stroke(baseColor.opacity(strokeAlpha * 0.6), lineWidth: 0.8)
                 )
             if isProModel {
-                // Triple Camera Triangle
                 VStack(spacing: 2) {
                     HStack(spacing: 3) {
-                        Circle().stroke((isDark ? Color.white : Color.black).opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 7, height: 7)
-                        Circle().stroke((isDark ? Color.white : Color.black).opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 7, height: 7)
+                        Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 7, height: 7)
+                        Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 7, height: 7)
                     }
-                    Circle().stroke((isDark ? Color.white : Color.black).opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 7, height: 7)
+                    Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 7, height: 7)
                 }
             } else {
-                // Dual Camera Vertical
                 VStack(spacing: 3) {
-                    Circle().stroke((isDark ? Color.white : Color.black).opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 8, height: 8)
-                    Circle().stroke((isDark ? Color.white : Color.black).opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 8, height: 8)
+                    Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 8, height: 8)
+                    Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 8, height: 8)
                 }
             }
         }
         .frame(width: w * 0.23, height: h * 0.18)
         .offset(x: -w * 0.24, y: -h * 0.34)
+    }
 
-        // 2. Battery: Authentic L-Shaped / High-Energy Li-ion Pack
-        let isBatteryActive = selectedZone == .battery
+    @ViewBuilder
+    private func batteryPackBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, fillAlpha: Double, isXRay: Bool) -> some View {
+        let isBatteryActive = (selectedZone == .battery)
         let bColor = flirColor(for: temperature(of: .battery))
+        let defaultFill: Color = isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)
+        let batteryFill: Color = isBatteryActive ? bColor.opacity(0.20) : defaultFill
+        let defaultStroke: Color = isXRay ? Color.cyan.opacity(0.6) : bColor.opacity(0.4)
+        let batteryStroke: Color = isBatteryActive ? bColor : defaultStroke
 
         Button {
             selectZone(.battery)
         } label: {
             LShapedBatteryShape()
-                .fill(isBatteryActive ? bColor.opacity(0.20) : (isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)))
+                .fill(batteryFill)
                 .overlay(
                     LShapedBatteryShape()
-                        .stroke(
-                            isBatteryActive ? bColor : (isXRay ? Color.cyan.opacity(0.6) : bColor.opacity(0.4)),
-                            lineWidth: isBatteryActive ? 1.6 : 0.8
-                        )
+                        .stroke(batteryStroke, lineWidth: isBatteryActive ? 1.6 : 0.8)
                 )
                 .frame(width: w * 0.74, height: h * 0.63)
                 .offset(x: -w * 0.02, y: -h * 0.03)
         }
         .buttonStyle(.plain)
+    }
 
-        // 3. MagSafe / Qi Wireless Induction Coil
-        let isWirelessActive = selectedZone == .wireless
+    @ViewBuilder
+    private func wirelessCoilBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, strokeAlpha: Double) -> some View {
+        let isWirelessActive = (selectedZone == .wireless)
         let wColor = flirColor(for: temperature(of: .wireless))
+        let defaultOuterColor: Color = isDark ? Color.yellow.opacity(strokeAlpha * 0.8) : Color.orange.opacity(0.5)
+        let defaultInnerColor: Color = isDark ? Color.yellow.opacity(strokeAlpha * 0.5) : Color.orange.opacity(0.35)
+        let outerColor: Color = isWirelessActive ? wColor : defaultOuterColor
+        let innerColor: Color = isWirelessActive ? wColor.opacity(0.8) : defaultInnerColor
 
         Button {
             selectZone(.wireless)
@@ -453,12 +469,12 @@ struct BatteryThermalChassisCard: View {
             ZStack {
                 Circle()
                     .strokeBorder(
-                        isWirelessActive ? wColor : (isDark ? Color.yellow.opacity(strokeAlpha * 0.8) : Color.orange.opacity(0.5)),
+                        outerColor,
                         style: StrokeStyle(lineWidth: isWirelessActive ? 1.5 : 0.9, dash: [3.5, 2.0])
                     )
                 Circle()
                     .strokeBorder(
-                        isWirelessActive ? wColor.opacity(0.8) : (isDark ? Color.yellow.opacity(strokeAlpha * 0.5) : Color.orange.opacity(0.35)),
+                        innerColor,
                         style: StrokeStyle(lineWidth: 0.8, dash: [2.5, 2.0])
                     )
                     .frame(width: w * 0.28, height: w * 0.28)
@@ -467,23 +483,26 @@ struct BatteryThermalChassisCard: View {
             .offset(x: 0, y: -h * 0.02)
         }
         .buttonStyle(.plain)
+    }
 
-        // 4. SoC Motherboard (Silkscreen dynamically reflects real device chip!)
-        let isSocActive = selectedZone == .soc
+    @ViewBuilder
+    private func socMotherboardBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, fillAlpha: Double, isXRay: Bool) -> some View {
+        let isSocActive = (selectedZone == .soc)
         let sColor = flirColor(for: temperature(of: .soc))
+        let defaultFill: Color = isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)
+        let socFill: Color = isSocActive ? sColor.opacity(0.24) : defaultFill
+        let defaultStroke: Color = isXRay ? Color.orange.opacity(0.7) : sColor.opacity(0.5)
+        let socStroke: Color = isSocActive ? sColor : defaultStroke
 
         Button {
             selectZone(.soc)
         } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(isSocActive ? sColor.opacity(0.24) : (isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)))
+                    .fill(socFill)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .stroke(
-                                isSocActive ? sColor : (isXRay ? Color.orange.opacity(0.7) : sColor.opacity(0.5)),
-                                lineWidth: isSocActive ? 1.6 : 0.8
-                            )
+                            .stroke(socStroke, lineWidth: isSocActive ? 1.6 : 0.8)
                     )
 
                 VStack(spacing: 1.5) {
@@ -491,7 +510,6 @@ struct BatteryThermalChassisCard: View {
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(isSocActive ? sColor : (isDark ? Color.white.opacity(0.85) : Color.black.opacity(0.75)))
 
-                    // Dynamic chip title (e.g. A12, A15, A16, A17, A18)
                     Text(chipMarketingShort)
                         .font(.system(size: 8, weight: .heavy, design: .monospaced))
                         .foregroundStyle(isDark ? Color.white.opacity(0.85) : Color.black.opacity(0.85))
@@ -502,23 +520,26 @@ struct BatteryThermalChassisCard: View {
             .offset(x: w * 0.24, y: -h * 0.18)
         }
         .buttonStyle(.plain)
+    }
 
-        // 5. PMIC & Charging Dock
-        let isPmicActive = selectedZone == .pmic
+    @ViewBuilder
+    private func pmicDockBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, fillAlpha: Double, isXRay: Bool) -> some View {
+        let isPmicActive = (selectedZone == .pmic)
         let pColor = flirColor(for: temperature(of: .pmic))
+        let defaultFill: Color = isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)
+        let pmicFill: Color = isPmicActive ? pColor.opacity(0.22) : defaultFill
+        let defaultStroke: Color = isXRay ? Color.cyan.opacity(0.6) : pColor.opacity(0.5)
+        let pmicStroke: Color = isPmicActive ? pColor : defaultStroke
 
         Button {
             selectZone(.pmic)
         } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(isPmicActive ? pColor.opacity(0.22) : (isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)))
+                    .fill(pmicFill)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .stroke(
-                                isPmicActive ? pColor : (isXRay ? Color.cyan.opacity(0.6) : pColor.opacity(0.5)),
-                                lineWidth: isPmicActive ? 1.6 : 0.8
-                            )
+                            .stroke(pmicStroke, lineWidth: isPmicActive ? 1.6 : 0.8)
                     )
 
                 HStack(spacing: 5) {
@@ -667,9 +688,14 @@ struct BatteryThermalChassisCard: View {
     // MARK: - Right Column: 4-Row Dedicated Full-Width Zone List (100% Zero Truncation)
     @ViewBuilder
     private func zoneFullWidthRow(_ zone: ThermalZone) -> some View {
-        let isSelected = selectedZone == zone
-        let temp = temperature(of: zone)
-        let color = flirColor(for: temp)
+        let isSelected: Bool = (selectedZone == zone)
+        let temp: Double = temperature(of: zone)
+        let color: Color = flirColor(for: temp)
+        let defaultBg: Color = (colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
+        let rowBg: Color = isSelected ? color.opacity(0.18) : defaultBg
+        let rowStroke: Color = isSelected ? color.opacity(0.7) : Color.clear
+        let iconColor: Color = isSelected ? color : Theme.textSecondary(for: colorScheme)
+        let labelColor: Color = isSelected ? Theme.textPrimary(for: colorScheme) : Theme.textSecondary(for: colorScheme)
 
         Button {
             selectZone(zone)
@@ -677,12 +703,12 @@ struct BatteryThermalChassisCard: View {
             HStack(spacing: 6) {
                 Image(systemName: zone.icon)
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(isSelected ? color : Theme.textSecondary(for: colorScheme))
+                    .foregroundStyle(iconColor)
                     .frame(width: 14)
 
                 Text(zone.shortLabel)
                     .font(.system(size: 11.5, weight: isSelected ? .bold : .medium, design: .rounded))
-                    .foregroundStyle(isSelected ? Theme.textPrimary(for: colorScheme) : Theme.textSecondary(for: colorScheme))
+                    .foregroundStyle(labelColor)
                     .lineLimit(1)
 
                 Spacer(minLength: 4)
@@ -695,15 +721,11 @@ struct BatteryThermalChassisCard: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
-            .background(
-                isSelected ?
-                    color.opacity(0.18) :
-                    (colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
-            )
+            .background(rowBg)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(isSelected ? color.opacity(0.7) : Color.clear, lineWidth: 1)
+                    .stroke(rowStroke, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

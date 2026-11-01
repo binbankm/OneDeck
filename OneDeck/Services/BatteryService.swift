@@ -250,10 +250,12 @@ public final class BatteryService {
         self.batteryTemperature = SystemService.shared.batteryTemperature
 
         // Open-Circuit Voltage Modeling: 3.65V (0%) ~ 4.35V (100%)
-        let baseV = 3650 + Int(self.batteryLevel * 650.0)
-        let isCharging = (batteryState == .charging || batteryState == .full)
-        let chargingIrDrop = isCharging ? 120 : 0
+        let baseV: Int = 3650 + Int(self.batteryLevel * 650.0)
+        let isCharging: Bool = (batteryState == .charging || batteryState == .full)
+        let chargingIrDrop: Int = isCharging ? 120 : 0
         self.liveVoltageMv = baseV + chargingIrDrop
+
+        let voltageVolts: Double = max(3.0, Double(self.liveVoltageMv) / 1000.0)
 
         // Power & Current Modeling
         if batteryState == .full {
@@ -267,38 +269,47 @@ public final class BatteryService {
             // 50% - 80%: Constant Voltage Tapering
             // 80% - 100%: Smart Trickle Maintenance
             if batteryLevel < 0.50 {
-                let peakW = effectiveDesignCapacityMah >= 3500 ? 25.5 : 19.8
+                let peakW: Double = effectiveDesignCapacityMah >= 3500 ? 25.5 : 19.8
                 self.liveWattage = peakW
-                self.liveCurrentMa = Int((peakW * 1000.0) / (Double(liveVoltageMv) / 1000.0))
+                let currentAmps: Double = peakW / voltageVolts
+                self.liveCurrentMa = Int(currentAmps * 1000.0)
                 self.chargingProtocolName = L10n.Battery.protocolFastPD(watt: Int(peakW))
-                let remainingMins = Int(round((1.0 - batteryLevel) * 75.0))
+                let remainingMins: Int = Int(round((1.0 - batteryLevel) * 75.0))
                 self.etaCountdownString = L10n.Battery.etaToFull(mins: max(5, remainingMins))
             } else if batteryLevel < 0.80 {
-                let midW = 12.8
+                let midW: Double = 12.8
                 self.liveWattage = midW
-                self.liveCurrentMa = Int((midW * 1000.0) / (Double(liveVoltageMv) / 1000.0))
+                let currentAmps: Double = midW / voltageVolts
+                self.liveCurrentMa = Int(currentAmps * 1000.0)
                 self.chargingProtocolName = L10n.Battery.protocolStandardPD
-                let remainingMins = Int(round((1.0 - batteryLevel) * 90.0))
+                let remainingMins: Int = Int(round((1.0 - batteryLevel) * 90.0))
                 self.etaCountdownString = L10n.Battery.etaToFull(mins: max(5, remainingMins))
             } else {
-                let trickleW = 3.8
+                let trickleW: Double = 3.8
                 self.liveWattage = trickleW
-                self.liveCurrentMa = Int((trickleW * 1000.0) / (Double(liveVoltageMv) / 1000.0))
+                let currentAmps: Double = trickleW / voltageVolts
+                self.liveCurrentMa = Int(currentAmps * 1000.0)
                 self.chargingProtocolName = L10n.Battery.protocolTrickle
-                let remainingMins = Int(round((1.0 - batteryLevel) * 120.0))
+                let remainingMins: Int = Int(round((1.0 - batteryLevel) * 120.0))
                 self.etaCountdownString = L10n.Battery.etaToFull(mins: max(5, remainingMins))
             }
         } else {
             // Discharging on Battery
-            let cpuFactor = SystemService.shared.totalCpuUsage / 100.0
-            let drainW = 1.2 + (cpuFactor * 3.4) + (isLowPowerMode ? -0.4 : 0.0)
-            self.liveWattage = -Double(round(drainW * 10) / 10.0)
-            self.liveCurrentMa = -Int((drainW * 1000.0) / (Double(liveVoltageMv) / 1000.0))
+            let cpuFactor: Double = SystemService.shared.totalCpuUsage / 100.0
+            let lowPowerAdj: Double = isLowPowerMode ? -0.4 : 0.0
+            let drainW: Double = 1.2 + (cpuFactor * 3.4) + lowPowerAdj
+            let roundedDrain: Double = (drainW * 10.0).rounded() / 10.0
+            self.liveWattage = -roundedDrain
+
+            let dischargeAmps: Double = drainW / voltageVolts
+            let dischargeMa: Int = Int(dischargeAmps * 1000.0)
+            self.liveCurrentMa = -dischargeMa
             self.chargingProtocolName = isLowPowerMode ? L10n.Battery.protocolLowPower : L10n.Battery.protocolDischarge
 
-            let availableMins = Int(Double(currentRemainingMah) / (abs(Double(liveCurrentMa)) / 60.0))
-            let hours = max(0, availableMins / 60)
-            let mins = max(0, availableMins % 60)
+            let drainMaPerMin: Double = max(1.0, Double(abs(dischargeMa))) / 60.0
+            let availableMins: Int = Int(Double(currentRemainingMah) / drainMaPerMin)
+            let hours: Int = max(0, availableMins / 60)
+            let mins: Int = max(0, availableMins % 60)
             self.etaCountdownString = L10n.Battery.etaRemaining(h: hours, m: mins)
         }
 

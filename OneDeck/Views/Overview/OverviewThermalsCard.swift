@@ -40,7 +40,7 @@ struct OverviewThermalsCard: View {
             // Dual Temperature Tiles (SoC Core & Battery Cell)
             HStack(spacing: 10) {
                 // 1. SoC Junction Temperature
-                temperatureBentoTile(
+                TemperatureBentoTile(
                     icon: "cpu",
                     iconColor: thermalColor,
                     label: L10n.Overview.socTemp,
@@ -48,7 +48,7 @@ struct OverviewThermalsCard: View {
                 )
 
                 // 2. Battery Cell Temperature
-                temperatureBentoTile(
+                TemperatureBentoTile(
                     icon: "battery.100.bolt",
                     iconColor: appState.accentColor,
                     label: L10n.Overview.batteryTemp,
@@ -94,9 +94,36 @@ struct OverviewThermalsCard: View {
         .bentoCard(accent: appState.accentColor)
     }
 
-    // MARK: - Subviews
-    @ViewBuilder
-    private func temperatureBentoTile(icon: String, iconColor: Color, label: String, value: Double) -> some View {
+    private var thermalColor: Color {
+        switch system.thermalState {
+        case .nominal: return appState.accentColor
+        case .fair: return .yellow
+        case .serious: return .orange
+        case .critical: return .red
+        @unknown default: return appState.accentColor
+        }
+    }
+
+    private var thermalText: String {
+        switch system.thermalState {
+        case .nominal: return L10n.Overview.thermalNominal
+        case .fair: return L10n.Overview.thermalFair
+        case .serious: return L10n.Overview.thermalSerious
+        case .critical: return L10n.Overview.thermalCritical
+        @unknown default: return L10n.Overview.thermalNominal
+        }
+    }
+}
+
+// MARK: - Subviews (Extracted Struct to Eliminate Type-Checking Latency)
+private struct TemperatureBentoTile: View {
+    let icon: String
+    let iconColor: Color
+    let label: String
+    let value: Double
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 5) {
                 Image(systemName: icon)
@@ -125,26 +152,6 @@ struct OverviewThermalsCard: View {
         .padding(10)
         .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private var thermalColor: Color {
-        switch system.thermalState {
-        case .nominal: return appState.accentColor
-        case .fair: return .yellow
-        case .serious: return .orange
-        case .critical: return .red
-        @unknown default: return appState.accentColor
-        }
-    }
-
-    private var thermalText: String {
-        switch system.thermalState {
-        case .nominal: return L10n.Overview.thermalNominal
-        case .fair: return L10n.Overview.thermalFair
-        case .serious: return L10n.Overview.thermalSerious
-        case .critical: return L10n.Overview.thermalCritical
-        @unknown default: return L10n.Overview.thermalNominal
-        }
     }
 }
 
