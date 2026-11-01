@@ -25,7 +25,7 @@ struct NetworkView: View {
                                 .font(.system(.headline, design: .rounded))
                                 .foregroundStyle(appState.accentColor)
                             Spacer()
-                            Text("已连接")
+                            Text(L10n.Network.connected)
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .padding(.horizontal, 8)
@@ -68,7 +68,7 @@ struct NetworkView: View {
                                 .font(.system(size: 38, weight: .bold, design: .rounded))
                                 .monospacedDigit()
                                 .foregroundStyle(appState.accentColor)
-                            Text("ms (1.1.1.1 Cloudflare DNS)")
+                            Text(L10n.Network.msDns)
                                 .font(.subheadline)
                                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         }
@@ -88,7 +88,7 @@ struct NetworkView: View {
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                                Text("发现 12 台内网设备")
+                                Text(L10n.Network.devicesDiscovered(count: 12))
                                     .font(.caption2)
                                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             }
@@ -108,7 +108,7 @@ struct NetworkView: View {
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                                Text("发送唤醒魔术包")
+                                Text(L10n.Network.sendWol)
                                     .font(.caption2)
                                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             }

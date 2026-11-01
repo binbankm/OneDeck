@@ -18,7 +18,7 @@ struct OverviewHardwareCard: View {
         case display = 0
         case soc = 1
         case gpu = 2
-        case features = 3
+        case system = 3
 
         var id: Int { rawValue }
 
@@ -27,7 +27,7 @@ struct OverviewHardwareCard: View {
             case .display: return L10n.Overview.catDisplay
             case .soc: return L10n.Overview.catSoC
             case .gpu: return L10n.Overview.catGPU
-            case .features: return L10n.Overview.catFeatures
+            case .system: return L10n.Overview.catSystem
             }
         }
 
@@ -36,7 +36,7 @@ struct OverviewHardwareCard: View {
             case .display: return "display"
             case .soc: return "cpu"
             case .gpu: return "gamecontroller.fill"
-            case .features: return "slider.horizontal.2.square.badge.arrow.down"
+            case .system: return "gearshape.2.fill"
             }
         }
     }
@@ -61,7 +61,6 @@ struct OverviewHardwareCard: View {
                             Text(category.title)
                                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.85)
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 32)
@@ -81,7 +80,7 @@ struct OverviewHardwareCard: View {
                 }
             }
 
-            // Switchable Spec Details List (Structured Bento Rows)
+            // Switchable Spec Details List (Structured Bento Rows with Strict 13pt Harmonized Type Hierarchy)
             VStack(spacing: 7) {
                 switch selectedCategory {
                 case .display:
@@ -133,6 +132,11 @@ struct OverviewHardwareCard: View {
                         label: L10n.Overview.cacheSizes,
                         value: system.hardwareSpecs.cacheSizes
                     )
+                    specListRow(
+                        icon: "doc.text",
+                        label: L10n.Overview.pageSize,
+                        value: system.hardwareSpecs.pageSize
+                    )
 
                 case .gpu:
                     specListRow(
@@ -163,16 +167,21 @@ struct OverviewHardwareCard: View {
                         isHighlight: system.hardwareSpecs.supportsMeshShaders
                     )
 
-                case .features:
-                    specListRow(
-                        icon: "faceid",
-                        label: L10n.Overview.biometrics,
-                        value: system.hardwareSpecs.biometricsType
-                    )
+                case .system:
                     specListRow(
                         icon: "clock.arrow.circlepath",
                         label: L10n.Overview.uptime,
                         value: system.uptimeFormatted
+                    )
+                    specListRow(
+                        icon: "power",
+                        label: L10n.Overview.bootTime,
+                        value: system.bootTimeFormatted
+                    )
+                    specListRow(
+                        icon: system.hardwareSpecs.biometryIconName,
+                        label: L10n.Overview.biometrics,
+                        value: system.hardwareSpecs.biometricsType
                     )
                     specListRow(
                         icon: "lock.shield",
@@ -190,6 +199,11 @@ struct OverviewHardwareCard: View {
                         value: system.hardwareSpecs.lidarStatus,
                         isHighlight: system.hardwareSpecs.hasLiDAR
                     )
+                    specListRow(
+                        icon: "apple.terminal",
+                        label: L10n.Overview.darwinKernel,
+                        value: system.hardwareSpecs.darwinKernel
+                    )
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: selectedCategory)
@@ -197,7 +211,7 @@ struct OverviewHardwareCard: View {
         .bentoCard(accent: appState.accentColor)
     }
 
-    // MARK: - Harmonious Bento Spec Row
+    // MARK: - Harmonious Bento Spec Row (Strict 13pt Baseline, Zero Jumping, Zero Truncation)
     @ViewBuilder
     private func specListRow(icon: String, label: String, value: String, isHighlight: Bool = false) -> some View {
         HStack(alignment: .center, spacing: 8) {
@@ -216,16 +230,18 @@ struct OverviewHardwareCard: View {
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
 
-            Spacer(minLength: 6)
+            Spacer(minLength: 8)
 
-            // Balanced Value: 13pt Medium with Unified Typography (Zero Shrinking)
+            // Balanced Value: 13pt Semibold Rounded / Monospaced (Strictly Unified 13pt Font, Zero Shrinking, Zero Jumping)
             Text(value)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(isHighlight ? appState.accentColor : Theme.textPrimary(for: colorScheme))
                 .multilineTextAlignment(.trailing)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)

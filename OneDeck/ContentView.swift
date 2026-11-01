@@ -45,6 +45,7 @@ struct ContentView: View {
         }
         .tint(appState.accentColor)
         .preferredColorScheme(appState.resolvedColorScheme)
+        .id(appState.language)
     }
 }
 

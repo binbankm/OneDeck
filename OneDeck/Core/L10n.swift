@@ -45,7 +45,10 @@ public enum L10n {
             return false
         case .system:
             let preferred = Locale.preferredLanguages.first ?? "en"
-            return preferred.hasPrefix("zh-Hans") || preferred.hasPrefix("zh-CN")
+            if preferred.hasPrefix("zh-Hant") || preferred.hasPrefix("zh-HK") || preferred.hasPrefix("zh-TW") || preferred.hasPrefix("zh-MO") {
+                return false
+            }
+            return preferred.hasPrefix("zh")
         }
     }
 
@@ -55,7 +58,7 @@ public enum L10n {
             return true
         case .system:
             let preferred = Locale.preferredLanguages.first ?? "en"
-            return preferred.hasPrefix("zh-Hant") || preferred.hasPrefix("zh-HK") || preferred.hasPrefix("zh-TW")
+            return preferred.hasPrefix("zh-Hant") || preferred.hasPrefix("zh-HK") || preferred.hasPrefix("zh-TW") || preferred.hasPrefix("zh-MO")
         default:
             return false
         }
@@ -102,17 +105,17 @@ public enum L10n {
 
     // MARK: - Overview
     public enum Overview {
-        public static var title: String { tr(zh: "设备看板", en: "Dashboard", hant: "裝置看板") }
-        public static var deviceIdentity: String { tr(zh: "设备身份证", en: "Device Identity", hant: "裝置身份") }
+        public static var title: String { tr(zh: "看板", en: "Dashboard", hant: "看板") }
+        public static var deviceIdentity: String { tr(zh: "设备信息", en: "Device Info", hant: "裝置資訊") }
         public static var model: String { tr(zh: "设备型号", en: "Model", hant: "裝置型號") }
-        public static var chip: String { tr(zh: "芯片架构", en: "Processor", hant: "晶片架構") }
-        public static var boardId: String { tr(zh: "主板代号", en: "Board ID", hant: "主機板代號") }
+        public static var chip: String { tr(zh: "处理器", en: "Processor", hant: "處理器") }
+        public static var boardId: String { tr(zh: "主板", en: "Board ID", hant: "主機板") }
         public static var retailType: String { tr(zh: "销售类型", en: "Sales Type", hant: "銷售類型") }
-        public static var retailOriginal: String { tr(zh: "原装零售 (M)", en: "Retail (M)", hant: "原裝零售 (M)") }
+        public static var retailOriginal: String { tr(zh: "零售机 (M)", en: "Retail (M)", hant: "零售機 (M)") }
         public static var retailReplacement: String { tr(zh: "官换机 (N)", en: "Replacement (N)", hant: "官換機 (N)") }
-        public static var retailRefurbished: String { tr(zh: "官方翻新 (F)", en: "Refurbished (F)", hant: "官方翻新 (F)") }
+        public static var retailRefurbished: String { tr(zh: "官翻机 (F)", en: "Refurbished (F)", hant: "官翻機 (F)") }
         public static var retailDemo: String { tr(zh: "展示机 (3)", en: "Demo (3)", hant: "展示機 (3)") }
-        public static var region: String { tr(zh: "销售区域", en: "Region", hant: "銷售區域") }
+        public static var region: String { tr(zh: "销售地区", en: "Region", hant: "銷售地區") }
 
         // HUD & Status
         public static var hudStorageAvailable: String { tr(zh: "存储", en: "Disk", hant: "儲存") }
@@ -122,206 +125,396 @@ public enum L10n {
         public static var live30s: String { tr(zh: "30s 实时刷新", en: "30s Rolling", hant: "30s 即時重新整理") }
 
         // Thermals & Temperatures
-        public static var thermalNominal: String { tr(zh: "温控良好", en: "Nominal", hant: "溫控良好") }
-        public static var thermalFair: String { tr(zh: "轻微温热", en: "Warm", hant: "輕微溫熱") }
-        public static var thermalSerious: String { tr(zh: "机身发热", en: "Throttling", hant: "機身發熱") }
-        public static var thermalCritical: String { tr(zh: "严重高温", en: "Critical Heat", hant: "嚴重高溫") }
-        public static var thermalSectionTitle: String { tr(zh: "设备温度与热负荷", en: "Thermals & Heat Load", hant: "裝置溫度與熱負載") }
-        public static var socTemp: String { tr(zh: "SoC 芯片结温", en: "SoC Core", hant: "SoC 晶片溫度") }
-        public static var batteryTemp: String { tr(zh: "电池电芯温度", en: "Battery Cell", hant: "電池電芯溫度") }
-        public static var thermalPressure: String { tr(zh: "温控节流压力", en: "Thermal Pressure", hant: "溫控節流壓力") }
-        public static var thermalOptimal: String { tr(zh: "全速无降频", en: "Full Speed (No Throttling)", hant: "全速無降頻") }
+        public static var thermalNominal: String { tr(zh: "正常", en: "Nominal", hant: "正常") }
+        public static var thermalFair: String { tr(zh: "温热", en: "Warm", hant: "溫熱") }
+        public static var thermalSerious: String { tr(zh: "较热", en: "Throttling", hant: "較熱") }
+        public static var thermalCritical: String { tr(zh: "过热", en: "Critical", hant: "過熱") }
+        public static var thermalSectionTitle: String { tr(zh: "设备温度", en: "Thermals", hant: "裝置溫度") }
+        public static var socTemp: String { tr(zh: "芯片结温", en: "SoC Core", hant: "晶片溫度") }
+        public static var batteryTemp: String { tr(zh: "电芯温度", en: "Battery Cell", hant: "電芯溫度") }
+        public static var thermalPressure: String { tr(zh: "温控状态", en: "Thermal State", hant: "溫控狀態") }
+        public static var thermalOptimal: String { tr(zh: "正常 (未降频)", en: "Nominal", hant: "正常 (未降頻)") }
 
         // CPU & Charts
-        public static var cpuMonitor: String { tr(zh: "CPU 多核监视器", en: "CPU Monitor", hant: "CPU 多核監視器") }
-        public static var cpuHistoryChart: String { tr(zh: "实时利用率折线图", en: "Real-time Trend", hant: "即時利用率折線圖") }
-        public static var cpuTotalUsage: String { tr(zh: "总体利用率", en: "Total Usage", hant: "總體利用率") }
+        public static var cpuMonitor: String { tr(zh: "CPU 监视器", en: "CPU Monitor", hant: "CPU 監視器") }
+        public static var cpuHistoryChart: String { tr(zh: "实时利用率", en: "Usage Trend", hant: "即時利用率") }
+        public static var cpuTotalUsage: String { tr(zh: "总利用率", en: "Total Usage", hant: "總利用率") }
 
         // Real-Time Network Bandwidth
-        public static var networkTraffic: String { tr(zh: "实时网络速率", en: "Network Speed", hant: "即時網絡速率") }
-        public static var downloadSpeed: String { tr(zh: "下行速率", en: "Download", hant: "下載速率") }
-        public static var uploadSpeed: String { tr(zh: "上行速率", en: "Upload", hant: "上傳速率") }
-        public static var activeInterface: String { tr(zh: "活跃接口", en: "Interface", hant: "活躍介面") }
-        public static var cellularRadio: String { tr(zh: "5G / 蜂窝移动", en: "Cellular / 5G", hant: "5G / 行動網絡") }
+        public static var networkTraffic: String { tr(zh: "实时网络", en: "Network Speed", hant: "即時網絡") }
+        public static var downloadSpeed: String { tr(zh: "下行", en: "Download", hant: "下行") }
+        public static var uploadSpeed: String { tr(zh: "上行", en: "Upload", hant: "上行") }
+        public static var activeInterface: String { tr(zh: "当前网卡", en: "Interface", hant: "目前網卡") }
+        public static var cellularRadio: String { tr(zh: "蜂窝网络", en: "Cellular", hant: "行動網絡") }
 
         // Memory & Storage
-        public static var memory: String { tr(zh: "物理内存 (RAM)", en: "Memory (RAM)", hant: "實體記憶體 (RAM)") }
+        public static var memory: String { tr(zh: "运行内存 (RAM)", en: "Memory (RAM)", hant: "記憶體 (RAM)") }
         public static var memoryActive: String { tr(zh: "活跃", en: "Active", hant: "活躍") }
-        public static var memoryWired: String { tr(zh: "联动常驻", en: "Wired", hant: "常駐") }
-        public static var memoryCompressed: String { tr(zh: "已压缩", en: "Compressed", hant: "已壓縮") }
+        public static var memoryWired: String { tr(zh: "联动", en: "Wired", hant: "聯動") }
+        public static var memoryCompressed: String { tr(zh: "压缩", en: "Compressed", hant: "壓縮") }
         public static var memoryFree: String { tr(zh: "空闲", en: "Free", hant: "閒置") }
 
         public static var storage: String { tr(zh: "存储空间", en: "Storage", hant: "儲存空間") }
-        public static var storageUsed: String { tr(zh: "已用容量", en: "Used", hant: "已用容量") }
-        public static var storageAvailable: String { tr(zh: "可用容量", en: "Available", hant: "可用容量") }
-        public static var storagePurgeable: String { tr(zh: "可清除缓存", en: "Purgeable", hant: "可清除快取") }
-        public static var cleanPurged: String { tr(zh: "清理系统缓存", en: "Clean Cache", hant: "清理系統快取") }
-        public static var cleaningCache: String { tr(zh: "正在释放缓存...", en: "Cleaning Cache...", hant: "正在釋放快取...") }
+        public static var storageUsed: String { tr(zh: "已用", en: "Used", hant: "已用") }
+        public static var storageAvailable: String { tr(zh: "可用", en: "Available", hant: "可用") }
+        public static var storagePurgeable: String { tr(zh: "可清除", en: "Purgeable", hant: "可清除") }
+        public static var cleanPurged: String { tr(zh: "释放缓存", en: "Clean Cache", hant: "釋放快取") }
+        public static var cleaningCache: String { tr(zh: "正在释放...", en: "Cleaning...", hant: "正在釋放...") }
         public static var sessionTotal: String { tr(zh: "会话累计", en: "Session", hant: "工作階段累計") }
-        public static var uptime: String { tr(zh: "持续开机时间", en: "System Uptime", hant: "持續開機時間") }
+        public static var uptime: String { tr(zh: "运行时间", en: "System Uptime", hant: "運行時間") }
+        public static var bootTime: String { tr(zh: "开机时间", en: "Boot Time", hant: "開機時間") }
+        public static func uptimeText(days: Int, hours: Int, minutes: Int) -> String {
+            if days > 0 {
+                return tr(
+                    zh: "\(days) 天 \(hours) 小时 \(minutes) 分",
+                    en: "\(days)d \(hours)h \(minutes)m",
+                    hant: "\(days) 天 \(hours) 小時 \(minutes) 分"
+                )
+            } else if hours > 0 {
+                return tr(
+                    zh: "\(hours) 小时 \(minutes) 分",
+                    en: "\(hours)h \(minutes)m",
+                    hant: "\(hours) 小時 \(minutes) 分"
+                )
+            } else {
+                return tr(
+                    zh: "\(minutes) 分钟",
+                    en: "\(minutes)m",
+                    hant: "\(minutes) 分鐘"
+                )
+            }
+        }
 
         // Hardware Categories
-        public static var hardwareInventory: String { tr(zh: "全景硬件规格清单", en: "Hardware Specifications", hant: "全景硬體規格清單") }
+        public static var hardwareInventory: String { tr(zh: "硬件规格", en: "Hardware Specifications", hant: "硬體規格") }
         public static var catDisplay: String { tr(zh: "屏幕", en: "Display", hant: "螢幕") }
         public static var catSoC: String { tr(zh: "芯片", en: "SoC", hant: "晶片") }
         public static var catGPU: String { tr(zh: "图形", en: "GPU", hant: "圖形") }
-        public static var catFeatures: String { tr(zh: "外设特性", en: "Features", hant: "外設特性") }
-        public static var catSecurity: String { tr(zh: "外设特性", en: "Features", hant: "外設特性") }
+        public static var catFeatures: String { tr(zh: "外设", en: "Features", hant: "外設") }
+        public static var catSecurity: String { tr(zh: "安全", en: "Security", hant: "安全") }
+        public static var catSystem: String { tr(zh: "系统", en: "System", hant: "系統") }
 
         // Display Specs
-        public static var resolution: String { tr(zh: "物理分辨率", en: "Resolution", hant: "實體解析度") }
-        public static var refreshRate: String { tr(zh: "屏幕刷新率", en: "Refresh Rate", hant: "螢幕更新率") }
-        public static var refreshRate120: String { tr(zh: "120 Hz (ProMotion)", en: "120 Hz ProMotion", hant: "120 Hz (ProMotion)") }
-        public static var refreshRate60: String { tr(zh: "60 Hz (标准刷新)", en: "60 Hz Standard", hant: "60 Hz (標準更新)") }
-        public static var ppiScale: String { tr(zh: "像素密度与比例", en: "Pixel Density", hant: "像素密度與比例") }
-        public static var displayTech: String { tr(zh: "面板与色彩技术", en: "Display Panel", hant: "面板與色彩技術") }
+        public static var resolution: String { tr(zh: "分辨率", en: "Resolution", hant: "解析度") }
+        public static var refreshRate: String { tr(zh: "刷新率", en: "Refresh Rate", hant: "更新率") }
+        public static var refreshRate120: String { tr(zh: "120 Hz ProMotion", en: "120 Hz ProMotion", hant: "120 Hz ProMotion") }
+        public static var refreshRate60: String { tr(zh: "60 Hz 标准", en: "60 Hz Standard", hant: "60 Hz 標準") }
+        public static var ppiScale: String { tr(zh: "像素密度", en: "Pixel Density", hant: "像素密度") }
+        public static var displayTech: String { tr(zh: "屏幕面板", en: "Display Panel", hant: "螢幕面板") }
 
-        public static var displaySuperRetinaHD: String { tr(zh: "超视网膜 HD (OLED)", en: "Super Retina HD (OLED)", hant: "超Retina HD (OLED)") }
-        public static var displaySuperRetinaXDROLED: String { tr(zh: "超视网膜 XDR (OLED)", en: "Super Retina XDR (OLED)", hant: "超Retina XDR (OLED)") }
-        public static var displaySuperRetinaXDRProMotion: String { tr(zh: "超视网膜 XDR (ProMotion)", en: "Super Retina XDR (ProMotion)", hant: "超Retina XDR (ProMotion)") }
-        public static var displayUltraRetinaXDR: String { tr(zh: "超精视网膜 XDR (双层 OLED)", en: "Ultra Retina XDR (Tandem OLED)", hant: "超精Retina XDR (雙層 OLED)") }
-        public static var displayLiquidRetina: String { tr(zh: "Liquid 视网膜 (LCD)", en: "Liquid Retina (LCD)", hant: "Liquid Retina (LCD)") }
-        public static var displayTechDefault: String { tr(zh: "Retina 视网膜", en: "Retina Display", hant: "Retina 顯示器") }
+        public static var displaySuperRetinaHD: String { tr(zh: "超视网膜 HD (OLED)", en: "Super Retina HD", hant: "超Retina HD") }
+        public static var displaySuperRetinaXDROLED: String { tr(zh: "超视网膜 XDR (OLED)", en: "Super Retina XDR", hant: "超Retina XDR") }
+        public static var displaySuperRetinaXDRProMotion: String { tr(zh: "超视网膜 XDR (ProMotion)", en: "Super Retina XDR", hant: "超Retina XDR") }
+        public static var displayUltraRetinaXDR: String { tr(zh: "超精视网膜 XDR (双层 OLED)", en: "Ultra Retina XDR", hant: "超精Retina XDR") }
+        public static var displayLiquidRetina: String { tr(zh: "Liquid 视网膜 (LCD)", en: "Liquid Retina", hant: "Liquid Retina") }
+        public static var displayTechDefault: String { tr(zh: "视网膜显示屏", en: "Retina Display", hant: "Retina 顯示器") }
 
         // SoC Specs
-        public static var processNode: String { tr(zh: "半导体制程", en: "Process Node", hant: "半導體製程") }
-        public static var isaArch: String { tr(zh: "指令集架构", en: "ISA Architecture", hant: "指令集架構") }
-        public static var cacheSizes: String { tr(zh: "片上多级缓存", en: "On-Chip Cache", hant: "晶片多級快取") }
-        public static var pageSize: String { tr(zh: "内核分页大小", en: "Kernel Page Size", hant: "核心分頁大小") }
-        public static var pageSizeDetails: String { tr(zh: "16 KB (ARM64 标准物理页)", en: "16 KB (ARM64 Standard)", hant: "16 KB (ARM64 標準物理頁)") }
-        public static var cpuClusterLabel: String { tr(zh: "CPU 核心架构", en: "CPU Cores", hant: "CPU 核心架構") }
+        public static var processNode: String { tr(zh: "制造工艺", en: "Process Node", hant: "製造工藝") }
+        public static var isaArch: String { tr(zh: "指令架构", en: "ISA Arch", hant: "指令架構") }
+        public static var cacheSizes: String { tr(zh: "多级缓存", en: "Cache", hant: "快取") }
+        public static var pageSize: String { tr(zh: "分页大小", en: "Page Size", hant: "分頁大小") }
+        public static var pageSizeDetails: String { tr(zh: "16 KB", en: "16 KB", hant: "16 KB") }
+        public static var cpuClusterLabel: String { tr(zh: "核心规格", en: "CPU Cores", hant: "核心規格") }
         public static func cpuClusterText(total: Int, p: Int, e: Int) -> String {
             tr(
-                zh: "\(total) 核 (\(p) 性能核 + \(e) 能效核)",
+                zh: "\(total) 核 (\(p)P + \(e)E)",
                 en: "\(total) Cores (\(p)P + \(e)E)",
-                hant: "\(total) 核心 (\(p) 效能 + \(e) 節能)"
+                hant: "\(total) 核心 (\(p)P + \(e)E)"
             )
         }
 
         // GPU & AI Specs
-        public static var metalRenderer: String { tr(zh: "Metal 图形引擎", en: "Metal Engine", hant: "Metal 圖形引擎") }
-        public static var gpuCores: String { tr(zh: "GPU 核心规模", en: "GPU Cores", hant: "GPU 核心架構") }
-        public static var metalFeatureSet: String { tr(zh: "Metal 架构特性", en: "Metal Feature", hant: "Metal 架構特性") }
-        public static var raytracing: String { tr(zh: "硬件加速光追", en: "Ray Tracing", hant: "硬體光線追蹤") }
-        public static var rtSupported: String { tr(zh: "支持 (硬件加速光追)", en: "Hardware-Accelerated", hant: "支援 (硬體光線追蹤)") }
-        public static var rtNotSupported: String { tr(zh: "不支持 (A17 Pro+ 专属)", en: "Not Supported (A17 Pro+)", hant: "不支援 (A17 Pro+ 專屬)") }
-        public static var meshShading: String { tr(zh: "网格着色技术", en: "Mesh Shaders", hant: "網格著色技術") }
-        public static var msSupported: String { tr(zh: "支持 (Metal 3 几何管线)", en: "Supported (Metal 3)", hant: "支援 (Metal 3 幾何管線)") }
+        public static var metalRenderer: String { tr(zh: "Metal 引擎", en: "Metal Engine", hant: "Metal 引擎") }
+        public static var gpuCores: String { tr(zh: "GPU 核心", en: "GPU Cores", hant: "GPU 核心") }
+        public static var metalFeatureSet: String { tr(zh: "Metal 特性", en: "Metal Feature", hant: "Metal 特性") }
+        public static var raytracing: String { tr(zh: "光线追踪", en: "Ray Tracing", hant: "光線追蹤") }
+        public static var rtSupported: String { tr(zh: "硬件支持", en: "Hardware Supported", hant: "硬體支援") }
+        public static var rtNotSupported: String { tr(zh: "不支持", en: "Not Supported", hant: "不支援") }
+        public static var meshShading: String { tr(zh: "网格着色", en: "Mesh Shaders", hant: "網格著色") }
+        public static var msSupported: String { tr(zh: "支持 (Metal 3)", en: "Supported (Metal 3)", hant: "支援 (Metal 3)") }
         public static var msNotSupported: String { tr(zh: "不支持", en: "Not Supported", hant: "不支援") }
         public static var neuralEngine: String { tr(zh: "神经网络引擎", en: "Neural Engine", hant: "神經網絡引擎") }
-        public static var aneA11: String { tr(zh: "2 核 ANE (0.6 TOPS)", en: "2-Core ANE (0.6 TOPS)", hant: "2 核心 ANE (0.6 TOPS)") }
-        public static var aneA12: String { tr(zh: "8 核 ANE (5.0 TOPS)", en: "8-Core ANE (5.0 TOPS)", hant: "8 核心 ANE (5.0 TOPS)") }
-        public static var aneA13: String { tr(zh: "8 核 ANE (6.0 TOPS)", en: "8-Core ANE (6.0 TOPS)", hant: "8 核心 ANE (6.0 TOPS)") }
-        public static var aneA14: String { tr(zh: "16 核 ANE (11 TOPS)", en: "16-Core ANE (11 TOPS)", hant: "16 核心 ANE (11 TOPS)") }
-        public static var aneA15: String { tr(zh: "16 核 ANE (15.8 TOPS)", en: "16-Core ANE (15.8 TOPS)", hant: "16 核心 ANE (15.8 TOPS)") }
-        public static var aneA16: String { tr(zh: "16 核 ANE (17 TOPS)", en: "16-Core ANE (17 TOPS)", hant: "16 核心 ANE (17 TOPS)") }
-        public static var aneA17Pro: String { tr(zh: "16 核 ANE (35 TOPS)", en: "16-Core ANE (35 TOPS)", hant: "16 核心 ANE (35 TOPS)") }
-        public static var aneA18Plus: String { tr(zh: "16 核 ANE (35+ TOPS)", en: "16-Core ANE (35+ TOPS)", hant: "16 核心 ANE (35+ TOPS)") }
-        public static var aneAppleSiliconM: String { tr(zh: "16 核 ANE (16~38 TOPS)", en: "16-Core ANE (16~38 TOPS)", hant: "16 核心 ANE (16~38 TOPS)") }
-        public static var neuralEngineStandard: String { tr(zh: "Apple 神经网络引擎", en: "Apple Neural Engine", hant: "Apple 神經網絡引擎") }
+        public static var aneA11: String { tr(zh: "2 核 (0.6 TOPS)", en: "2-Core (0.6 TOPS)", hant: "2 核 (0.6 TOPS)") }
+        public static var aneA12: String { tr(zh: "8 核 (5.0 TOPS)", en: "8-Core (5.0 TOPS)", hant: "8 核 (5.0 TOPS)") }
+        public static var aneA13: String { tr(zh: "8 核 (6.0 TOPS)", en: "8-Core (6.0 TOPS)", hant: "8 核 (6.0 TOPS)") }
+        public static var aneA14: String { tr(zh: "16 核 (11 TOPS)", en: "16-Core (11 TOPS)", hant: "16 核 (11 TOPS)") }
+        public static var aneA15: String { tr(zh: "16 核 (15.8 TOPS)", en: "16-Core (15.8 TOPS)", hant: "16 核 (15.8 TOPS)") }
+        public static var aneA16: String { tr(zh: "16 核 (17 TOPS)", en: "16-Core (17 TOPS)", hant: "16 核 (17 TOPS)") }
+        public static var aneA17Pro: String { tr(zh: "16 核 (35 TOPS)", en: "16-Core (35 TOPS)", hant: "16 核 (35 TOPS)") }
+        public static var aneA18Plus: String { tr(zh: "16 核 (35+ TOPS)", en: "16-Core (35+ TOPS)", hant: "16 核 (35+ TOPS)") }
+        public static var aneAppleSiliconM: String { tr(zh: "16 核 (16~38 TOPS)", en: "16-Core (16~38 TOPS)", hant: "16 核 (16~38 TOPS)") }
+        public static var neuralEngineStandard: String { tr(zh: "Apple NPU", en: "Apple Neural Engine", hant: "Apple NPU") }
 
         // Security & Ports
-        public static var biometrics: String { tr(zh: "生物安全识别", en: "Biometrics", hant: "生物安全識別") }
-        public static var faceIdTrueDepth: String { tr(zh: "Face ID (原深感摄像头)", en: "Face ID (TrueDepth)", hant: "Face ID (原深感鏡頭)") }
-        public static var touchIdText: String { tr(zh: "Touch ID (指纹传感器)", en: "Touch ID (Capacitive)", hant: "Touch ID (指紋感測器)") }
-        public static var passcodeText: String { tr(zh: "系统数字密码保护", en: "Passcode Protection", hant: "系統數字密碼保護") }
-        public static var lidarScanner: String { tr(zh: "LiDAR 激光雷达", en: "LiDAR Scanner", hant: "LiDAR 光學雷達") }
-        public static var lidarEquipped: String { tr(zh: "配备 (dToF 3D 测距)", en: "Equipped (dToF Depth)", hant: "搭載 (dToF 3D 測距)") }
-        public static var lidarNotEquipped: String { tr(zh: "未配备 (Pro 专属)", en: "Not Equipped (Pro Only)", hant: "未搭載 (Pro 專屬)") }
-        public static var secureEnclave: String { tr(zh: "安全加密芯片", en: "Secure Enclave", hant: "安全加密晶片") }
-        public static var sepText: String { tr(zh: "硬件隔离保护 (SEP)", en: "Hardware Isolated (SEP)", hant: "硬體隔離保護 (SEP)") }
-        public static var usbPortSpeed: String { tr(zh: "物理数据接口", en: "Physical Port", hant: "實體數據介面") }
-        public static var portUsbC10G: String { tr(zh: "USB-C 3.2 (10 Gbps)", en: "USB-C 3.2 (10 Gbps)", hant: "USB-C 3.2 (10 Gbps)") }
+        public static var biometrics: String { tr(zh: "生物识别", en: "Biometrics", hant: "生物辨識") }
+        public static var faceIdTrueDepth: String { tr(zh: "Face ID (原深感)", en: "Face ID (TrueDepth)", hant: "Face ID (原深感)") }
+        public static var touchIdText: String { tr(zh: "Touch ID", en: "Touch ID", hant: "Touch ID") }
+        public static var passcodeText: String { tr(zh: "密码保护", en: "Passcode", hant: "密碼保護") }
+        public static var lidarScanner: String { tr(zh: "激光雷达", en: "LiDAR Scanner", hant: "光學雷達") }
+        public static var lidarEquipped: String { tr(zh: "配备 (dToF)", en: "Equipped (dToF)", hant: "配備 (dToF)") }
+        public static var lidarNotEquipped: String { tr(zh: "未配备", en: "Not Equipped", hant: "未配備") }
+        public static var secureEnclave: String { tr(zh: "安全芯片", en: "Secure Enclave", hant: "安全晶片") }
+        public static var sepText: String { tr(zh: "SEP 硬件隔离", en: "SEP Isolated", hant: "SEP 硬體隔離") }
+        public static var usbPortSpeed: String { tr(zh: "数据接口", en: "Data Port", hant: "數據介面") }
+        public static var portUsbC10G: String { tr(zh: "USB-C 3.2 (10 Gbps)", en: "USB-C (10 Gbps)", hant: "USB-C (10 Gbps)") }
         public static var portUsbC480M: String { tr(zh: "USB-C (480 Mbps)", en: "USB-C (480 Mbps)", hant: "USB-C (480 Mbps)") }
         public static var portLightning: String { tr(zh: "Lightning (480 Mbps)", en: "Lightning (480 Mbps)", hant: "Lightning (480 Mbps)") }
-        public static var darwinKernel: String { tr(zh: "操作系统内核", en: "Darwin Kernel", hant: "作業系統核心") }
+        public static var darwinKernel: String { tr(zh: "系统内核", en: "Darwin Kernel", hant: "系統核心") }
     }
 
     // MARK: - Battery
     public enum Battery {
-        public static var title: String { tr(zh: "电池与供电", en: "Battery & Power", hant: "電池與供電") }
-        public static var health: String { tr(zh: "电池健康度", en: "Battery Health", hant: "電池健康度") }
-        public static var cycleCount: String { tr(zh: "循环计数", en: "Cycle Count", hant: "循環次數") }
+        public static var title: String { tr(zh: "电池", en: "Battery", hant: "電池") }
+        public static var batteryStatus: String { tr(zh: "电池状态", en: "Battery Status", hant: "電池狀態") }
+        public static var healthTitle: String { tr(zh: "电池健康", en: "Battery Health", hant: "電池健康") }
+        public static var livePowerTitle: String { tr(zh: "实时功率", en: "Live Power", hant: "即時功率") }
+        public static var cellSettingsTitle: String { tr(zh: "电芯校准", en: "Cell Calibration", hant: "電芯校準") }
+
+        public static var health: String { tr(zh: "健康度", en: "Health", hant: "健康度") }
+        public static var cycleCount: String { tr(zh: "循环次数", en: "Cycle Count", hant: "循環次數") }
         public static var cyclesUnit: String { tr(zh: "次", en: "Cycles", hant: "次") }
-        public static var designCapacity: String { tr(zh: "出厂设计容量", en: "Design Capacity", hant: "出廠設計容量") }
-        public static var currentMaxCapacity: String { tr(zh: "实际最大容量", en: "Current Max Capacity", hant: "實際最大容量") }
-        public static var livePower: String { tr(zh: "实时充放电功率", en: "Live Power", hant: "即時充放電功率") }
-        public static var voltage: String { tr(zh: "当前电压", en: "Voltage", hant: "目前電壓") }
-        public static var current: String { tr(zh: "实时电流", en: "Current", hant: "即時電流") }
+        public static var designCapacity: String { tr(zh: "设计容量", en: "Design Capacity", hant: "設計容量") }
+        public static var currentMaxCapacity: String { tr(zh: "最大容量", en: "Max Capacity", hant: "最大容量") }
+        public static var remainingEnergy: String { tr(zh: "剩余电量", en: "Remaining", hant: "剩餘電量") }
+
+        public static var livePower: String { tr(zh: "当前功率", en: "Current Power", hant: "目前功率") }
+        public static var voltage: String { tr(zh: "电压", en: "Voltage", hant: "電壓") }
+        public static var current: String { tr(zh: "电流", en: "Current", hant: "電流") }
         public static var wattage: String { tr(zh: "实时瓦数", en: "Wattage", hant: "即時瓦數") }
-        public static var chargerProtocol: String { tr(zh: "充电协议", en: "Protocol", hant: "充電協定") }
-        public static var batteryTemp: String { tr(zh: "电芯温度", en: "Battery Temp", hant: "電芯溫度") }
-        public static var chargingStatus: String { tr(zh: "充电状态", en: "Charging Status", hant: "充電狀態") }
-        public static var discharging: String { tr(zh: "放电中", en: "Discharging", hant: "放電中") }
-        public static var charging: String { tr(zh: "正在充电", en: "Charging", hant: "充電中") }
+        public static var chargerProtocol: String { tr(zh: "供电状态", en: "Power Mode", hant: "供電狀態") }
+        public static var batteryTemp: String { tr(zh: "电芯温度", en: "Cell Temp", hant: "電芯溫度") }
+
+        public static var chargingStatus: String { tr(zh: "充电工况", en: "Charging Status", hant: "充電工況") }
+        public static var discharging: String { tr(zh: "正在放电", en: "Discharging", hant: "正在放電") }
+        public static var charging: String { tr(zh: "正在充电", en: "Charging", hant: "正在充電") }
         public static var full: String { tr(zh: "已充满", en: "Fully Charged", hant: "已充滿") }
-        public static var reverseCharging: String { tr(zh: "反向供电中", en: "Reverse Charging", hant: "反向供電中") }
-        public static var timeRemaining: String { tr(zh: "预计充满时间", en: "Time to Full", hant: "預估充滿時間") }
+        public static var stateFull: String { tr(zh: "已充满", en: "Fully Charged", hant: "已充滿") }
+        public static var fullyChargedText: String { tr(zh: "已充满 · 涓流维护", en: "Fully Charged · Maintenance", hant: "已充滿 · 涓流維護") }
+        public static var reverseCharging: String { tr(zh: "反向供电", en: "Reverse Charging", hant: "反向供電") }
+        public static var timeRemaining: String { tr(zh: "预计充满", en: "Time to Full", hant: "預計充滿") }
+
+        public static func protocolFastPD(watt: Int) -> String {
+            tr(zh: "USB-PD 快充 (\(watt)W)", en: "USB-PD Fast (\(watt)W)", hant: "USB-PD 快充 (\(watt)W)")
+        }
+        public static var protocolStandardPD: String { tr(zh: "USB-PD 快充", en: "USB-PD Fast", hant: "USB-PD 快充") }
+        public static var protocolTrickle: String { tr(zh: "涓流养护", en: "Trickle Charge", hant: "涓流養護") }
+        public static var protocolLowPower: String { tr(zh: "低电量模式", en: "Low Power Mode", hant: "低耗電模式") }
+        public static var protocolDischarge: String { tr(zh: "电池供电", en: "On Battery", hant: "電池供電") }
+
+        public static func etaToFull(mins: Int) -> String {
+            tr(zh: "预计约 \(mins) 分钟充满", en: "Est. \(mins)m to Full", hant: "預計約 \(mins) 分鐘充滿")
+        }
+        public static func etaRemaining(h: Int, m: Int) -> String {
+            tr(zh: "剩余约 \(h) 小时 \(m) 分", en: "Est. \(h)h \(m)m Left", hant: "剩餘約 \(h) 小時 \(m) 分")
+        }
+
+        public static var importLogButton: String {
+            tr(zh: "导入官方分析日志 (解锁 BMS 真值)", en: "Import Analytics Log (BMS Raw)", hant: "匯入官方分析日誌 (解鎖 BMS 真值)")
+        }
+        public static var importedSuccess: String { tr(zh: "BMS 原厂真值已载入", en: "BMS Raw Active", hant: "BMS 原廠真值已載入") }
+        public static var parsedDatePrefix: String { tr(zh: "记录日期", en: "Recorded", hant: "記錄日期") }
+        public static var isCustomToggle: String { tr(zh: "第三方 / 超容电池", en: "Aftermarket Battery", hant: "第三方 / 超容電池") }
+        public static var customCapacityLabel: String { tr(zh: "电芯标称容量", en: "Nominal Capacity", hant: "電芯標稱容量") }
+
+        public static var healthTierNormal: String { tr(zh: "正常", en: "Normal", hant: "正常") }
+        public static var healthTierAging: String { tr(zh: "损耗", en: "Degraded", hant: "損耗") }
+        public static var healthTierService: String { tr(zh: "检修", en: "Service", hant: "檢修") }
+
+        // Thermal Chassis Blueprint
+        public static var thermalChassisTitle: String { tr(zh: "机身热力透视", en: "Thermal Blueprint", hant: "機身熱力透視") }
+        public static var thermalChassisSubtitle: String { tr(zh: "硬件分区温敏遥测", en: "Chassis Hardware Telemetry", hant: "硬體分區溫敏遙測") }
+        public static var zoneSoc: String { tr(zh: "SoC 核心主板", en: "SoC Motherboard", hant: "SoC 核心主機板") }
+        public static var zoneBattery: String { tr(zh: "锂电芯主仓", en: "Battery Chamber", hant: "鋰電芯主倉") }
+        public static var zonePmic: String { tr(zh: "快充供电模块", en: "PMIC & Charging", hant: "快充供電模組") }
+        public static var zoneWireless: String { tr(zh: "磁吸无线线圈", en: "Wireless Coil", hant: "磁吸無線線圈") }
+        public static var zoneSocShort: String { tr(zh: "SoC 主板", en: "SoC", hant: "SoC 主機板") }
+        public static var zoneBatteryShort: String { tr(zh: "电芯主仓", en: "Battery", hant: "電芯主倉") }
+        public static var zonePmicShort: String { tr(zh: "快充供电", en: "Charging", hant: "快充供電") }
+        public static var zoneWirelessShort: String { tr(zh: "无线线圈", en: "Wireless", hant: "無線線圈") }
+        public static var thermalStatusCool: String { tr(zh: "清凉", en: "Cool", hant: "清涼") }
+        public static var thermalStatusNormal: String { tr(zh: "正常", en: "Normal", hant: "正常") }
+        public static var thermalStatusWarm: String { tr(zh: "微热", en: "Warm", hant: "微熱") }
+        public static var thermalStatusHot: String { tr(zh: "过热", en: "Hot", hant: "過熱") }
+        public static var thermalTipSoc: String { tr(zh: "A 系列芯片与 GPU 运算主热源", en: "SoC & GPU core cluster, main heat source", hant: "A 系列晶片與 GPU 運算主熱源") }
+        public static var thermalTipBattery: String { tr(zh: "电芯储能区域，石墨层均热分散", en: "Li-ion cell chamber, graphite dispersed", hant: "電芯儲能區域，石墨層均熱分散") }
+        public static var thermalTipPmic: String { tr(zh: "快充降压供电芯片，充电时温升", en: "Step-down PMIC, warms during fast charge", hant: "快充降壓供電晶片，充電時溫升") }
+        public static var thermalTipWireless: String { tr(zh: "MagSafe/Qi 磁吸线圈感应温区", en: "MagSafe/Qi inductive coil thermal zone", hant: "MagSafe/Qi 磁吸線圈感應溫區") }
+        public static var thermalOverallState: String { tr(zh: "整机温控", en: "Thermal State", hant: "整機溫控") }
+        public static var thermalThrottling: String { tr(zh: "降频", en: "Throttling", hant: "降頻") }
+        public static var thermalShutdownProtection: String { tr(zh: "关机保护", en: "Shutdown Protection", hant: "關機保護") }
+
+        // Degradation Curve Chart
+        public static var degradationChartTitle: String { tr(zh: "容量衰减轨迹", en: "Degradation Trajectory", hant: "容量衰減軌跡") }
+        public static var degradationChartSubtitle: String { tr(zh: "循环次数与容量保留趋势", en: "Cycles vs. Retention Trend", hant: "循環次數與容量保留趨勢") }
+        public static var degradationActualCurve: String { tr(zh: "本机实际", en: "Actual", hant: "本機實際") }
+        public static var degradationAppleBaseline: String { tr(zh: "官方基准", en: "Apple Baseline", hant: "官方基準") }
+        public static var degradationServiceThreshold: String { tr(zh: "80% 检修线", en: "80% Service", hant: "80% 檢修線") }
+        public static var degradationCycleAxis: String { tr(zh: "循环", en: "Cycles", hant: "循環") }
+        public static var degradationHealthAxis: String { tr(zh: "健康度", en: "Health", hant: "健康度") }
+        public static var degradationImportHint: String { tr(zh: "导入官方分析日志后解锁本机真实衰减点", en: "Import Analytics Log to plot actual degradation point", hant: "匯入官方分析日誌後解鎖本機真實衰減點") }
+        public static var baselineAbove: String { tr(zh: "优于官方基线", en: "Above Baseline", hant: "優於官方基線") }
+        public static var baselineBelow: String { tr(zh: "低于官方基线", en: "Below Baseline", hant: "低於官方基線") }
+        public static var projectedFuture: String { tr(zh: "预期走势", en: "Projected", hant: "預期走勢") }
+
+        // Longevity & Care
+        public static var longevityTitle: String { tr(zh: "电芯寿命评估", en: "Battery Longevity", hant: "電芯壽命評估") }
+        public static var cycleDegradationRate: String { tr(zh: "循环衰减率", en: "Cycle Loss Rate", hant: "循環衰減率") }
+        public static var serviceThresholdMargin: String { tr(zh: "80% 检修余量", en: "Margin to 80%", hant: "80% 檢修餘量") }
+        public static var cycleTierGolden: String { tr(zh: "极缓损耗 · 黄金期", en: "Optimal Health", hant: "極緩損耗 · 黃金期") }
+        public static var cycleTierAging: String { tr(zh: "正常自然衰减", en: "Normal Aging", hant: "正常自然衰減") }
+        public static var cycleTierDegraded: String { tr(zh: "建议关注容量", en: "Service Attention", hant: "建議關注容量") }
+        public static var marginSafe: String { tr(zh: "安全余量充裕", en: "Safe Margin", hant: "安全餘量充裕") }
+        public static var marginWarning: String { tr(zh: "临界预警范围", en: "Near Threshold", hant: "臨界預警範圍") }
+        public static var marginCritical: String { tr(zh: "建议检修更换", en: "Service Required", hant: "建議檢修更換") }
+
+        public static var careTipOptimalCharge: String { tr(zh: "浅充浅放 · 维持 20%–80% 区间，延缓电芯损耗", en: "Shallow Cycles · Keep 20%–80% to extend cell life", hant: "淺充淺放 · 維持 20%–80% 區間，延緩電芯損耗") }
+        public static var careTipTemperature: String { tr(zh: "控温散热 · 快充时避免高温积热，摘除厚保护壳", en: "Thermal Control · Prevent heat build-up during fast charge", hant: "控溫散熱 · 快充時避免高溫積熱，摘除厚保護殼") }
+        public static var careTipHighVoltage: String { tr(zh: "高压保护 · 长期插电使用推荐开启 80% 充电上限", en: "Voltage Limit · Enable 80% limit when plugged in long-term", hant: "高壓保護 · 長期插電使用推薦開啟 80% 充電上限") }
+        public static var exportReportButton: String { tr(zh: "导出硬件诊断报告", en: "Export Hardware Report", hant: "匯出硬體診斷報告") }
+        public static var reportCopied: String { tr(zh: "诊断报告已复制", en: "Report Copied", hant: "診斷報告已複製") }
+        public static var diagnosticGrade: String { tr(zh: "健康综合评级", en: "Health Grade", hant: "健康綜合評級") }
+        public static var gradeA: String { tr(zh: "A 级 · 优良", en: "Grade A · Optimal", hant: "A 級 · 優良") }
+        public static var gradeB: String { tr(zh: "B 级 · 良好", en: "Grade B · Normal", hant: "B 級 · 良好") }
+        public static var gradeC: String { tr(zh: "C 级 · 建议检修", en: "Grade C · Service", hant: "C 級 · 建議檢修") }
+
+        // Professional Diagnostic Hardware Report
+        public static var reportHeader: String { tr(zh: "OneDeck 官方电池硬件诊断报告 (BMS Raw)", en: "OneDeck Battery Hardware Diagnostic Report (BMS Raw)", hant: "OneDeck 官方電池硬體診斷報告 (BMS Raw)") }
+        public static var reportDeviceModel: String { tr(zh: "设备型号", en: "Device Model", hant: "設備型號") }
+        public static var reportChip: String { tr(zh: "核心处理器", en: "SoC Processor", hant: "核心處理器") }
+        public static var reportFactoryDesignCap: String { tr(zh: "出厂设计容量", en: "Factory Capacity", hant: "出廠設計容量") }
+        public static var reportEffectiveDesignCap: String { tr(zh: "有效标称容量", en: "Effective Capacity", hant: "有效標稱容量") }
+        public static var reportActualMaxCap: String { tr(zh: "实际可用容量", en: "Actual Max Capacity", hant: "實際可用容量") }
+        public static var reportCycleCount: String { tr(zh: "充放电循环", en: "Cycle Count", hant: "充放電循環") }
+        public static var reportHealth: String { tr(zh: "电芯健康度", en: "Battery Health", hant: "電芯健康度") }
+        public static var reportRemainingEnergy: String { tr(zh: "当前剩余电量", en: "Remaining Energy", hant: "目前剩餘電量") }
+        public static var reportCellTemp: String { tr(zh: "电芯工作温度", en: "Cell Temperature", hant: "電芯工作溫度") }
+        public static var reportPowerMode: String { tr(zh: "当前供电状态", en: "Power Mode", hant: "目前供電狀態") }
+        public static var reportThermalState: String { tr(zh: "系统热敏等级", en: "Thermal State", hant: "系統熱敏等級") }
+        public static var reportGeneratedTime: String { tr(zh: "报告生成时间", en: "Timestamp", hant: "報告產生時間") }
+        public static var reportPendingCalibration: String { tr(zh: "待导入日志校准", en: "Pending Import", hant: "待匯入日誌校準") }
+
+        public static var guideTitle: String { tr(zh: "获取官方电芯日志", en: "Analytics Log Guide", hant: "取得官方電芯日誌") }
+        public static var guideStep1: String {
+            tr(
+                zh: "1. 打开【设置】 > 【隐私与安全性】 > 【分析与改进】",
+                en: "1. Settings > Privacy & Security > Analytics & Improvements",
+                hant: "1. 開啟【設定】 > 【隱私權與安全性】 > 【分析與改進】"
+            )
+        }
+        public static var guideStep2: String {
+            tr(
+                zh: "2. 进入【分析数据】，找到最新 Analytics-*.ips 文件",
+                en: "2. Analytics Data > find newest Analytics-*.ips",
+                hant: "2. 進入【分析資料】，找到最新 Analytics-*.ips 檔案"
+            )
+        }
+        public static var guideStep3: String {
+            tr(
+                zh: "3. 点击分享存储到“文件”，在此处导入即可",
+                en: "3. Share to Files, then select here",
+                hant: "3. 點擊分享儲存到「檔案」，在此處匯入即可"
+            )
+        }
+        public static var selectFileButton: String { tr(zh: "选择分析日志文件 (.ips)", en: "Select Analytics File (.ips)", hant: "選取分析日誌檔案 (.ips)") }
+        public static var pasteLogButton: String { tr(zh: "粘贴日志文本解析", en: "Paste Log Text", hant: "貼上日誌文字解析") }
+        public static var pastePlaceholder: String { tr(zh: "在此粘贴含有 last_value_CycleCount 的日志文本片段...", en: "Paste text snippet containing CycleCount...", hant: "在此貼上含有 last_value_CycleCount 的日誌文字片段...") }
+        public static var parseNow: String { tr(zh: "立即解析", en: "Parse Now", hant: "立即解析") }
+
+        public static var bmsRaw: String { tr(zh: "BMS 原厂真值", en: "BMS Raw", hant: "BMS 原廠真值") }
+        public static var estimated: String { tr(zh: "基准估算", en: "Estimated", hant: "基準估算") }
+        public static var pendingImport: String { tr(zh: "需导入日志", en: "Import Required", hant: "需匯入日誌") }
+        public static var pendingImportNotice: String { tr(zh: "未导入官方分析文件，需导入以解锁原厂真值", en: "Official log not imported. Import to reveal BMS raw values", hant: "未匯入官方分析檔案，需匯入以解鎖原廠真值") }
+        public static var flirMode: String { tr(zh: "红外热像", en: "FLIR IR", hant: "紅外熱像") }
+        public static var xrayMode: String { tr(zh: "透视蓝图", en: "X-Ray", hant: "透視藍圖") }
+        public static var maxSpot: String { tr(zh: "极温", en: "MAX", hant: "極溫") }
+        public static var minSpot: String { tr(zh: "低温", en: "MIN", hant: "低溫") }
+        public static var effectiveCap: String { tr(zh: "有效容量", en: "Effective", hant: "有效容量") }
+        public static var customCalibrated: String { tr(zh: "超容校准", en: "Calibrated", hant: "超容校準") }
+        public static var oemNominal: String { tr(zh: "原厂标称", en: "OEM", hant: "原廠標稱") }
+        public static var highCap: String { tr(zh: "高容 (+12%)", en: "High (+12%)", hant: "高容 (+12%)") }
+        public static var superCap: String { tr(zh: "超容 (+22%)", en: "Super (+22%)", hant: "超容 (+22%)") }
+        public static var calibrateDesc: String { tr(zh: "校准第三方电芯容量与续航估算", en: "Calibrate cell capacity & battery life", hant: "校準第三方電芯容量與續航估算") }
+        public static var chargeWaveform: String { tr(zh: "充电功率曲线", en: "Charging Curve", hant: "充電功率曲線") }
+        public static var dischargeWaveform: String { tr(zh: "放电功率曲线", en: "Discharging Curve", hant: "放電功率曲線") }
+        public static var orPasteSnippet: String { tr(zh: "或粘贴日志文本", en: "Or Paste Log Snippet", hant: "或貼上日誌文字") }
+        public static var clearRecord: String { tr(zh: "清除记录", en: "Reset Data", hant: "清除記錄") }
+        public static var errLogDecoding: String { tr(zh: "无法解码日志文件编码", en: "Unable to decode log file", hant: "無法解碼日誌檔案編碼") }
+        public static var errCycleNotFound: String { tr(zh: "未在日志中找到电池循环次数 (last_value_CycleCount)", en: "Cycle count (last_value_CycleCount) not found in log", hant: "未在日誌中找到電池循環次數 (last_value_CycleCount)") }
     }
 
     // MARK: - Network
     public enum Network {
-        public static var title: String { tr(zh: "网络工坊", en: "Network Hub", hant: "網絡工坊") }
-        public static var wifiStatus: String { tr(zh: "无线局域网 (Wi-Fi)", en: "Wi-Fi Status", hant: "無線區域網絡 (Wi-Fi)") }
-        public static var ssid: String { tr(zh: "网络名称 (SSID)", en: "SSID", hant: "網絡名稱 (SSID)") }
-        public static var localIP: String { tr(zh: "内网 IP 地址", en: "Local IP", hant: "區域網絡 IP") }
-        public static var gateway: String { tr(zh: "网关路由器", en: "Gateway Router", hant: "閘道路由器") }
-        public static var cellular: String { tr(zh: "蜂窝移动数据", en: "Cellular", hant: "行動網絡") }
+        public static var title: String { tr(zh: "网络", en: "Network", hant: "網絡") }
+        public static var wifiStatus: String { tr(zh: "无线局域网", en: "Wi-Fi", hant: "無線區域網絡") }
+        public static var connected: String { tr(zh: "已连接", en: "Connected", hant: "已連線") }
+        public static var ssid: String { tr(zh: "网络名称", en: "SSID", hant: "網絡名稱") }
+        public static var localIP: String { tr(zh: "局域网 IP", en: "Local IP", hant: "區域網絡 IP") }
+        public static var gateway: String { tr(zh: "网关", en: "Gateway", hant: "閘道") }
+        public static var cellular: String { tr(zh: "蜂窝网络", en: "Cellular", hant: "行動網絡") }
         public static var carrier: String { tr(zh: "运营商", en: "Carrier", hant: "電信業者") }
-        public static var radioTech: String { tr(zh: "制式网络", en: "Radio RAT", hant: "網絡制式") }
-        public static var publicIP: String { tr(zh: "公网出口 IP", en: "Public IP", hant: "公網出口 IP") }
-        public static var pingTest: String { tr(zh: "ICMP Ping 测速", en: "Ping Latency", hant: "ICMP Ping 延遲") }
-        public static var lanScan: String { tr(zh: "局域网 ARP 扫描", en: "LAN ARP Scan", hant: "區域網絡 ARP 掃描") }
-        public static var wol: String { tr(zh: "远程局域网唤醒 (WOL)", en: "Wake-on-LAN", hant: "網絡喚醒 (WOL)") }
-        public static var portScan: String { tr(zh: "常用端口扫描器", en: "Port Scanner", hant: "常用通訊埠掃描") }
+        public static var radioTech: String { tr(zh: "网络制式", en: "Radio RAT", hant: "網絡制式") }
+        public static var publicIP: String { tr(zh: "公网 IP", en: "Public IP", hant: "公網 IP") }
+        public static var pingTest: String { tr(zh: "Ping 延迟", en: "Ping Latency", hant: "Ping 延遲") }
+        public static var msDns: String { tr(zh: "毫秒 (1.1.1.1 DNS)", en: "ms (1.1.1.1 DNS)", hant: "毫秒 (1.1.1.1 DNS)") }
+        public static var lanScan: String { tr(zh: "局域网扫描", en: "LAN Scan", hant: "區域網絡掃描") }
+        public static func devicesDiscovered(count: Int) -> String {
+            tr(zh: "发现 \(count) 台设备", en: "\(count) Devices Found", hant: "發現 \(count) 台裝置")
+        }
+        public static var wol: String { tr(zh: "网络唤醒 (WOL)", en: "Wake-on-LAN", hant: "網絡喚醒 (WOL)") }
+        public static var sendWol: String { tr(zh: "发送唤醒包", en: "Send Magic Packet", hant: "發送喚醒包") }
+        public static var portScan: String { tr(zh: "端口扫描", en: "Port Scanner", hant: "通訊埠掃描") }
     }
 
     // MARK: - Tools
     public enum Tools {
-        public static var title: String { tr(zh: "硬件工具箱", en: "Hardware Lab", hant: "硬體工具箱") }
-        public static var spiritLevel: String { tr(zh: "双轴高精度水平仪", en: "Spirit Level", hant: "雙軸高精度水平儀") }
-        public static var spiritLevelSub: String { tr(zh: "360° 平面圆盘 + 90° 立面角度计", en: "360° Circular & Vertical Angle", hant: "360° 平面圓盤 + 90° 立面角度") }
-        public static var screenRuler: String { tr(zh: "1:1 毫米微米屏幕卡尺", en: "Screen Caliper", hant: "1:1 毫米微米螢幕卡尺") }
-        public static var screenRulerSub: String { tr(zh: "基于物理 PPI 精准换算物理实物标尺", en: "Exact Physical Scale via Native PPI", hant: "基於實體 PPI 精準換算實物標尺") }
-        public static var waterEjector: String { tr(zh: "165Hz 声波扬声器排水", en: "Sonic Water Ejector", hant: "165Hz 聲波揚聲器排水") }
-        public static var waterEjectorSub: String { tr(zh: "物理共振气压震飞听筒与喇叭孔水珠", en: "Resonant acoustic wave for water clearing", hant: "物理共振氣壓震出聽筒與喇叭水珠") }
-        public static var decibelMeter: String { tr(zh: "环境噪音分贝计", en: "Decibel Meter", hant: "環境噪音分貝計") }
-        public static var toneGenerator: String { tr(zh: "音频信号发生器", en: "Tone Generator", hant: "音訊訊號發生器") }
-        public static var torchLab: String { tr(zh: "1%~100% 极精细手电筒", en: "Precision Torch", hant: "1%~100% 極精細手電筒") }
-        public static var touchMatrix: String { tr(zh: "全屏触控断触测试", en: "Touch Matrix Test", hant: "全螢幕觸控斷觸測試") }
+        public static var title: String { tr(zh: "工具箱", en: "Tools", hant: "工具箱") }
+        public static var spiritLevel: String { tr(zh: "水平仪", en: "Spirit Level", hant: "水平儀") }
+        public static var spiritLevelSub: String { tr(zh: "双轴倾角测量", en: "Dual-axis Inclinometer", hant: "雙軸傾角測量") }
+        public static var screenRuler: String { tr(zh: "屏幕卡尺", en: "Screen Caliper", hant: "螢幕卡尺") }
+        public static var screenRulerSub: String { tr(zh: "基于原生 PPI 物理换算", en: "Native PPI Physical Scale", hant: "基於原生 PPI 物理換算") }
+        public static var waterEjector: String { tr(zh: "声波排水", en: "Sonic Water Ejector", hant: "聲波排水") }
+        public static var waterEjectorSub: String { tr(zh: "165Hz 共振声波清理", en: "165Hz Acoustic Clear", hant: "165Hz 共振聲波清理") }
+        public static var decibelMeter: String { tr(zh: "分贝计", en: "Decibel Meter", hant: "分貝計") }
+        public static var toneGenerator: String { tr(zh: "音频发生器", en: "Tone Generator", hant: "音訊發生器") }
+        public static var torchLab: String { tr(zh: "精细手电筒", en: "Precision Torch", hant: "精細手電筒") }
+        public static var touchMatrix: String { tr(zh: "触控测试", en: "Touch Matrix Test", hant: "觸控測試") }
     }
 
     // MARK: - Settings
     public enum Settings {
-        public static var title: String { tr(zh: "控制中枢与设置", en: "Control Hub", hant: "控制中心與設定") }
-        public static var appearanceSection: String { tr(zh: "外观与界面", en: "Appearance & Theme", hant: "外觀與主題") }
-        public static var appearanceMode: String { tr(zh: "外观模式", en: "Appearance Mode", hant: "外觀模式") }
-        public static var modeDark: String { tr(zh: "黑曜石深色", en: "Obsidian Dark", hant: "黑曜石深色") }
-        public static var modeLight: String { tr(zh: "陶瓷极简浅色", en: "Ceramic Light", hant: "陶瓷極簡淺色") }
-        public static var modeSystem: String { tr(zh: "跟随系统", en: "Follow System", hant: "跟隨系統") }
+        public static var title: String { tr(zh: "设置", en: "Settings", hant: "設定") }
+        public static var appearanceSection: String { tr(zh: "外观", en: "Appearance", hant: "外觀") }
+        public static var appearanceMode: String { tr(zh: "模式", en: "Theme Mode", hant: "模式") }
+        public static var modeDark: String { tr(zh: "深色", en: "Dark", hant: "深色") }
+        public static var modeLight: String { tr(zh: "浅色", en: "Light", hant: "淺色") }
+        public static var modeSystem: String { tr(zh: "跟随系统", en: "System", hant: "跟隨系統") }
 
-        public static var themeColor: String { tr(zh: "全局主题色", en: "Accent Color", hant: "全域主題色") }
-        public static var customPalette: String { tr(zh: "自定义全光谱调色板", en: "Custom Palette", hant: "自訂全光譜調色盤") }
-        public static var hexCode: String { tr(zh: "HEX 颜色值", en: "HEX Color Code", hant: "HEX 顏色碼") }
-        public static var presets: String { tr(zh: "经典极客预设", en: "Curated Presets", hant: "經典極客預設") }
+        public static var themeColor: String { tr(zh: "强调色", en: "Accent Color", hant: "強調色") }
+        public static var customPalette: String { tr(zh: "调色板", en: "Custom Palette", hant: "調色盤") }
+        public static var hexCode: String { tr(zh: "HEX 色值", en: "HEX Color", hant: "HEX 色值") }
+        public static var presets: String { tr(zh: "预设主题", en: "Curated Presets", hant: "預設主題") }
 
-        public static var languageSection: String { tr(zh: "语言 (Language)", en: "Language", hant: "語言 (Language)") }
-        public static var langSystem: String { tr(zh: "跟随系统 (System)", en: "System Default", hant: "跟隨系統 (System)") }
+        public static var languageSection: String { tr(zh: "语言", en: "Language", hant: "語言") }
+        public static var langSystem: String { tr(zh: "跟随系统", en: "System Default", hant: "跟隨系統") }
 
-        public static var signingSection: String { tr(zh: "自签证书与特权", en: "Sideload & Provisioning", hant: "自簽憑證與特權") }
-        public static var certExpiry: String { tr(zh: "个人证书剩余有效期", en: "Certificate Countdown", hant: "個人憑證剩餘有效期") }
-        public static var sevenDaysCountdown: String { tr(zh: "7 天掉签倒计时", en: "7-Day Expiry Timer", hant: "7 天掉簽倒數計時") }
+        public static var signingSection: String { tr(zh: "证书与签名", en: "Provisioning", hant: "憑證與簽名") }
+        public static var certExpiry: String { tr(zh: "证书有效期", en: "Certificate Countdown", hant: "憑證有效期") }
+        public static func certDaysHours(days: Int, hours: Int) -> String {
+            tr(zh: "\(days) 天 \(hours) 小时", en: "\(days)d \(hours)h Left", hant: "\(days) 天 \(hours) 小時")
+        }
+        public static var sevenDaysCountdown: String { tr(zh: "7 天掉签倒计时", en: "7-Day Timer", hant: "7 天倒數") }
 
-        public static var sysPrefsSection: String { tr(zh: "系统深层设置一键直达 (App-prefs)", en: "System Settings Shortcuts", hant: "系統深層設定一鍵直達 (App-prefs)") }
-        public static var prefWifi: String { tr(zh: "Wi-Fi 设置直达", en: "Wi-Fi Settings", hant: "Wi-Fi 設定直達") }
-        public static var prefBluetooth: String { tr(zh: "蓝牙详情直达", en: "Bluetooth Settings", hant: "藍牙詳情直達") }
-        public static var prefBattery: String { tr(zh: "电池健康直达", en: "Battery Health", hant: "電池健康直達") }
-        public static var prefVpn: String { tr(zh: "VPN 管理直达", en: "VPN Settings", hant: "VPN 管理直達") }
-        public static var prefHotspot: String { tr(zh: "个人热点直达", en: "Personal Hotspot", hant: "個人熱點直達") }
-        public static var prefGeneralUpdate: String { tr(zh: "软件更新直达", en: "Software Update", hant: "軟體更新直達") }
+        public static var sysPrefsSection: String { tr(zh: "系统设置快捷直达", en: "System Shortcuts", hant: "系統設定快捷直達") }
+        public static var prefWifi: String { tr(zh: "Wi-Fi", en: "Wi-Fi", hant: "Wi-Fi") }
+        public static var prefBluetooth: String { tr(zh: "蓝牙", en: "Bluetooth", hant: "藍牙") }
+        public static var prefBattery: String { tr(zh: "电池健康", en: "Battery Health", hant: "電池健康") }
+        public static var prefVpn: String { tr(zh: "VPN", en: "VPN", hant: "VPN") }
+        public static var prefHotspot: String { tr(zh: "个人热点", en: "Personal Hotspot", hant: "個人熱點") }
+        public static var prefGeneralUpdate: String { tr(zh: "软件更新", en: "Software Update", hant: "軟體更新") }
 
-        public static var aboutSection: String { tr(zh: "关于 OneDeck", en: "About OneDeck", hant: "關於 OneDeck") }
-        public static var version: String { tr(zh: "版本号", en: "Version", hant: "版本號") }
-        public static var openSourceRepo: String { tr(zh: "开源代码仓库", en: "Open Source Repository", hant: "開原始碼倉庫") }
+        public static var aboutSection: String { tr(zh: "关于", en: "About", hant: "關於") }
+        public static var version: String { tr(zh: "版本", en: "Version", hant: "版本") }
+        public static var openSourceRepo: String { tr(zh: "开源仓库", en: "Repository", hant: "開原始碼") }
     }
 }

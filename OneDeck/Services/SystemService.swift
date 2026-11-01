@@ -71,14 +71,14 @@ public enum IsaArchTier: Sendable {
 
     public var localizedDescription: String {
         switch self {
-        case .armV82: return "ARM64 (ARMv8.2-A)"
-        case .armV83: return "ARM64 (ARMv8.3-A)"
-        case .armV84: return "ARM64 (ARMv8.4-A)"
-        case .armV85: return "ARM64 (ARMv8.5-A)"
-        case .armV86: return "ARM64 (ARMv8.6-A)"
-        case .armV90: return "ARM64 (ARMv9.0-A)"
-        case .armV92: return "ARM64 (ARMv9.2-A)"
-        case .arm64Standard: return "ARM64 (Apple Silicon)"
+        case .armV82: return "ARM64 (v8.2-A)"
+        case .armV83: return "ARM64 (v8.3-A)"
+        case .armV84: return "ARM64 (v8.4-A)"
+        case .armV85: return "ARM64 (v8.5-A)"
+        case .armV86: return "ARM64 (v8.6-A)"
+        case .armV90: return "ARM64 (v9.0-A)"
+        case .armV92: return "ARM64 (v9.2-A)"
+        case .arm64Standard: return "ARM64"
         }
     }
 }
@@ -122,8 +122,8 @@ public struct DetailedHardwareSpecs {
     public var panelType: DisplayPanelType = .retina
 
     // SoC Architecture
-    public var processNodeZh: String = "7 纳米 (台积电 FinFET)"
-    public var processNodeEn: String = "7nm TSMC FinFET"
+    public var processNodeZh: String = "7nm (台积电 FinFET)"
+    public var processNodeEn: String = "7nm (TSMC FinFET)"
     public var coreCount: Int = 6
     public var pCores: Int = 2
     public var eCores: Int = 4
@@ -189,10 +189,36 @@ public struct DetailedHardwareSpecs {
 
     public var gpuCoresDescription: String {
         L10n.tr(
-            zh: "\(gpuCores) 核图形处理器",
-            en: "\(gpuCores)-Core Apple GPU",
-            hant: "\(gpuCores) 核心圖形處理器"
+            zh: "\(gpuCores) 核 GPU",
+            en: "\(gpuCores)-Core GPU",
+            hant: "\(gpuCores) 核 GPU"
         )
+    }
+
+    public var pageSize: String {
+        let size = vm_kernel_page_size
+        let kb = size / 1024
+        return "\(kb) KB (ARM64)"
+    }
+
+    public var darwinKernel: String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let release = withUnsafePointer(to: &systemInfo.release) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) { ptr in
+                String(cString: ptr)
+            }
+        }
+        return "Darwin \(release)"
+    }
+
+    public var biometryIconName: String {
+        switch biometryType {
+        case .faceID: return "faceid"
+        case .touchID: return "touchid"
+        case .opticID: return "eye"
+        default: return "lock"
+        }
     }
 
     public var biometricsType: String {
@@ -296,9 +322,31 @@ public final class SystemService {
     public var machineIdentifier: String = "Unknown"
     public var marketingName: String = "iPhone"
     public var chipName: String = "Apple Silicon"
+    public var chipNameClean: String {
+        chipName.replacingOccurrences(of: "Apple ", with: "")
+    }
     public var boardId: String = "N/A"
     public var uptimeFormatted: String = "0h 0m"
+    public var bootDate: Date? = nil
+
+    public var bootTimeFormatted: String {
+        guard let date = bootDate else { return L10n.Common.unknown }
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return formatter.string(from: date)
+    }
+
     public var thermalState: ProcessInfo.ThermalState = .nominal
+    public var thermalStateText: String {
+        switch thermalState {
+        case .nominal: return L10n.Battery.thermalStatusNormal
+        case .fair: return L10n.Battery.thermalStatusWarm
+        case .serious: return "\(L10n.Battery.thermalStatusWarm) (\(L10n.Battery.thermalThrottling))"
+        case .critical: return "\(L10n.Battery.thermalStatusHot) (\(L10n.Battery.thermalShutdownProtection))"
+        @unknown default: return L10n.Battery.thermalStatusNormal
+        }
+    }
     public var isCleaningCache: Bool = false
     public var hardwareSpecs: DetailedHardwareSpecs = DetailedHardwareSpecs()
 
@@ -616,11 +664,8 @@ public final class SystemService {
         let hours = (uptimeSeconds % 86400) / 3600
         let minutes = (uptimeSeconds % 3600) / 60
 
-        if days > 0 {
-            self.uptimeFormatted = "\(days)d \(hours)h \(minutes)m"
-        } else {
-            self.uptimeFormatted = "\(hours)h \(minutes)m"
-        }
+        self.bootDate = bootDate
+        self.uptimeFormatted = L10n.Overview.uptimeText(days: days, hours: hours, minutes: minutes)
     }
 
     // MARK: - 6. Device Identification & Full Specs
@@ -688,84 +733,84 @@ public final class SystemService {
         specs.eCores = max(1, coreCount - 2)
 
         if chipName.contains("A11") {
-            specs.processNodeZh = "10 纳米 (台积电 FinFET)"
-            specs.processNodeEn = "10nm TSMC FinFET"
+            specs.processNodeZh = "10nm (台积电 FinFET)"
+            specs.processNodeEn = "10nm (TSMC FinFET)"
             specs.isaTier = .armV82
             specs.aneTier = .a11
             specs.gpuCores = 3
-            specs.metalFeatureSet = "Metal 2 (Apple Family 4)"
+            specs.metalFeatureSet = "Metal 2 (Family 4)"
             specs.l1dKb = 64
             specs.l2Mb = 8
         } else if chipName.contains("A12") {
-            specs.processNodeZh = "7 纳米 (台积电 FinFET)"
-            specs.processNodeEn = "7nm TSMC FinFET"
+            specs.processNodeZh = "7nm (台积电 FinFET)"
+            specs.processNodeEn = "7nm (TSMC FinFET)"
             specs.isaTier = .armV83
             specs.aneTier = .a12
             specs.gpuCores = chipName.contains("X") || chipName.contains("Z") ? 8 : 4
-            specs.metalFeatureSet = "Metal 2 (Apple Family 5)"
+            specs.metalFeatureSet = "Metal 2 (Family 5)"
             specs.l1dKb = 128
             specs.l2Mb = 8
         } else if chipName.contains("A13") {
-            specs.processNodeZh = "7 纳米 (台积电 N7P)"
-            specs.processNodeEn = "7nm TSMC N7P"
+            specs.processNodeZh = "7nm (台积电 N7P)"
+            specs.processNodeEn = "7nm (TSMC N7P)"
             specs.isaTier = .armV84
             specs.aneTier = .a13
             specs.gpuCores = 4
-            specs.metalFeatureSet = "Metal 2 (Apple Family 6)"
+            specs.metalFeatureSet = "Metal 2 (Family 6)"
             specs.l1dKb = 128
             specs.l2Mb = 8
         } else if chipName.contains("A14") {
-            specs.processNodeZh = "5 纳米 (台积电 N5)"
-            specs.processNodeEn = "5nm TSMC N5"
+            specs.processNodeZh = "5nm (台积电 N5)"
+            specs.processNodeEn = "5nm (TSMC N5)"
             specs.isaTier = .armV85
             specs.aneTier = .a14
             specs.gpuCores = 4
-            specs.metalFeatureSet = "Metal 3 (Apple Family 7)"
+            specs.metalFeatureSet = "Metal 3 (Family 7)"
             specs.l1dKb = 128
             specs.l2Mb = 16
         } else if chipName.contains("A15") {
-            specs.processNodeZh = "5 纳米 (台积电 N5P)"
-            specs.processNodeEn = "5nm TSMC N5P"
+            specs.processNodeZh = "5nm (台积电 N5P)"
+            specs.processNodeEn = "5nm (TSMC N5P)"
             specs.isaTier = .armV86
             specs.aneTier = .a15
             specs.gpuCores = machineIdentifier.contains("iPhone14,2") || machineIdentifier.contains("iPhone14,3") || machineIdentifier.contains("iPhone14,7") || machineIdentifier.contains("iPhone14,8") ? 5 : 4
-            specs.metalFeatureSet = "Metal 3 (Apple Family 8)"
+            specs.metalFeatureSet = "Metal 3 (Family 8)"
             specs.l1dKb = 128
             specs.l2Mb = 12
         } else if chipName.contains("A16") {
-            specs.processNodeZh = "4 纳米 (台积电 N4P)"
-            specs.processNodeEn = "4nm TSMC N4P"
+            specs.processNodeZh = "4nm (台积电 N4P)"
+            specs.processNodeEn = "4nm (TSMC N4P)"
             specs.isaTier = .armV90
             specs.aneTier = .a16
             specs.gpuCores = 5
-            specs.metalFeatureSet = "Metal 3 (Apple Family 8)"
+            specs.metalFeatureSet = "Metal 3 (Family 8)"
             specs.l1dKb = 128
             specs.l2Mb = 16
         } else if chipName.contains("A17") {
-            specs.processNodeZh = "3 纳米 (台积电 N3B)"
-            specs.processNodeEn = "3nm TSMC N3B"
+            specs.processNodeZh = "3nm (台积电 N3B)"
+            specs.processNodeEn = "3nm (TSMC N3B)"
             specs.isaTier = .armV92
             specs.aneTier = .a17Pro
             specs.gpuCores = 6
-            specs.metalFeatureSet = "Metal 3 (Apple Family 9)"
+            specs.metalFeatureSet = "Metal 3 (Family 9)"
             specs.l1dKb = 128
             specs.l2Mb = 16
         } else if chipName.contains("A18") {
-            specs.processNodeZh = "3 纳米 (台积电 N3E)"
-            specs.processNodeEn = "3nm TSMC N3E"
+            specs.processNodeZh = "3nm (台积电 N3E)"
+            specs.processNodeEn = "3nm (TSMC N3E)"
             specs.isaTier = .armV92
             specs.aneTier = .a18Plus
             specs.gpuCores = chipName.contains("Pro") ? 6 : 5
-            specs.metalFeatureSet = "Metal 3 (Apple Family 9)"
+            specs.metalFeatureSet = "Metal 3 (Family 9)"
             specs.l1dKb = 128
             specs.l2Mb = 16
         } else if chipName.contains("A19") || chipName.contains("A20") {
-            specs.processNodeZh = chipName.contains("A20") ? "2 纳米 (台积电 N2)" : "3 纳米 (台积电 N3P)"
-            specs.processNodeEn = chipName.contains("A20") ? "2nm TSMC N2" : "3nm TSMC N3P"
+            specs.processNodeZh = chipName.contains("A20") ? "2nm (台积电 N2)" : "3nm (台积电 N3P)"
+            specs.processNodeEn = chipName.contains("A20") ? "2nm (TSMC N2)" : "3nm (TSMC N3P)"
             specs.isaTier = .armV92
             specs.aneTier = .a18Plus
             specs.gpuCores = 6
-            specs.metalFeatureSet = "Metal 3 (Apple Family 10)"
+            specs.metalFeatureSet = "Metal 3 (Family 10)"
             specs.l1dKb = 128
             specs.l2Mb = 24
         } else if chipName.contains("M") {
@@ -774,7 +819,7 @@ public final class SystemService {
             specs.isaTier = .armV85
             specs.aneTier = .appleSiliconM
             specs.gpuCores = 8
-            specs.metalFeatureSet = "Metal 3 (Apple Family 8)"
+            specs.metalFeatureSet = "Metal 3 (Family 8)"
             specs.l1dKb = 128
             specs.l2Mb = 16
         } else {
@@ -896,8 +941,19 @@ public final class SystemService {
         self.thermalPressurePercent = min(100, max(5, pressure + Int(totalCpuUsage * 0.2)))
     }
 
+    private static var didAttemptIOKitBattery: Bool = false
+    private static var isIOKitBatteryAvailable: Bool = false
+
     private static func readPhysicalBatteryTemperature() -> Double? {
-        guard let handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW) else { return nil }
+        if didAttemptIOKitBattery && !isIOKitBatteryAvailable {
+            return nil
+        }
+        didAttemptIOKitBattery = true
+
+        guard let handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW) else {
+            isIOKitBatteryAvailable = false
+            return nil
+        }
         defer { dlclose(handle) }
 
         typealias IOServiceMatchingFunc = @convention(c) (UnsafePointer<CChar>) -> CFMutableDictionary?
@@ -908,16 +964,26 @@ public final class SystemService {
         guard let symMatching = dlsym(handle, "IOServiceMatching"),
               let symGetService = dlsym(handle, "IOServiceGetMatchingService"),
               let symCreateProperty = dlsym(handle, "IORegistryEntryCreateCFProperty"),
-              let symRelease = dlsym(handle, "IOObjectRelease") else { return nil }
+              let symRelease = dlsym(handle, "IOObjectRelease") else {
+            isIOKitBatteryAvailable = false
+            return nil
+        }
 
         let ioServiceMatching = unsafeBitCast(symMatching, to: IOServiceMatchingFunc.self)
         let ioServiceGetMatchingService = unsafeBitCast(symGetService, to: IOServiceGetMatchingServiceFunc.self)
         let ioRegistryEntryCreateCFProperty = unsafeBitCast(symCreateProperty, to: IORegistryEntryCreateCFPropertyFunc.self)
         let ioObjectRelease = unsafeBitCast(symRelease, to: IOObjectReleaseFunc.self)
 
-        guard let dict = ioServiceMatching("AppleSmartBattery") else { return nil }
+        guard let dict = ioServiceMatching("AppleSmartBattery") else {
+            isIOKitBatteryAvailable = false
+            return nil
+        }
         let service = ioServiceGetMatchingService(0, dict)
-        guard service != 0 else { return nil }
+        guard service != 0 else {
+            isIOKitBatteryAvailable = false
+            return nil
+        }
+        isIOKitBatteryAvailable = true
         defer { _ = ioObjectRelease(service) }
 
         if let prop = ioRegistryEntryCreateCFProperty(service, "Temperature" as CFString, kCFAllocatorDefault, 0) {
@@ -941,74 +1007,74 @@ public final class SystemService {
     // MARK: - Device Database Lookup
     private static func lookupDevice(identifier: String) -> (String, String) {
         switch identifier {
-        // iPhone 18 Family (Late 2026 - A20 Series 2nm)
-        case "iPhone19,1": return ("iPhone 18", "Apple A20 Bionic (2nm)")
-        case "iPhone19,2": return ("iPhone 18 Pro", "Apple A20 Pro (2nm)")
-        case "iPhone19,3": return ("iPhone 18 Pro Max", "Apple A20 Pro (2nm)")
-        case "iPhone19,4": return ("iPhone Fold", "Apple A20 Pro (2nm)")
-        case "iPhone19,5": return ("iPhone 18 Air", "Apple A20 Bionic (2nm)")
+        // iPhone 18 Family (Late 2026)
+        case "iPhone19,1": return ("iPhone 18", "Apple A20")
+        case "iPhone19,2": return ("iPhone 18 Pro", "Apple A20 Pro")
+        case "iPhone19,3": return ("iPhone 18 Pro Max", "Apple A20 Pro")
+        case "iPhone19,4": return ("iPhone Fold", "Apple A20 Pro")
+        case "iPhone19,5": return ("iPhone 18 Air", "Apple A20")
 
-        // iPhone 17 Family (Late 2025 - A19 Series 3nm N3P)
-        case "iPhone18,1": return ("iPhone 17 Pro", "Apple A19 Pro (3nm)")
-        case "iPhone18,2": return ("iPhone 17 Pro Max", "Apple A19 Pro (3nm)")
-        case "iPhone18,3": return ("iPhone 17", "Apple A19 (3nm)")
-        case "iPhone18,4": return ("iPhone Air", "Apple A19 (3nm)")
-        case "iPhone18,5": return ("iPhone 17e", "Apple A19 (3nm)")
+        // iPhone 17 Family (Late 2025)
+        case "iPhone18,1": return ("iPhone 17 Pro", "Apple A19 Pro")
+        case "iPhone18,2": return ("iPhone 17 Pro Max", "Apple A19 Pro")
+        case "iPhone18,3": return ("iPhone 17", "Apple A19")
+        case "iPhone18,4": return ("iPhone Air", "Apple A19")
+        case "iPhone18,5": return ("iPhone 17e", "Apple A19")
 
-        // iPhone 16 Family (2024–2025 - A18 Series 3nm N3E)
-        case "iPhone17,1": return ("iPhone 16 Pro", "Apple A18 Pro (3nm)")
-        case "iPhone17,2": return ("iPhone 16 Pro Max", "Apple A18 Pro (3nm)")
-        case "iPhone17,3": return ("iPhone 16", "Apple A18 (3nm)")
-        case "iPhone17,4": return ("iPhone 16 Plus", "Apple A18 (3nm)")
-        case "iPhone17,5": return ("iPhone 16e", "Apple A18 (3nm)")
+        // iPhone 16 Family (2024–2025)
+        case "iPhone17,1": return ("iPhone 16 Pro", "Apple A18 Pro")
+        case "iPhone17,2": return ("iPhone 16 Pro Max", "Apple A18 Pro")
+        case "iPhone17,3": return ("iPhone 16", "Apple A18")
+        case "iPhone17,4": return ("iPhone 16 Plus", "Apple A18")
+        case "iPhone17,5": return ("iPhone 16e", "Apple A18")
 
         // iPhone 15 Family (2023)
-        case "iPhone16,1": return ("iPhone 15 Pro", "Apple A17 Pro (3nm)")
-        case "iPhone16,2": return ("iPhone 15 Pro Max", "Apple A17 Pro (3nm)")
-        case "iPhone15,4": return ("iPhone 15", "Apple A16 Bionic (4nm)")
-        case "iPhone15,5": return ("iPhone 15 Plus", "Apple A16 Bionic (4nm)")
+        case "iPhone16,1": return ("iPhone 15 Pro", "Apple A17 Pro")
+        case "iPhone16,2": return ("iPhone 15 Pro Max", "Apple A17 Pro")
+        case "iPhone15,4": return ("iPhone 15", "Apple A16 Bionic")
+        case "iPhone15,5": return ("iPhone 15 Plus", "Apple A16 Bionic")
 
         // iPhone 14 Family (2022)
-        case "iPhone15,2": return ("iPhone 14 Pro", "Apple A16 Bionic (4nm)")
-        case "iPhone15,3": return ("iPhone 14 Pro Max", "Apple A16 Bionic (4nm)")
-        case "iPhone14,7": return ("iPhone 14", "Apple A15 Bionic (5nm)")
-        case "iPhone14,8": return ("iPhone 14 Plus", "Apple A15 Bionic (5nm)")
+        case "iPhone15,2": return ("iPhone 14 Pro", "Apple A16 Bionic")
+        case "iPhone15,3": return ("iPhone 14 Pro Max", "Apple A16 Bionic")
+        case "iPhone14,7": return ("iPhone 14", "Apple A15 Bionic")
+        case "iPhone14,8": return ("iPhone 14 Plus", "Apple A15 Bionic")
 
         // iPhone 13 Family & SE 3 (2021-2022)
-        case "iPhone14,2": return ("iPhone 13 Pro", "Apple A15 Bionic (5nm)")
-        case "iPhone14,3": return ("iPhone 13 Pro Max", "Apple A15 Bionic (5nm)")
-        case "iPhone14,4": return ("iPhone 13 mini", "Apple A15 Bionic (5nm)")
-        case "iPhone14,5": return ("iPhone 13", "Apple A15 Bionic (5nm)")
-        case "iPhone14,6": return ("iPhone SE (3rd gen)", "Apple A15 Bionic (5nm)")
+        case "iPhone14,2": return ("iPhone 13 Pro", "Apple A15 Bionic")
+        case "iPhone14,3": return ("iPhone 13 Pro Max", "Apple A15 Bionic")
+        case "iPhone14,4": return ("iPhone 13 mini", "Apple A15 Bionic")
+        case "iPhone14,5": return ("iPhone 13", "Apple A15 Bionic")
+        case "iPhone14,6": return ("iPhone SE (3rd gen)", "Apple A15 Bionic")
 
         // iPhone 12 Family (2020)
-        case "iPhone13,1": return ("iPhone 12 mini", "Apple A14 Bionic (5nm)")
-        case "iPhone13,2": return ("iPhone 12", "Apple A14 Bionic (5nm)")
-        case "iPhone13,3": return ("iPhone 12 Pro", "Apple A14 Bionic (5nm)")
-        case "iPhone13,4": return ("iPhone 12 Pro Max", "Apple A14 Bionic (5nm)")
+        case "iPhone13,1": return ("iPhone 12 mini", "Apple A14 Bionic")
+        case "iPhone13,2": return ("iPhone 12", "Apple A14 Bionic")
+        case "iPhone13,3": return ("iPhone 12 Pro", "Apple A14 Bionic")
+        case "iPhone13,4": return ("iPhone 12 Pro Max", "Apple A14 Bionic")
 
         // iPhone 11 Family & SE 2 (2019-2020)
-        case "iPhone12,8": return ("iPhone SE (2nd gen)", "Apple A13 Bionic (7nm)")
-        case "iPhone12,5": return ("iPhone 11 Pro Max", "Apple A13 Bionic (7nm)")
-        case "iPhone12,3": return ("iPhone 11 Pro", "Apple A13 Bionic (7nm)")
-        case "iPhone12,1": return ("iPhone 11", "Apple A13 Bionic (7nm)")
+        case "iPhone12,8": return ("iPhone SE (2nd gen)", "Apple A13 Bionic")
+        case "iPhone12,5": return ("iPhone 11 Pro Max", "Apple A13 Bionic")
+        case "iPhone12,3": return ("iPhone 11 Pro", "Apple A13 Bionic")
+        case "iPhone12,1": return ("iPhone 11", "Apple A13 Bionic")
 
         // iPhone XS / XR (2018)
-        case "iPhone11,8": return ("iPhone XR", "Apple A12 Bionic (7nm)")
-        case "iPhone11,6", "iPhone11,4": return ("iPhone XS Max", "Apple A12 Bionic (7nm)")
-        case "iPhone11,2": return ("iPhone XS", "Apple A12 Bionic (7nm)")
+        case "iPhone11,8": return ("iPhone XR", "Apple A12 Bionic")
+        case "iPhone11,6", "iPhone11,4": return ("iPhone XS Max", "Apple A12 Bionic")
+        case "iPhone11,2": return ("iPhone XS", "Apple A12 Bionic")
 
         // iPhone X & 8 (2017)
-        case "iPhone10,6", "iPhone10,3": return ("iPhone X", "Apple A11 Bionic (10nm)")
-        case "iPhone10,5", "iPhone10,2": return ("iPhone 8 Plus", "Apple A11 Bionic (10nm)")
-        case "iPhone10,4", "iPhone10,1": return ("iPhone 8", "Apple A11 Bionic (10nm)")
+        case "iPhone10,6", "iPhone10,3": return ("iPhone X", "Apple A11 Bionic")
+        case "iPhone10,5", "iPhone10,2": return ("iPhone 8 Plus", "Apple A11 Bionic")
+        case "iPhone10,4", "iPhone10,1": return ("iPhone 8", "Apple A11 Bionic")
 
         // iPhone 7 & Prior
-        case "iPhone9,4", "iPhone9,2": return ("iPhone 7 Plus", "Apple A10 Fusion (16nm)")
-        case "iPhone9,3", "iPhone9,1": return ("iPhone 7", "Apple A10 Fusion (16nm)")
-        case "iPhone8,4": return ("iPhone SE (1st gen)", "Apple A9 (14nm)")
-        case "iPhone8,2": return ("iPhone 6s Plus", "Apple A9 (14nm)")
-        case "iPhone8,1": return ("iPhone 6s", "Apple A9 (14nm)")
+        case "iPhone9,4", "iPhone9,2": return ("iPhone 7 Plus", "Apple A10 Fusion")
+        case "iPhone9,3", "iPhone9,1": return ("iPhone 7", "Apple A10 Fusion")
+        case "iPhone8,4": return ("iPhone SE (1st gen)", "Apple A9")
+        case "iPhone8,2": return ("iPhone 6s Plus", "Apple A9")
+        case "iPhone8,1": return ("iPhone 6s", "Apple A9")
 
         // iPad Pro M5 (2025-2026)
         case "iPad17,1", "iPad17,2": return ("iPad Pro 11-inch (M5)", "Apple M5")

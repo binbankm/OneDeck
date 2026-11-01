@@ -29,10 +29,11 @@ struct OverviewHeroCard: View {
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(appState.accentColor)
 
-                        Text(system.chipName)
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                        Text(system.chipNameClean)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.85)
 
                         Text("•")
                             .font(.system(size: 10))
@@ -46,6 +47,7 @@ struct OverviewHeroCard: View {
                             .font(.system(size: 12, weight: .medium, design: .rounded))
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
                 }
 

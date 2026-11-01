@@ -137,7 +137,7 @@ struct SettingsView: View {
                                 Text(L10n.Settings.certExpiry)
                                     .font(.subheadline)
                                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                                Text("6 天 22 小时")
+                                Text(L10n.Settings.certDaysHours(days: 6, hours: 22))
                                     .font(.system(.title3, design: .rounded, weight: .bold))
                                     .foregroundStyle(appState.accentColor)
                             }
@@ -157,7 +157,7 @@ struct SettingsView: View {
 
                         VStack(spacing: 8) {
                             settingsLinkRow(title: L10n.Settings.prefWifi, icon: "wifi", url: "App-prefs:root=WIFI")
-                            settingsLinkRow(title: L10n.Settings.prefBluetooth, icon: "bluetooth", url: "App-prefs:root=Bluetooth")
+                            settingsLinkRow(title: L10n.Settings.prefBluetooth, icon: "antenna.radiowaves.left.and.right", url: "App-prefs:root=Bluetooth")
                             settingsLinkRow(title: L10n.Settings.prefBattery, icon: "battery.100", url: "App-prefs:root=BATTERY_USAGE")
                             settingsLinkRow(title: L10n.Settings.prefVpn, icon: "lock.shield", url: "App-prefs:root=General&path=VPN")
                             settingsLinkRow(title: L10n.Settings.prefHotspot, icon: "personalhotspot", url: "App-prefs:root=INTERNET_TETHERING")
