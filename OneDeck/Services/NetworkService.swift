@@ -836,7 +836,7 @@ public final class NetworkService: @unchecked Sendable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         let words = locPart.split(separator: " ").map { String($0) }
-        var country = words.first ?? "中国"
+        let country = words.first ?? "中国"
         var isp = words.last ?? ""
         if isp == "移动" { isp = "中国移动" }
         else if isp == "电信" { isp = "中国电信" }
