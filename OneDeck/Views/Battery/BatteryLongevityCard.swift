@@ -408,7 +408,7 @@ struct BatteryLongevityCard: View {
         - \(L10n.Battery.reportCellTemp): \(String(format: "%.1f °C", battery.batteryTemperature))
         - \(L10n.Battery.reportPowerMode): \(battery.chargingProtocolName) (\(String(format: "%.1f W", abs(battery.liveWattage))))
         - \(L10n.Battery.reportThermalState): \(system.thermalStateText)
-        - 数据源通道: \(dataSource)
+        - \(L10n.Tools.dataSourceChannel): \(dataSource)
         - \(L10n.Battery.reportGeneratedTime): \(nowString)
         ========================================
         """

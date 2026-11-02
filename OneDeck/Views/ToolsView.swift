@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Tools Tab: Spirit Level, 1:1 Screen Caliper, 165Hz Water Ejector & Precision Torch.
+//  Tools Tab: Hardware Diagnostic Instruments & Dedicated Professional Workspaces.
 //
 
 import SwiftUI
@@ -12,10 +12,7 @@ struct ToolsView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
     @Bindable private var appState = AppState.shared
-
-    // MARK: - State
-    @State private var isEjectingWater: Bool = false
-    @State private var torchLevel: Double = 0.5
+    @Bindable private var tools = ToolsViewModel.shared
 
     // MARK: - Body
     var body: some View {
@@ -31,6 +28,12 @@ struct ToolsView: View {
             }
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Tools.title)
+            .onAppear {
+                tools.onTabAppear()
+            }
+            .onDisappear {
+                tools.onTabDisappear()
+            }
         }
     }
 
@@ -38,104 +41,45 @@ struct ToolsView: View {
     @ViewBuilder
     private var cardStack: some View {
         VStack(spacing: SpacingTheme.cardStack) {
-            spiritLevelCard
-            screenCaliperCard
-            waterEjectorCard
-            precisionTorchCard
+            // 1. Dual-Axis Spirit Level & Inclinometer
+            ToolsSpiritLevelCard()
+
+            // 2. 1:1 Hardware Native Screen Caliper
+            ToolsScreenRulerCard()
+
+            // 3. 165Hz Acoustic Membrane Water & Dust Ejector
+            ToolsWaterEjectorCard()
+
+            // 4. Precision Torch, Strobe Tachometer & Softbox
+            ToolsPrecisionTorchCard()
+
+            // 5. Magnetic Flux & Ferromagnetic Stud / Wire Detector
+            ToolsMetalDetectorCard()
+
+            // 6. Atmospheric Barometer & Relative Altimeter / Climb Speed
+            ToolsBarometerCard()
+
+            // 7. 20Hz-20kHz Pure Tone Generator & Synth
+            ToolsToneGeneratorCard()
+
+            // 8. OLED Dead Pixel Inspection & 120Hz Touch Digitizer
+            ToolsScreenQualityCard()
+
+            // 9. Apple Taptic Engine & Haptic Actuator Lab
+            ToolsHapticLabCard()
+
+            // 10. Real-Time Acoustic Sound Level & Decibel Meter
+            ToolsDecibelMeterCard()
+
+            // 11. 3D Electronic Compass & Geographic True North
+            ToolsCompassCard()
+
+            // 12. Stereo Speaker Separation & Acoustic Phase Diagnostics
+            ToolsSpeakerLabCard()
+
+            // 13. Fullscreen Capacitive Touch Matrix Grid Test
+            ToolsTouchMatrixCard()
         }
-    }
-
-    // MARK: - Tool Cards
-    @ViewBuilder
-    private var spiritLevelCard: some View {
-        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
-            BentoSectionHeader(
-                title: L10n.Tools.spiritLevel,
-                icon: "angle",
-                subtitle: L10n.Tools.spiritLevelSub
-            )
-
-            // Simulated Spirit Level Bubble
-            ZStack {
-                Circle()
-                    .strokeBorder(Theme.cardBorder(for: colorScheme), lineWidth: 2)
-                    .frame(height: 120)
-
-                Circle()
-                    .strokeBorder(appState.accentColor.opacity(0.3), lineWidth: 1)
-                    .frame(height: 60)
-
-                Circle()
-                    .fill(appState.accentColor)
-                    .frame(width: 28, height: 28)
-                    .shadow(color: appState.accentColor.opacity(0.5), radius: 6)
-
-                Text("0.0°")
-                    .font(Typography.captionMono)
-                    .foregroundStyle(.black)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, SpacingTheme.standard)
-        }
-        .bentoCard(accent: appState.accentColor)
-    }
-
-    @ViewBuilder
-    private var screenCaliperCard: some View {
-        HStack(spacing: SpacingTheme.cardInternal) {
-            BentoSectionHeader(
-                title: L10n.Tools.screenRuler,
-                icon: "ruler.fill",
-                subtitle: L10n.Tools.screenRulerSub
-            )
-            Spacer()
-        }
-        .bentoCard(accent: appState.accentColor)
-    }
-
-    @ViewBuilder
-    private var waterEjectorCard: some View {
-        VStack(alignment: .leading, spacing: SpacingTheme.rowStandard) {
-            HStack {
-                BentoSectionHeader(
-                    title: L10n.Tools.waterEjector,
-                    icon: "drop.triangle.fill",
-                    subtitle: L10n.Tools.waterEjectorSub
-                )
-                Spacer()
-                Button {
-                    isEjectingWater.toggle()
-                    if isEjectingWater {
-                        Haptics.impact(.heavy)
-                    }
-                } label: {
-                    Image(systemName: isEjectingWater ? "stop.circle.fill" : "play.circle.fill")
-                        .font(IconTheme.prominentAction)
-                        .foregroundStyle(isEjectingWater ? .red : appState.accentColor)
-                }
-            }
-        }
-        .bentoCard(accent: appState.accentColor)
-    }
-
-    @ViewBuilder
-    private var precisionTorchCard: some View {
-        VStack(alignment: .leading, spacing: SpacingTheme.rowStandard) {
-            HStack {
-                BentoSectionHeader(title: L10n.Tools.torchLab, icon: "flashlight.on.fill")
-                Spacer()
-                Text("\(Int(torchLevel * 100))%")
-                    .font(Typography.bodyValueMono)
-                    .foregroundStyle(appState.accentColor)
-            }
-
-            Slider(value: $torchLevel, in: 0.01...1.0)
-                .tint(appState.accentColor)
-                .onChange(of: torchLevel) { _, _ in
-                    Haptics.tick()
-                }
-        }
-        .bentoCard(accent: appState.accentColor)
     }
 }
 

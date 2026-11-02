@@ -702,15 +702,232 @@ public enum L10n {
     public enum Tools {
         public static var title: String { tr(zh: "工具箱", en: "Tools", hant: "工具箱") }
         public static var spiritLevel: String { tr(zh: "水平仪", en: "Spirit Level", hant: "水平儀") }
-        public static var spiritLevelSub: String { tr(zh: "双轴倾角测量", en: "Dual-axis Inclinometer", hant: "雙軸傾角測量") }
+        public static var spiritLevelSub: String { tr(zh: "双轴倾角与平衡", en: "Dual-Axis Inclinometer", hant: "雙軸傾角與平衡") }
         public static var screenRuler: String { tr(zh: "屏幕卡尺", en: "Screen Caliper", hant: "螢幕卡尺") }
-        public static var screenRulerSub: String { tr(zh: "基于原生 PPI 物理换算", en: "Native PPI Physical Scale", hant: "基於原生 PPI 物理換算") }
+        public static var screenRulerSub: String { tr(zh: "1:1 原生物理换算", en: "1:1 Native Scale", hant: "1:1 原生物理換算") }
         public static var waterEjector: String { tr(zh: "声波排水", en: "Sonic Water Ejector", hant: "聲波排水") }
-        public static var waterEjectorSub: String { tr(zh: "165Hz 共振声波清理", en: "165Hz Acoustic Clear", hant: "165Hz 共振聲波清理") }
-        public static var decibelMeter: String { tr(zh: "分贝计", en: "Decibel Meter", hant: "分貝計") }
+        public static var waterEjectorSub: String { tr(zh: "165Hz 声学振膜清理", en: "165Hz Acoustic Clear", hant: "165Hz 聲學振膜清理") }
+        public static var torchLab: String { tr(zh: "精细手电", en: "Precision Torch", hant: "精細手電") }
+        public static var torchLabSub: String { tr(zh: "微调光与频闪实验室", en: "Dimmer & Strobe Lab", hant: "微調光與頻閃實驗室") }
+        public static var metalDetector: String { tr(zh: "金属寻线", en: "Metal & EMF", hant: "金屬尋線") }
+        public static var metalDetectorSub: String { tr(zh: "磁通量与暗线探测", en: "Magnetic Flux & Stud", hant: "磁通量與暗線探測") }
+        public static var barometer: String { tr(zh: "气压海拔", en: "Barometer & Alt", hant: "氣壓海拔") }
+        public static var barometerSub: String { tr(zh: "相对高程与升降速", en: "Relative Altitude & VSI", hant: "相對高程與升降速") }
         public static var toneGenerator: String { tr(zh: "音频发生器", en: "Tone Generator", hant: "音訊發生器") }
-        public static var torchLab: String { tr(zh: "精细手电筒", en: "Precision Torch", hant: "精細手電筒") }
-        public static var touchMatrix: String { tr(zh: "触控测试", en: "Touch Matrix Test", hant: "觸控測試") }
+        public static var toneGeneratorSub: String { tr(zh: "20Hz-20kHz 纯音合成", en: "20Hz-20kHz Synthesizer", hant: "20Hz-20kHz 純音合成") }
+        public static var screenQuality: String { tr(zh: "屏幕质检", en: "Screen Quality", hant: "螢幕質檢") }
+        public static var screenQualitySub: String { tr(zh: "坏点巡检与触控采样", en: "Dead Pixel & Touch", hant: "壞點巡檢與觸控採樣") }
+        public static var hapticLab: String { tr(zh: "触觉马达", en: "Haptic Lab", hant: "觸覺馬達") }
+        public static var hapticLabSub: String { tr(zh: "触觉反馈与振动诊断", en: "Taptic Engine Lab", hant: "觸覺反饋與振動診斷") }
+        public static var decibelMeter: String { tr(zh: "环境分贝", en: "Decibel Meter", hant: "環境分貝") }
+        public static var decibelMeterSub: String { tr(zh: "声压级与噪声巡检", en: "Sound Pressure Level", hant: "聲壓級與噪聲巡檢") }
+        public static var compass: String { tr(zh: "电子罗盘", en: "Compass", hant: "電子羅盤") }
+        public static var compassSub: String { tr(zh: "磁罗盘与真北航向", en: "Magnetic & True North", hant: "磁羅盤與真北航向") }
+        public static var speakerLab: String { tr(zh: "扬声器质检", en: "Speaker Lab", hant: "揚聲器質檢") }
+        public static var speakerLabSub: String { tr(zh: "双声道与振膜杂音", en: "Stereo Balance & Rattle", hant: "雙聲道與振膜雜音") }
+        public static var touchMatrix: String { tr(zh: "触控矩阵", en: "Touch Matrix", hant: "觸控矩陣") }
+        public static var touchMatrixSub: String { tr(zh: "全屏网格死区检测", en: "Full-Screen Grid Test", hant: "全螢幕網格死區檢測") }
+
+        // Workspace Actions & Common Labels
+        public static var openWorkspace: String { tr(zh: "进入工作台", en: "Open Workspace", hant: "進入工作台") }
+        public static var tare: String { tr(zh: "置零", en: "Tare", hant: "置零") }
+        public static var resetTare: String { tr(zh: "复位", en: "Reset", hant: "復位") }
+        public static var saveRecord: String { tr(zh: "记录", en: "Record", hant: "記錄") }
+        public static var historyRecords: String { tr(zh: "测量历史", en: "History", hant: "測量歷史") }
+        public static var noRecords: String { tr(zh: "暂无记录", en: "No Records", hant: "暫無記錄") }
+        public static var calibrate: String { tr(zh: "校准", en: "Calibrate", hant: "校準") }
+        public static var lockAngle: String { tr(zh: "锁定", en: "Lock", hant: "鎖定") }
+        public static var unlockedAngle: String { tr(zh: "已锁定", en: "Locked", hant: "已鎖定") }
+        public static var slope: String { tr(zh: "坡度", en: "Slope", hant: "坡度") }
+        public static var soundBeep: String { tr(zh: "提示音", en: "Beep", hant: "提示音") }
+        public static var verticalMode: String { tr(zh: "立面模式", en: "Vertical", hant: "立面模式") }
+        public static var flatMode: String { tr(zh: "平面模式", en: "Surface", hant: "平面模式") }
+
+        // Sonic Water Ejector
+        public static var startEject: String { tr(zh: "开始排水", en: "Start Eject", hant: "開始排水") }
+        public static var stopEject: String { tr(zh: "停止", en: "Stop", hant: "停止") }
+        public static var ejecting: String { tr(zh: "排水中...", en: "Ejecting...", hant: "排水中...") }
+        public static var clearing: String { tr(zh: "除尘中...", en: "Clearing...", hant: "除塵中...") }
+        public static var ready: String { tr(zh: "就绪", en: "Ready", hant: "就緒") }
+        public static var deepEject165: String { tr(zh: "深度排水", en: "Deep Eject", hant: "深度排水") }
+        public static var dustClear440: String { tr(zh: "振膜除尘", en: "Dust Clear", hant: "振膜除塵") }
+        public static var waterEjectAdvice: String { tr(zh: "谐振排水建议调至最大音量并倒立手机", en: "Set volume to max and invert phone", hant: "諧振排水建議調至最大音量並倒立手機") }
+
+        // Barometer & Altimeter
+        public static var geigerTick: String { tr(zh: "蜂鸣提示", en: "Audio Alert", hant: "蜂鳴提示") }
+        public static var verticalSpeed: String { tr(zh: "升降速", en: "V.Speed", hant: "升降速") }
+        public static var climbRate: String { tr(zh: "爬升速率", en: "Climb Rate", hant: "爬升速率") }
+        public static var resetAltitude: String { tr(zh: "高度重置", en: "Reset Alt", hant: "高度重置") }
+        public static var atmosphericPressure: String { tr(zh: "实时气压", en: "Atmospheric", hant: "即時氣壓") }
+        public static var relativeElevation: String { tr(zh: "相对高程", en: "Elevation", hant: "相對高程") }
+        public static var barometricTendency: String { tr(zh: "气压趋势", en: "Pressure Trend", hant: "氣壓趨勢") }
+        public static var pressureFalling: String { tr(zh: "气压下降", en: "Falling", hant: "氣壓下降") }
+        public static var pressureRising: String { tr(zh: "气压上升", en: "Rising", hant: "氣壓上升") }
+        public static var pressureSteady: String { tr(zh: "气压平稳", en: "Steady", hant: "氣壓平穩") }
+        public static var isaSeaLevelStandard: String { tr(zh: "标准海平面气压", en: "ISA Sea Level", hant: "標準海平面氣壓") }
+        public static var pressureRisingDesc: String { tr(zh: "气压微升 · 气流下沉趋于转晴", en: "Pressure rising · Fair weather trend", hant: "氣壓微升 · 氣流下沉趨於轉晴") }
+        public static var pressureSteadyDesc: String { tr(zh: "气压平稳 · 大气状况稳定", en: "Pressure steady · Atmospheric stability", hant: "氣壓平穩 · 大氣狀況穩定") }
+        public static var pressureFallingDesc: String { tr(zh: "气压下降 · 处于低压扰动过程", en: "Pressure falling · Low pressure trend", hant: "氣壓下降 · 處於低壓擾動過程") }
+
+        // Precision Screen Caliper
+        public static var anchorTopJaw: String { tr(zh: "基准锁顶", en: "Anchor 0mm", hant: "基準鎖頂") }
+        public static var dualFloatingJaws: String { tr(zh: "自由双爪", en: "Dual Jaws", hant: "自由雙爪") }
+        public static var fixedAnvil: String { tr(zh: "固定基准爪 (0.0 mm)", en: "Fixed Anvil (0.0 mm)", hant: "固定基準爪 (0.0 mm)") }
+        public static var slidingJaw: String { tr(zh: "滑动游标爪", en: "Sliding Jaw", hant: "滑動游標爪") }
+        public static var fineTuneStep: String { tr(zh: "微调", en: "Fine Tune", hant: "微調") }
+        public static var referenceObjects: String { tr(zh: "常用基准", en: "Reference", hant: "常用基準") }
+        public static var benchmark1YuanCoin: String { tr(zh: "1元硬币", en: "$1 Coin", hant: "1元硬幣") }
+        public static var benchmark5JiaoCoin: String { tr(zh: "5角硬币", en: "50¢ Coin", hant: "5角硬幣") }
+        public static var benchmarkCreditCard: String { tr(zh: "银行卡长", en: "Credit Card", hant: "銀行卡長") }
+        public static var zeroMmBenchmark: String { tr(zh: "0.0 mm 基准", en: "0.0 mm Datum", hant: "0.0 mm 基準") }
+        public static var dataSourceChannel: String { tr(zh: "数据源通道", en: "Data Channel", hant: "數據源通道") }
+
+        // Metal & EMF
+        public static var ferromagneticProximity: String { tr(zh: "强磁源靠近", en: "Magnetic Source Detected", hant: "強磁源靠近") }
+        public static var metalDetected: String { tr(zh: "金属靠近", en: "Metal Detected", hant: "金屬靠近") }
+        public static var oscilloscope: String { tr(zh: "磁通示波器", en: "Flux Oscilloscope", hant: "磁通示波器") }
+        public static var baseline: String { tr(zh: "基准", en: "Baseline", hant: "基準") }
+        public static var fluxDelta: String { tr(zh: "差值", en: "Delta", hant: "差值") }
+        public static var deltaLabel: String { tr(zh: "差值", en: "Delta", hant: "差值") }
+        public static var baselineLabel: String { tr(zh: "基准", en: "Baseline", hant: "基準") }
+
+        // Precision Torch
+        public static var linearLumen: String { tr(zh: "线性流明微调", en: "Linear Lumen Dimmer", hant: "線性流明微調") }
+        public static var linearLumenRange: String { tr(zh: "1% ~ 100% 线性调光", en: "1% ~ 100% Linear Dimming", hant: "1% ~ 100% 線性調光") }
+        public static var distressSignal: String { tr(zh: "国际莫尔斯求救信号", en: "SOS Distress Signal", hant: "國際莫爾斯求救信號") }
+        public static var morseStandardSub: String { tr(zh: "标准莫尔斯循环闪烁", en: "Standard Morse Loop", hant: "標準莫爾斯循環閃爍") }
+        public static var colorTemperature: String { tr(zh: "摄影柔光色温", en: "Softbox Color Temp", hant: "攝影柔光色溫") }
+        public static var correlatedColorTemp: String { tr(zh: "色温调光", en: "Color Temperature", hant: "色溫調光") }
+        public static var fullscreenSoftbox: String { tr(zh: "全屏柔光补光", en: "Fullscreen Softbox", hant: "全螢幕柔光補光") }
+        public static var strobe: String { tr(zh: "频闪", en: "Strobe", hant: "頻閃") }
+        public static var strobeRpm: String { tr(zh: "旋转测速", en: "Tachometer", hant: "旋轉測速") }
+        public static var strobeTachometer: String { tr(zh: "转速测定", en: "Tachometer", hant: "轉速測定") }
+        public static var sosMorse: String { tr(zh: "求救信标", en: "SOS Beacon", hant: "求救信標") }
+        public static var softbox: String { tr(zh: "摄影柔光", en: "Softbox", hant: "攝影柔光") }
+        public static var dimMode: String { tr(zh: "微调光", en: "Dimmer", hant: "微調光") }
+        public static var turnOn: String { tr(zh: "开启", en: "Turn On", hant: "開啟") }
+        public static var turnOff: String { tr(zh: "关闭", en: "Turn Off", hant: "關閉") }
+        public static var activate: String { tr(zh: "开启", en: "Turn On", hant: "開啟") }
+
+        // Caliper Jaws
+        public static var jawA: String { tr(zh: "卡爪 A", en: "Jaw A", hant: "卡爪 A") }
+        public static var jawB: String { tr(zh: "卡爪 B", en: "Jaw B", hant: "卡爪 B") }
+
+        // Tone Generator & Hearing Test
+        public static var generateTone: String { tr(zh: "发声输出", en: "Play Tone", hant: "發聲輸出") }
+        public static var stopTone: String { tr(zh: "停止音频", en: "Stop Audio", hant: "停止音訊") }
+        public static var hertzUnit: String { tr(zh: "赫兹 (Hz)", en: "Hertz (Hz)", hant: "赫茲 (Hz)") }
+        public static var hearingAgeChallenge: String { tr(zh: "听力年龄测试", en: "Hearing Age Test", hant: "聽力年齡測試") }
+        public static var hearingAgeTip: String { tr(zh: "测试耳蜗高频感知以评估听觉生理年龄", en: "Test high-frequency response to estimate hearing age", hant: "測試耳蝸高頻感知以評估聽覺生理年齡") }
+        public static func hearingAgeBracket(_ age: Int) -> String {
+            tr(zh: "< \(age) 岁", en: "< \(age) Yrs", hant: "< \(age) 歲")
+        }
+        public static func waveformTitle(_ waveform: ToneWaveform) -> String {
+            switch waveform {
+            case .sine: return tr(zh: "正弦波", en: "Sine", hant: "正弦波")
+            case .square: return tr(zh: "方波", en: "Square", hant: "方波")
+            case .triangle: return tr(zh: "三角波", en: "Triangle", hant: "三角波")
+            case .sawtooth: return tr(zh: "锯齿波", en: "Saw", hant: "鋸齒波")
+            }
+        }
+
+        // Haptic Lab
+        public static var hapticEngineTitle: String { tr(zh: "触觉马达测试", en: "Taptic Engine Test", hant: "觸覺馬達測試") }
+        public static var lastTrigger: String { tr(zh: "上次触发", en: "Last Trigger", hant: "上次觸發") }
+        public static var impactFeedback: String { tr(zh: "物理冲击反馈", en: "Impact Feedback", hant: "物理衝擊反饋") }
+        public static var impactFeedbackSub: String { tr(zh: "线性致动器多级物理冲击", en: "Linear Actuator Impact", hant: "線性致動器多級物理衝擊") }
+        public static var notificationFeedback: String { tr(zh: "通知脉冲模式", en: "Notification Patterns", hant: "通知脈衝模式") }
+        public static var notificationFeedbackSub: String { tr(zh: "系统级通知震动脉冲", en: "Notification Haptic Pulses", hant: "系統級通知震動脈衝") }
+        public static var selectionFeedback: String { tr(zh: "机械齿轮拨轮", en: "Selection Wheel", hant: "機械齒輪撥輪") }
+        public static var selectionFeedbackSub: String { tr(zh: "机械拨轮阻尼刻度感", en: "Mechanical Wheel Detents", hant: "機械撥輪阻尼刻度感") }
+        public static var lightImpact: String { tr(zh: "微触", en: "Light", hant: "微觸") }
+        public static var mediumImpact: String { tr(zh: "中等", en: "Medium", hant: "中等") }
+        public static var heavyImpact: String { tr(zh: "强力", en: "Heavy", hant: "強力") }
+        public static var rigidImpact: String { tr(zh: "清脆", en: "Rigid", hant: "清脆") }
+        public static var softImpact: String { tr(zh: "轻柔", en: "Soft", hant: "輕柔") }
+        public static var successPulse: String { tr(zh: "成功", en: "Success", hant: "成功") }
+        public static var warningPulse: String { tr(zh: "警告", en: "Warning", hant: "警告") }
+        public static var errorPulse: String { tr(zh: "错误", en: "Error", hant: "錯誤") }
+        public static var triggerFeedback: String { tr(zh: "测试", en: "Test", hant: "測試") }
+
+        // Proximity & Decibel
+        public static var proximitySensor: String { tr(zh: "红外接近传感器", en: "Optical Proximity", hant: "紅外接近傳感器") }
+        public static var proximityNear: String { tr(zh: "已遮挡", en: "Near (Occluded)", hant: "已遮擋") }
+        public static var proximityFar: String { tr(zh: "正常", en: "Normal", hant: "正常") }
+        public static var peakNoise: String { tr(zh: "峰值", en: "Peak", hant: "峰值") }
+        public static var avgNoise: String { tr(zh: "平均", en: "Average", hant: "平均") }
+        public static var minNoise: String { tr(zh: "底噪", en: "Floor", hant: "底噪") }
+        public static var soundTimeline: String { tr(zh: "声压趋势", en: "Sound Timeline", hant: "聲壓趨勢") }
+        public static var startMeter: String { tr(zh: "开始测量", en: "Start Meter", hant: "開始測量") }
+        public static func noiseLevelTitle(for db: Double) -> String {
+            if db < 45 { return tr(zh: "微弱", en: "Quiet", hant: "微弱") }
+            if db < 70 { return tr(zh: "正常", en: "Moderate", hant: "正常") }
+            if db < 85 { return tr(zh: "嘈杂", en: "Loud", hant: "嘈雜") }
+            return tr(zh: "高危强噪", en: "Hazard", hant: "高危強噪")
+        }
+
+        // Compass
+        public static var trueNorth: String { tr(zh: "真北", en: "True North", hant: "真北") }
+        public static var magneticHeading: String { tr(zh: "磁北航向", en: "Magnetic Heading", hant: "磁北航向") }
+        public static var elevation: String { tr(zh: "海拔高度", en: "Elevation", hant: "海拔高度") }
+        public static var gpsPosition: String { tr(zh: "定位坐标", en: "GPS Position", hant: "定位坐標") }
+        public static var standby: String { tr(zh: "待机", en: "Standby", hant: "待機") }
+
+        // Speaker Lab
+        public static var leftSpeaker: String { tr(zh: "顶部听筒", en: "Earpiece (Left)", hant: "頂部聽筒") }
+        public static var rightSpeaker: String { tr(zh: "底部扬声器", en: "Bottom (Right)", hant: "底部揚聲器") }
+        public static var dualSpeaker: String { tr(zh: "双立体声", en: "Stereo Dual", hant: "雙立體聲") }
+        public static var stereoDual: String { dualSpeaker }
+        public static var leftOnly: String { tr(zh: "仅听筒 (左)", en: "Left Only", hant: "僅聽筒 (左)") }
+        public static var rightOnly: String { tr(zh: "仅扬声器 (右)", en: "Right Only", hant: "僅揚聲器 (右)") }
+        public static var stereoSeparation: String { tr(zh: "声道分离与平衡控制", en: "Stereo Channel Separation", hant: "聲道分離與平衡控制") }
+        public static var diaphragmResonance: String { tr(zh: "振膜杂音巡检", en: "Diaphragm Resonance", hant: "振膜雜音巡檢") }
+        public static var diaphragmResonanceSub: String { tr(zh: "单频发声排查扬声器共振杂音与破音", en: "Play pure tone to detect distortion & rattle", hant: "單頻發聲排查揚聲器共振雜音與破音") }
+        public static var playTest: String { tr(zh: "播放发声", en: "Play Test", hant: "播放發聲") }
+        public static var playChannelTest: String { tr(zh: "播放声道测试", en: "Play Channel Test", hant: "播放聲道測試") }
+        public static func speakerFreqPresetTitle(_ freq: Double) -> String {
+            switch Int(freq) {
+            case 250: return tr(zh: "250 Hz 低频", en: "250 Hz Bass", hant: "250 Hz 低頻")
+            case 1000: return tr(zh: "1 kHz 中频", en: "1 kHz Mid", hant: "1 kHz 中頻")
+            case 4000: return tr(zh: "4 kHz 临场", en: "4 kHz Presence", hant: "4 kHz 臨場")
+            case 10000: return tr(zh: "10 kHz 高频", en: "10 kHz Treble", hant: "10 kHz 高頻")
+            default: return "\(Int(freq)) Hz"
+            }
+        }
+
+        // Touch Matrix & Screen Quality
+        public static var matrixCoverage: String { tr(zh: "网格触控覆盖率", en: "Touch Matrix Coverage", hant: "網格觸控覆蓋率") }
+        public static var sweepAllCells: String { tr(zh: "手指划满网格以排查屏幕死区与断触", en: "Swipe across all cells to detect dead spots", hant: "手指劃滿網格以排查螢幕死區與斷觸") }
+        public static var passedCells: String { tr(zh: "已通过", en: "Passed", hant: "已通過") }
+        public static func frequencyBandTitle(_ hz: Double) -> String {
+            if hz < 60 { return tr(zh: "极低频", en: "Sub-Bass", hant: "極低頻") }
+            if hz < 250 { return tr(zh: "低频", en: "Bass", hant: "低頻") }
+            if hz < 2000 { return tr(zh: "中频人声", en: "Midrange", hant: "中頻人聲") }
+            if hz < 6000 { return tr(zh: "高频明亮", en: "Presence", hant: "高頻明亮") }
+            return tr(zh: "超高频极清", en: "Brilliance", hant: "超高頻極清")
+        }
+        public static var deadPixelCheck: String { tr(zh: "坏点巡检", en: "Dead Pixel Test", hant: "壞點巡檢") }
+        public static var deadPixelCheckSub: String { tr(zh: "全屏纯色检测漏光与坏点", en: "Screen Uniformity & Dead Pixel Test", hant: "全螢幕純色檢測漏光與壞點") }
+        public static var startFullscreenInspection: String { tr(zh: "启动全屏巡检", en: "Start Fullscreen Test", hant: "啟動全螢幕巡檢") }
+        public static var touchGrid: String { tr(zh: "触控采样", en: "Touch Digitizer", hant: "觸控採樣") }
+        public static var touchGridSub: String { tr(zh: "120Hz 触控采样率与轨迹连贯性", en: "120Hz Touch Sampling & Continuity", hant: "120Hz 觸控採樣率與軌跡連貫性") }
+        public static var touchTrajectoryTip: String { tr(zh: "在上方网格划线巡检触控轨迹与盲区", en: "Draw on grid to inspect touch trajectory", hant: "在上方網格劃線巡檢觸控軌跡與盲區") }
+        public static var clearCanvas: String { tr(zh: "清除", en: "Clear", hant: "清除") }
+        public static var tapToExitFullscreen: String { tr(zh: "轻触切色 · 双击退出", en: "Tap to Cycle · Double Tap to Exit", hant: "輕觸切色 · 雙擊退出") }
+        public static func screenColorTitle(index: Int) -> String {
+            switch index {
+            case 0: return tr(zh: "纯黑基准", en: "Pure Black", hant: "純黑基準")
+            case 1: return tr(zh: "纯白基准", en: "Pure White", hant: "純白基準")
+            case 2: return tr(zh: "中灰基准", en: "50% Gray", hant: "中灰基準")
+            case 3: return tr(zh: "纯红像素", en: "Pure Red", hant: "純紅像素")
+            case 4: return tr(zh: "纯绿像素", en: "Pure Green", hant: "純綠像素")
+            case 5: return tr(zh: "纯蓝像素", en: "Pure Blue", hant: "純藍像素")
+            default: return tr(zh: "纯黄基准", en: "Pure Yellow", hant: "純黃基準")
+            }
+        }
+        public static var rollAxis: String { tr(zh: "横滚角 (X)", en: "Roll (X)", hant: "橫滾角 (X)") }
+        public static var pitchAxis: String { tr(zh: "俯仰角 (Y)", en: "Pitch (Y)", hant: "俯仰角 (Y)") }
+        public static var levelBalanced: String { tr(zh: "水平已校准", en: "Level Balanced", hant: "水平已校準") }
     }
 
     // MARK: - Settings

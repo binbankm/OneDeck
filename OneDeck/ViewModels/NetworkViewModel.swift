@@ -178,7 +178,6 @@ public final class NetworkViewModel: @unchecked Sendable {
         loadSpeedTestHistory()
         refreshRadioTechnologyInfo()
         seedInitialHistory()
-        startMonitoring()
         refreshInterfaceAddresses()
         fetchPublicIPInfo()
     }

@@ -1,0 +1,81 @@
+//
+//  ToolsBarometerCard.swift
+//  OneDeck
+//
+//  Created for OneDeck - iOS 17.0+
+//  Atmospheric Barometer & Relative Altimeter Bento Launcher Card.
+//
+
+import SwiftUI
+
+struct ToolsBarometerCard: View {
+    // MARK: - Dependencies & Environment
+    @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var tools = ToolsViewModel.shared
+
+    // MARK: - Body
+    var body: some View {
+        NavigationLink(destination: BarometerDetailView()) {
+            VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
+                headerRow
+                middleMetricRow
+            }
+            .bentoCard(accent: appState.accentColor)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Header
+    @ViewBuilder
+    private var headerRow: some View {
+        HStack(spacing: SpacingTheme.standard) {
+            BentoSectionHeader(
+                title: L10n.Tools.barometer,
+                icon: "barometer",
+                subtitle: L10n.Tools.barometerSub
+            )
+
+            Spacer()
+
+            Text(String(format: "%.1f hPa", tools.barometer.pressureHpa))
+                .font(Typography.headlineValue)
+                .fontDesign(.monospaced)
+                .foregroundStyle(appState.accentColor)
+                .lineLimit(1)
+
+            Image(systemName: "chevron.right")
+                .font(IconTheme.badgeInline)
+                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+        }
+    }
+
+    // MARK: - Middle Metric Row
+    @ViewBuilder
+    private var middleMetricRow: some View {
+        HStack(spacing: SpacingTheme.standard) {
+            HStack(spacing: SpacingTheme.tight) {
+                Image(systemName: "mountain.2.fill")
+                    .font(IconTheme.tileLeading)
+                    .foregroundStyle(appState.accentColor)
+
+                Text(String(format: "%+.1f m", tools.barometer.relativeAltitudeMeters))
+                    .font(Typography.captionMono)
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+            }
+
+            Spacer()
+
+            Text(String(format: "%+.1f m/s", tools.barometer.verticalSpeedMps))
+                .font(Typography.captionMono)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+        }
+    }
+}
+
+// MARK: - Preview
+#Preview {
+    ToolsBarometerCard()
+        .padding()
+}
+

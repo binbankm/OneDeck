@@ -257,6 +257,8 @@
 				DEVELOPMENT_TEAM = 38FTS86UNN;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OneDeck 需要获取位置信息以计算真北偏角与地理坐标";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "OneDeck 需要访问麦克风以测量实时环境噪声分贝（Sound Pressure Level）";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -290,6 +292,8 @@
 				DEVELOPMENT_TEAM = 38FTS86UNN;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OneDeck 需要获取位置信息以计算真北偏角与地理坐标";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "OneDeck 需要访问麦克风以测量实时环境噪声分贝（Sound Pressure Level）";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
