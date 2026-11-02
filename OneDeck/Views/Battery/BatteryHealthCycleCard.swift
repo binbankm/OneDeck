@@ -15,7 +15,7 @@ struct BatteryHealthCycleCard: View {
     @State private var showAnalyticsSheet: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // Header Row
             HStack {
                 OverviewSectionHeader(title: L10n.Battery.healthTitle, icon: "heart.text.square.fill")
@@ -33,12 +33,13 @@ struct BatteryHealthCycleCard: View {
                         .frame(width: 6, height: 6)
 
                     Text(badgeText)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .font(Typography.caption)
+                        .fontWeight(.semibold)
                         .foregroundStyle(badgeColor)
                         .lineLimit(1)
                 }
-                .padding(.horizontal, 9)
-                .padding(.vertical, 3.5)
+                .padding(.horizontal, 8)
+                .padding(.vertical, SpacingTheme.micro)
                 .background(badgeColor.opacity(0.12))
                 .clipShape(Capsule())
             }
@@ -95,111 +96,115 @@ struct BatteryHealthCycleCard: View {
             if !battery.hasRealTelemetry {
                 HStack(spacing: 6) {
                     Image(systemName: "info.circle")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(IconTheme.tileLeading)
                         .foregroundStyle(.orange)
 
                     Text(L10n.Battery.baselineNotice)
-                        .font(.system(size: 10.5, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(2)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(Color.orange.opacity(colorScheme == .dark ? 0.08 : 0.06))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
             }
 
             // Real Hardware Telemetry Sub-deck (Serial Number & Cell Voltages)
             if let sn = battery.batterySerialNumber, !sn.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "barcode")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(IconTheme.tileLeading)
                         .foregroundStyle(appState.accentColor)
 
                     Text(L10n.Battery.batterySerial)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                     Spacer()
 
                     Text(sn)
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .font(Typography.captionMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.vertical, 8)
                 .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
             }
 
             if let mDate = battery.batteryManufactureDate, !mDate.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "calendar")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(IconTheme.tileLeading)
                         .foregroundStyle(appState.accentColor)
 
                     Text(L10n.Battery.manufactureDate)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                     Spacer()
 
                     Text(mDate)
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .font(Typography.captionMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.vertical, 8)
                 .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
             }
 
             if let chem = battery.batteryChemistry, !chem.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "atom")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(IconTheme.tileLeading)
                         .foregroundStyle(appState.accentColor)
 
                     Text(L10n.Battery.batteryChemistry)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                     Spacer()
 
                     Text(chem)
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .font(Typography.captionMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.vertical, 8)
                 .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
             }
 
             if !battery.cellVoltages.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "battery.100.bolt")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(IconTheme.tileLeading)
                         .foregroundStyle(appState.accentColor)
 
                     Text(L10n.Battery.cellVoltagesLabel)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                     Spacer()
 
                     Text(battery.cellVoltages.map { "\($0) mV" }.joined(separator: " · "))
-                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .font(Typography.captionMono)
                         .foregroundStyle(appState.accentColor)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 6)
+                .padding(.vertical, 8)
                 .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
             }
 
             // Official Diagnostics Log Importer & Reset Row
@@ -210,17 +215,18 @@ struct BatteryHealthCycleCard: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: battery.analyticsRecord != nil ? "checkmark.seal.fill" : "sparkles")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(IconTheme.actionButton)
 
                         Text(battery.analyticsRecord != nil ? L10n.Battery.importedSuccess : L10n.Battery.importLogButton)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(Typography.calloutLabel)
+                            .fontWeight(.semibold)
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
 
                         if let record = battery.analyticsRecord {
                             Spacer()
                             Text(formatDate(record.logDate))
-                                .font(.system(size: 10, design: .monospaced))
+                                .font(Typography.badgeTagMono)
                                 .foregroundStyle(appState.accentColor.opacity(0.8))
                         }
                     }
@@ -229,9 +235,9 @@ struct BatteryHealthCycleCard: View {
                     .padding(.horizontal, 10)
                     .background(appState.accentColor.opacity(0.12))
                     .foregroundStyle(appState.accentColor)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                             .stroke(appState.accentColor.opacity(0.25), lineWidth: 0.5)
                     )
                 }
@@ -242,11 +248,11 @@ struct BatteryHealthCycleCard: View {
                         battery.clearAnalyticsRecord()
                     } label: {
                         Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(IconTheme.actionButton)
                             .frame(width: 36, height: 36)
                             .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                     }
                 }
             }
@@ -269,38 +275,38 @@ struct BatteryHealthCycleCard: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             // Row 1: Icon & Label (100% Dedicated Full-Width Row, Zero Truncation)
-            HStack(spacing: 5) {
+            HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(IconTheme.tileLeading)
                     .foregroundStyle(appState.accentColor)
 
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
             }
 
             // Row 2: Bold Hero Metric Value & Unit (100% Dedicated Row, Zero Crowding)
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
                 Text(value)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(Typography.title1)
                     .monospacedDigit()
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
                 Text(unit)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(Typography.captionBold)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
             }
 
             // Row 3: Status Capsule Pill (Dedicated Row, Zero Competition, Zero Truncation)
             Text(status)
-                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                .font(Typography.badgeTag)
                 .padding(.horizontal, 6)
-                .padding(.vertical, 2.5)
+                .padding(.vertical, 2)
                 .background(statusColor.opacity(0.12))
                 .foregroundStyle(statusColor)
                 .clipShape(Capsule())
@@ -311,7 +317,7 @@ struct BatteryHealthCycleCard: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
     }
 
     // MARK: - Status Helpers

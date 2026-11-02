@@ -15,7 +15,7 @@ struct OverviewCpuCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // Header Row
             HStack {
                 OverviewSectionHeader(title: L10n.Overview.cpuMonitor, icon: "cpu.fill")
@@ -23,15 +23,16 @@ struct OverviewCpuCard: View {
                 Spacer()
 
                 // Total CPU Load Percentage
-                HStack(alignment: .firstTextBaseline, spacing: 1) {
+                HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
                     Text(String(format: "%.1f", system.totalCpuUsage))
-                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .font(Typography.title1)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                         .foregroundStyle(appState.accentColor)
 
                     Text("%")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .font(Typography.calloutLabel)
+                        .fontWeight(.bold)
                         .foregroundStyle(appState.accentColor.opacity(0.8))
                 }
             }
@@ -40,14 +41,14 @@ struct OverviewCpuCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(L10n.Overview.cpuHistoryChart)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(1)
 
                     Spacer()
 
                     Text(L10n.Overview.live30s)
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(Typography.badgeTagMono)
                         .foregroundStyle(Theme.textTertiary(for: colorScheme))
                         .lineLimit(1)
                 }
@@ -129,7 +130,7 @@ struct OverviewCpuCard: View {
                         GeometryReader { geo in
                             ZStack(alignment: .bottom) {
                                 // Background track
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                                     .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05))
 
                                 // Dynamic level fill
@@ -147,18 +148,19 @@ struct OverviewCpuCard: View {
                                     )
                                     .frame(height: fillH)
                             }
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
                             .animation(.spring(response: 0.35, dampingFraction: 0.75), value: usage)
                         }
                         .frame(height: 54)
 
                         Text(coreTag)
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .font(Typography.badgeTag)
+                            .fontDesign(.monospaced)
                             .foregroundStyle(isPCore ? appState.accentColor : Theme.textTertiary(for: colorScheme))
                             .lineLimit(1)
 
                         Text(String(format: "%.0f%%", usage))
-                            .font(.system(size: 9, weight: .semibold, design: .rounded))
+                            .font(Typography.badgeTag)
                             .monospacedDigit()
                             .lineLimit(1)
                             .foregroundStyle(usage > 85 ? Color.orange : Theme.textSecondary(for: colorScheme))

@@ -14,22 +14,39 @@ struct OverviewSectionHeader: View {
 
     let title: String
     let icon: String
+    var subtitle: String? = nil
+    var accentColor: Color? = nil
+
+    private var activeAccent: Color {
+        accentColor ?? appState.accentColor
+    }
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(appState.accentColor)
+                .font(IconTheme.sectionHeader)
+                .foregroundStyle(activeAccent)
                 .frame(width: 26, height: 26)
-                .background(appState.accentColor.opacity(0.14))
-                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                .background(activeAccent.opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.platter, style: .continuous))
 
-            Text(title)
-                .font(.system(.headline, design: .rounded))
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Typography.sectionHeader)
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(1)
+                }
+            }
         }
     }
 }
+
+typealias BentoSectionHeader = OverviewSectionHeader
 

@@ -14,27 +14,14 @@ struct NetworkLanScannerCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - Header
             HStack(spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(appState.accentColor.opacity(0.12))
-                        .frame(width: 30, height: 30)
-
-                    Image(systemName: "bonjour")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(appState.accentColor)
-                }
-
-                Text(L10n.Network.lanScanTitle)
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .lineLimit(1)
+                BentoSectionHeader(title: L10n.Network.lanScanTitle, icon: "bonjour")
 
                 if !net.discoveredDevices.isEmpty {
                     Text("\(net.discoveredDevices.count)")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(Typography.captionMono)
                         .foregroundStyle(appState.accentColor)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -56,17 +43,17 @@ struct NetworkLanScannerCard: View {
                                 .scaleEffect(0.65)
                         } else {
                             Image(systemName: "dot.radiowaves.left.and.right")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(IconTheme.actionButton)
                         }
 
                         Text(net.isScanningLan ? L10n.Network.scanning : L10n.Network.startScan)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(Typography.captionBold)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                     }
                     .foregroundStyle(appState.accentColor)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
                     .background(appState.accentColor.opacity(0.12))
                     .clipShape(Capsule())
                 }
@@ -77,23 +64,23 @@ struct NetworkLanScannerCard: View {
             if net.discoveredDevices.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: net.isScanningLan ? "antenna.radiowaves.left.and.right" : "wifi.router")
-                        .font(.system(size: 26))
+                        .font(IconTheme.emptyState)
                         .foregroundStyle(appState.accentColor.opacity(0.7))
                         .symbolEffect(.pulse, isActive: net.isScanningLan)
 
                     Text(net.isScanningLan ? L10n.Network.scanning : L10n.Network.noLanDevices)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(Typography.bodyValue)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
                     Text(L10n.Network.noLanDevicesHint)
-                        .font(.system(size: 11, weight: .regular))
+                        .font(Typography.captionRegular)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
                 .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                         .fill(Theme.cardBackground(for: colorScheme).opacity(0.4))
                 )
             } else {
@@ -101,26 +88,26 @@ struct NetworkLanScannerCard: View {
                     ForEach(net.discoveredDevices) { device in
                         HStack(spacing: 10) {
                             ZStack {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                                     .fill(appState.accentColor.opacity(0.1))
                                     .frame(width: 32, height: 32)
 
                                 Image(systemName: device.iconName)
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(IconTheme.sectionHeader)
                                     .foregroundStyle(appState.accentColor)
                             }
 
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack(spacing: 6) {
                                     Text(device.name)
-                                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                        .font(Typography.bodyValue)
                                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.85)
 
                                     if let vendor = device.vendorName, vendor != device.name {
                                         Text(vendor)
-                                            .font(.system(size: 9.5, weight: .medium))
+                                            .font(Typography.badgeTagMedium)
                                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
                                             .lineLimit(1)
                                     }
@@ -129,18 +116,18 @@ struct NetworkLanScannerCard: View {
                                 HStack(spacing: 6) {
                                     if device.ipAddress != "--" {
                                         Text(device.ipAddress)
-                                            .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                                            .font(Typography.captionMono)
                                             .foregroundStyle(appState.accentColor)
                                     }
 
                                     if let mac = device.macAddress {
                                         Text(mac.uppercased())
-                                            .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                                            .font(Typography.badgeTagMonoMedium)
                                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                                     }
 
                                     Text("· \(friendlyServiceType(device.serviceType))")
-                                        .font(.system(size: 10, weight: .medium))
+                                        .font(Typography.badgeTagMedium)
                                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                                 }
                             }
@@ -149,9 +136,9 @@ struct NetworkLanScannerCard: View {
 
                             if let lat = device.latencyMs {
                                 Text(String(format: "%.0fms", lat))
-                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .font(Typography.badgeTagMono)
                                     .foregroundStyle(Color.green)
-                                    .padding(.horizontal, 5)
+                                    .padding(.horizontal, SpacingTheme.compact)
                                     .padding(.vertical, 2)
                                     .background(Color.green.opacity(0.12))
                                     .clipShape(Capsule())
@@ -171,11 +158,11 @@ struct NetworkLanScannerCard: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
                         .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                         )
                     }

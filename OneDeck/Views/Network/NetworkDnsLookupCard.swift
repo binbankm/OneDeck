@@ -26,31 +26,18 @@ struct NetworkDnsLookupCard: View {
     private let domainPresets = ["apple.com", "cloudflare.com", "bilibili.com", "google.com"]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - Header
             HStack(spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(appState.accentColor.opacity(0.12))
-                        .frame(width: 30, height: 30)
-
-                    Image(systemName: "magnifyingglass.circle.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(appState.accentColor)
-                }
-
-                Text(L10n.Network.dnsLookupTitle)
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .lineLimit(1)
+                BentoSectionHeader(title: L10n.Network.dnsLookupTitle, icon: "magnifyingglass.circle.fill")
 
                 Spacer()
 
                 Text(L10n.Network.dnsPortBadge)
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .font(Typography.captionMono)
                     .foregroundStyle(appState.accentColor)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
+                    .padding(.vertical, SpacingTheme.micro)
                     .background(appState.accentColor.opacity(0.12))
                     .clipShape(Capsule())
             }
@@ -59,11 +46,11 @@ struct NetworkDnsLookupCard: View {
             HStack(spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "globe")
-                        .font(.system(size: 13))
+                        .font(IconTheme.sectionHeader)
                         .foregroundStyle(appState.accentColor)
 
                     TextField(L10n.Network.domainInputPlaceholder, text: $domainText)
-                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        .font(Typography.bodyValueMono)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
@@ -71,11 +58,11 @@ struct NetworkDnsLookupCard: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                         .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                         .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                 )
 
@@ -90,11 +77,11 @@ struct NetworkDnsLookupCard: View {
                                 .scaleEffect(0.65)
                         } else {
                             Image(systemName: "arrow.right.circle.fill")
-                                .font(.system(size: 12))
+                                .font(IconTheme.actionButton)
                         }
 
                         Text(L10n.Network.resolveDomain)
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .font(Typography.calloutBold)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                     }
@@ -102,7 +89,7 @@ struct NetworkDnsLookupCard: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
                     .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                             .fill(appState.accentColor)
                     )
                 }
@@ -120,21 +107,21 @@ struct NetworkDnsLookupCard: View {
                             resolveCurrentDomain()
                         } label: {
                             Text(p)
-                                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                .font(Typography.badgeTagMonoMedium)
                                 .foregroundStyle(domainText == p ? appState.accentColor : Theme.textSecondary(for: colorScheme))
                                 .lineLimit(1)
                                 .fixedSize(horizontal: true, vertical: false)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                    RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
                                         .fill(domainText == p ? appState.accentColor.opacity(0.12) : Theme.cardBackground(for: colorScheme).opacity(0.5))
                                 )
                         }
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 1)
+                .padding(.horizontal, SpacingTheme.micro)
             }
 
             // MARK: - Resolution Result HUD
@@ -142,19 +129,19 @@ struct NetworkDnsLookupCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text(res.domain)
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                            .font(Typography.bodyValueMono)
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
                             .lineLimit(1)
 
                         Spacer()
 
-                        HStack(spacing: 3) {
+                        HStack(spacing: SpacingTheme.tight) {
                             Text(L10n.Network.queryTime)
-                                .font(.system(size: 10, weight: .medium))
+                                .font(Typography.badgeTagMedium)
                                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                             Text(String(format: "%.1f ms", res.queryTimeMs))
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .font(Typography.captionMono)
                                 .foregroundStyle(appState.accentColor)
                         }
                     }
@@ -164,13 +151,13 @@ struct NetworkDnsLookupCard: View {
                     // A Records (IPv4)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(L10n.Network.dnsRecordA)
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(Typography.badgeTagMedium)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                         ForEach(res.ipv4List, id: \.self) { ip in
                             HStack {
                                 Text(ip)
-                                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                    .font(Typography.calloutMono)
                                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                                     .lineLimit(1)
 
@@ -181,8 +168,8 @@ struct NetworkDnsLookupCard: View {
                                     Haptics.tick()
                                 } label: {
                                     Image(systemName: "doc.on.doc")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(Theme.textSecondary(for: colorScheme).opacity(0.6))
+                                        .font(IconTheme.copyIndicator)
+                                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
                                 }
                             }
                         }
@@ -192,13 +179,13 @@ struct NetworkDnsLookupCard: View {
                     if !res.ipv6List.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(L10n.Network.dnsRecordAaaa)
-                                .font(.system(size: 10, weight: .semibold))
+                                .font(Typography.badgeTagMedium)
                                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                             ForEach(res.ipv6List, id: \.self) { ip in
                                 HStack {
                                     Text(ip)
-                                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                        .font(Typography.captionMono)
                                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.8)
@@ -210,22 +197,22 @@ struct NetworkDnsLookupCard: View {
                                         Haptics.tick()
                                     } label: {
                                         Image(systemName: "doc.on.doc")
-                                            .font(.system(size: 10))
-                                            .foregroundStyle(Theme.textSecondary(for: colorScheme).opacity(0.6))
+                                            .font(IconTheme.copyIndicator)
+                                            .foregroundStyle(Theme.textTertiary(for: colorScheme))
                                     }
                                 }
                             }
                         }
                     }
                 }
-                .padding(.horizontal, 11)
-                .padding(.vertical, 9)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
                 .background(
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                         .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                         .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                 )
             }

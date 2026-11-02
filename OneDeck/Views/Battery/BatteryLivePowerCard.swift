@@ -15,18 +15,18 @@ struct BatteryLivePowerCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // Header Row
             HStack {
                 HStack(spacing: 6) {
                     OverviewSectionHeader(title: L10n.Battery.livePowerTitle, icon: "bolt.badge.automatic.fill")
 
                     if battery.isHardwareDirectWattage {
-                        HStack(spacing: 3) {
+                        HStack(spacing: SpacingTheme.tight) {
                             Image(systemName: "cpu")
-                                .font(.system(size: 8))
+                                .font(IconTheme.badgeInline)
                             Text(L10n.Battery.hardwareDirectTag)
-                                .font(.system(size: 9, weight: .bold, design: .rounded))
+                                .font(Typography.badgeTag)
                         }
                         .foregroundStyle(.green)
                         .padding(.horizontal, 6)
@@ -34,11 +34,11 @@ struct BatteryLivePowerCard: View {
                         .background(Color.green.opacity(0.12))
                         .clipShape(Capsule())
                     } else if battery.batteryState == .charging {
-                        HStack(spacing: 3) {
+                        HStack(spacing: SpacingTheme.tight) {
                             Image(systemName: "waveform.path.badge.plus")
-                                .font(.system(size: 8))
+                                .font(IconTheme.badgeInline)
                             Text(L10n.Battery.modelEstimatedTag)
-                                .font(.system(size: 9, weight: .bold, design: .rounded))
+                                .font(Typography.badgeTag)
                         }
                         .foregroundStyle(powerColor)
                         .padding(.horizontal, 6)
@@ -53,13 +53,13 @@ struct BatteryLivePowerCard: View {
                 // Live Wattage Value
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(String(format: "%.1f", abs(battery.liveWattage)))
-                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .font(Typography.title2)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                         .foregroundStyle(powerColor)
 
                     Text("W")
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .font(Typography.calloutBold)
                         .foregroundStyle(powerColor.opacity(0.85))
                 }
             }
@@ -68,14 +68,14 @@ struct BatteryLivePowerCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(battery.batteryState == .charging ? L10n.Battery.chargeWaveform : L10n.Battery.dischargeWaveform)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(1)
 
                     Spacer()
 
                     Text(L10n.Overview.live30s)
-                        .font(.system(size: 10, design: .monospaced))
+                        .font(Typography.badgeTagMono)
                         .foregroundStyle(Theme.textTertiary(for: colorScheme))
                         .lineLimit(1)
                 }
@@ -181,11 +181,11 @@ struct BatteryLivePowerCard: View {
                 HStack(spacing: 8) {
                     HStack(spacing: 4) {
                         Image(systemName: "powerplug.fill")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(IconTheme.tileLeading)
                             .foregroundStyle(powerColor)
 
                         Text("\(L10n.Battery.chargerRatedPower): \(rated)W")
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(Typography.captionBold)
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     }
 
@@ -193,18 +193,18 @@ struct BatteryLivePowerCard: View {
 
                     HStack(spacing: 4) {
                         Text("\(L10n.Battery.pathLoss): \(String(format: "%.1fW", battery.pathLossWatts))")
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                            .font(Typography.badgeTag)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     }
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                         .fill(powerColor.opacity(0.08))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                         .stroke(powerColor.opacity(0.18), lineWidth: 0.8)
                 )
             }
@@ -215,36 +215,37 @@ struct BatteryLivePowerCard: View {
     // MARK: - Subviews
     @ViewBuilder
     private func electricalTile(icon: String, label: String, value: String, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+            HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(IconTheme.tileLeading)
                     .foregroundStyle(powerColor)
 
                 Text(label)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .font(Typography.bodyValue)
                     .monospacedDigit()
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
                     .contentTransition(.numericText())
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
                 Text(unit)
-                    .font(.system(size: 9, weight: .medium, design: .rounded))
+                    .font(Typography.badgeTag)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 7)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
     }
 
     private var powerColor: Color {

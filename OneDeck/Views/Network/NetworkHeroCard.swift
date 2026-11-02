@@ -16,36 +16,24 @@ struct NetworkHeroCard: View {
     @State private var copiedItem: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - Header
             HStack(spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(appState.accentColor.opacity(0.12))
-                        .frame(width: 30, height: 30)
-
-                    Image(systemName: net.linkType.iconName)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(appState.accentColor)
-                }
-
-                Text(L10n.Network.linkStatusTitle)
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                BentoSectionHeader(title: L10n.Network.linkStatusTitle, icon: net.linkType.iconName)
 
                 Spacer()
 
                 // Status Badge
-                HStack(spacing: 5) {
+                HStack(spacing: SpacingTheme.tight) {
                     Circle()
                         .fill(net.isConnected ? Color.green : Color.red)
                         .frame(width: 7, height: 7)
 
                     Text(net.isConnected ? L10n.Network.connected : L10n.Network.disconnected)
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .font(Typography.calloutBold)
                         .foregroundStyle(net.isConnected ? Color.green : Color.red)
                 }
-                .padding(.horizontal, 9)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background((net.isConnected ? Color.green : Color.red).opacity(0.12))
                 .clipShape(Capsule())
@@ -53,7 +41,7 @@ struct NetworkHeroCard: View {
 
             // MARK: - Main Interface Banner
             HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: SpacingTheme.tight) {
                     HStack(spacing: 6) {
                         let bannerTitle: String = {
                             if net.linkType == .wifi {
@@ -67,15 +55,17 @@ struct NetworkHeroCard: View {
                         }()
 
                         Text(bannerTitle)
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .font(Typography.title1)
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.85)
 
                         // Generation Badge (5G NR, 4G LTE, Wi-Fi 6, Wi-Fi 7)
                         let genTag = net.linkType == .cellular ? net.cellularGeneration : (net.linkType == .wifi ? net.wifiHardwareGeneration : "")
                         if !genTag.isEmpty {
                             Text(genTag)
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .font(Typography.caption)
+                                .fontWeight(.bold)
                                 .foregroundStyle(net.linkType == .cellular ? Color.orange : appState.accentColor)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -100,26 +90,27 @@ struct NetworkHeroCard: View {
                         }()
 
                         Text(subDetails)
-                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .font(Typography.captionMono)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.8)
 
                         if net.isExpensive {
                             Text(L10n.Network.expensiveCellular)
-                                .font(.system(size: 10, weight: .semibold))
+                                .font(Typography.badgeTag)
                                 .foregroundStyle(.orange)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1.5)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
                                 .background(Color.orange.opacity(0.14))
                                 .clipShape(Capsule())
                         }
 
                         if net.isConstrained {
                             Text(L10n.Network.lowDataMode)
-                                .font(.system(size: 10, weight: .semibold))
+                                .font(Typography.badgeTag)
                                 .foregroundStyle(.yellow)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1.5)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
                                 .background(Color.yellow.opacity(0.14))
                                 .clipShape(Capsule())
                         }
@@ -131,7 +122,7 @@ struct NetworkHeroCard: View {
                 // Quick Copy Banner Action
                 if let copied = copiedItem {
                     Text("\(copied) \(L10n.Network.copied)")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(Typography.captionBold)
                         .foregroundStyle(appState.accentColor)
                         .transition(.opacity.combined(with: .scale))
                 }
@@ -175,15 +166,16 @@ struct NetworkHeroCard: View {
             HStack(spacing: 12) {
                 HStack(spacing: 4) {
                     Text("MTU")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(Typography.badgeTag)
                         .foregroundStyle(appState.accentColor)
                         .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
+                        .padding(.vertical, SpacingTheme.micro)
                         .background(appState.accentColor.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.micro, style: .continuous))
 
                     Text("\(net.interfaceMtu) B")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .font(Typography.caption)
+                        .fontDesign(.monospaced)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 }
 
@@ -192,13 +184,13 @@ struct NetworkHeroCard: View {
                 if net.subnetRange != "--" {
                     HStack(spacing: 4) {
                         Text(L10n.Network.subnetRange)
-                            .font(.system(size: 10, weight: .medium))
+                            .font(Typography.badgeTagMedium)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
 
                         Text(net.subnetRange)
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .font(Typography.captionMono)
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
@@ -227,14 +219,14 @@ struct NetworkHeroCard: View {
                 }
             }
         } label: {
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 5) {
+            VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+                HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: icon)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(IconTheme.tileLeading)
                         .foregroundStyle(appState.accentColor.opacity(0.85))
 
                     Text(label)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
@@ -243,26 +235,26 @@ struct NetworkHeroCard: View {
 
                     if canCopy {
                         Image(systemName: "doc.on.doc")
-                            .font(.system(size: 9))
-                            .foregroundStyle(Theme.textSecondary(for: colorScheme).opacity(0.6))
+                            .font(IconTheme.copyIndicator)
+                            .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     }
                 }
 
                 Text(value)
-                    .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                    .font(Typography.bodyValueMono)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
-            .padding(.horizontal, 11)
-            .padding(.vertical, 9)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
             )
         }

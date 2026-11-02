@@ -14,7 +14,7 @@ struct OverviewMemoryStorageCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: SpacingTheme.cardInternal) {
             // MARK: - 1. Physical Memory (RAM) Section
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
@@ -23,7 +23,7 @@ struct OverviewMemoryStorageCard: View {
                     Spacer()
 
                     Text(system.totalPhysicalMemory.formattedBytes)
-                        .font(.system(.subheadline, design: .rounded, weight: .bold))
+                        .font(Typography.bodyValue)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .lineLimit(1)
                 }
@@ -103,7 +103,7 @@ struct OverviewMemoryStorageCard: View {
                     Spacer()
 
                     Text(system.totalDiskSpace.formattedBytes)
-                        .font(.system(.subheadline, design: .rounded, weight: .bold))
+                        .font(Typography.bodyValue)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .lineLimit(1)
                 }
@@ -134,12 +134,12 @@ struct OverviewMemoryStorageCard: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(L10n.Overview.storageUsed)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Typography.caption)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
 
                         Text(system.usedDiskSpace.formattedBytes)
-                            .font(.system(.subheadline, design: .rounded, weight: .bold))
+                            .font(Typography.bodyValue)
                             .monospacedDigit()
                             .lineLimit(1)
                             .contentTransition(.numericText())
@@ -150,12 +150,12 @@ struct OverviewMemoryStorageCard: View {
 
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(L10n.Overview.storageAvailable)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Typography.caption)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
 
                         Text(system.availableDiskSpace.formattedBytes)
-                            .font(.system(.subheadline, design: .rounded, weight: .bold))
+                            .font(Typography.bodyValue)
                             .monospacedDigit()
                             .lineLimit(1)
                             .contentTransition(.numericText())
@@ -176,14 +176,16 @@ struct OverviewMemoryStorageCard: View {
                                 .scaleEffect(0.8)
 
                             Text(L10n.Overview.cleaningCache)
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(Typography.calloutLabel)
+                                .fontWeight(.semibold)
                                 .lineLimit(1)
                         } else {
                             Image(systemName: "sparkles")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(IconTheme.actionButton)
 
                             Text(L10n.Overview.cleanPurged)
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(Typography.calloutLabel)
+                                .fontWeight(.semibold)
                                 .lineLimit(1)
                         }
                     }
@@ -191,9 +193,9 @@ struct OverviewMemoryStorageCard: View {
                     .frame(height: 36)
                     .background(appState.accentColor.opacity(0.12))
                     .foregroundStyle(appState.accentColor)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                             .stroke(appState.accentColor.opacity(0.25), lineWidth: 0.5)
                     )
                 }
@@ -211,20 +213,20 @@ private struct MemoryStatCell: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 5) {
+        VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+            HStack(spacing: SpacingTheme.tight) {
                 Circle()
                     .fill(color)
                     .frame(width: 6, height: 6)
 
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
             }
 
             Text(value)
-                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .font(Typography.bodyValue)
                 .monospacedDigit()
                 .lineLimit(1)
                 .contentTransition(.numericText())
@@ -232,9 +234,9 @@ private struct MemoryStatCell: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(.vertical, 8)
         .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
     }
 }
 }

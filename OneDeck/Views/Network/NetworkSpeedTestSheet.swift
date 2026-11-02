@@ -17,7 +17,7 @@ struct NetworkSpeedTestSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 18) {
+                VStack(spacing: SpacingTheme.cardStack) {
                     gaugeSection
                     scorecardGrid
                     serverBanner
@@ -35,7 +35,7 @@ struct NetworkSpeedTestSheet: View {
                     Button(L10n.Common.done) {
                         dismiss()
                     }
-                    .font(.system(.body, weight: .semibold))
+                    .font(Typography.bodyValue)
                     .foregroundStyle(appState.accentColor)
                 }
             }
@@ -58,14 +58,14 @@ struct NetworkSpeedTestSheet: View {
                 // Digital Center Readout
                 VStack(spacing: 2) {
                     Text(String(format: "%.1f", net.speedTestCurrentMbps))
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .font(Typography.displayHero)
                         .monospacedDigit()
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
 
                     Text("Mbps")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .font(Typography.calloutLabel)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 }
                 .offset(y: -8)
@@ -84,11 +84,11 @@ struct NetworkSpeedTestSheet: View {
         }
         .padding(.vertical, 16)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.sheetCard, style: .continuous)
                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.sheetCard, style: .continuous)
                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
         )
     }
@@ -140,25 +140,25 @@ struct NetworkSpeedTestSheet: View {
     private var serverBanner: some View {
         HStack(spacing: 8) {
             if !net.speedTestRating.isEmpty {
-                HStack(spacing: 5) {
+                HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "rosette")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(IconTheme.badgeInline)
                     Text(net.speedTestRating)
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(Typography.badgeTag)
                         .lineLimit(1)
                 }
                 .foregroundStyle(appState.accentColor)
-                .padding(.horizontal, 9)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(appState.accentColor.opacity(0.12))
                 .clipShape(Capsule())
             } else {
-                HStack(spacing: 5) {
+                HStack(spacing: SpacingTheme.tight) {
                     Circle()
                         .fill(appState.accentColor)
                         .frame(width: 6, height: 6)
                     Text(L10n.Network.serverNode)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .font(Typography.captionBold)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 }
             }
@@ -166,18 +166,18 @@ struct NetworkSpeedTestSheet: View {
             Spacer()
 
             Text(net.speedTestServerName)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
         )
     }
@@ -193,15 +193,15 @@ struct NetworkSpeedTestSheet: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "stop.fill")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(IconTheme.sectionHeader)
                         Text(L10n.Network.speedTestStop)
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .font(Typography.headlineValue)
                     }
                     .foregroundStyle(Color.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
+                    .padding(.vertical, SpacingTheme.rowStandard)
                     .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                             .fill(Color.red)
                     )
                 }
@@ -213,16 +213,16 @@ struct NetworkSpeedTestSheet: View {
                         net.resetSpeedTest()
                     } label: {
                         Text(L10n.Network.clearResults)
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .font(Typography.sectionHeader)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                                     .fill(Theme.cardBackground(for: colorScheme).opacity(0.8))
                             )
                             .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                                     .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                             )
                     }
@@ -234,15 +234,15 @@ struct NetworkSpeedTestSheet: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 13, weight: .bold))
+                                .font(IconTheme.sectionHeader)
                             Text(L10n.Network.speedTestRestart)
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .font(Typography.headlineValue)
                         }
                         .foregroundStyle(Color.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                                 .fill(appState.accentColor)
                         )
                     }
@@ -255,15 +255,15 @@ struct NetworkSpeedTestSheet: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "play.fill")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(IconTheme.sectionHeader)
                         Text(L10n.Network.startSpeedTest)
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(Typography.headlineValue)
                     }
                     .foregroundStyle(Color.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                             .fill(appState.accentColor)
                     )
                     .shadow(color: appState.accentColor.opacity(0.3), radius: 8, x: 0, y: 3)
@@ -281,7 +281,7 @@ struct NetworkSpeedTestSheet: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text(L10n.Network.speedTestHistory)
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(Typography.bodyValue)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
                     Spacer()
@@ -291,7 +291,7 @@ struct NetworkSpeedTestSheet: View {
                         net.clearSpeedTestHistory()
                     } label: {
                         Text(L10n.Network.clearHistory)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(Typography.captionBold)
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     }
                 }
@@ -301,11 +301,11 @@ struct NetworkSpeedTestSheet: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.date, format: .dateTime.month().day().hour().minute())
-                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .font(Typography.captionMono)
                                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                                 Text(item.rating)
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(Typography.captionBold)
                                     .foregroundStyle(appState.accentColor)
                                     .lineLimit(1)
                             }
@@ -314,26 +314,26 @@ struct NetworkSpeedTestSheet: View {
 
                             HStack(spacing: 8) {
                                 Text("↓\(String(format: "%.1f", item.downloadMbps))M")
-                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                    .font(Typography.calloutMono)
                                     .foregroundStyle(appState.accentColor)
 
                                 Text("↑\(String(format: "%.1f", item.uploadMbps))M")
-                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                    .font(Typography.calloutMono)
                                     .foregroundStyle(Color.mint)
 
                                 Text("\(String(format: "%.0f", item.pingMs))ms")
-                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .font(Typography.captionMono)
                                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             }
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                         )
                     }
@@ -347,19 +347,19 @@ struct NetworkSpeedTestSheet: View {
 
     @ViewBuilder
     private var stageIndicatorPill: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: SpacingTheme.tight) {
             Circle()
                 .fill(net.isRunningSpeedTest ? Color.green : appState.accentColor)
                 .frame(width: 6, height: 6)
 
             Text(stageText)
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .font(Typography.captionBold)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 3)
+        .padding(.vertical, SpacingTheme.micro)
         .background(Theme.cardBackground(for: colorScheme).opacity(0.8))
         .clipShape(Capsule())
     }
@@ -377,31 +377,33 @@ struct NetworkSpeedTestSheet: View {
     @ViewBuilder
     private func scorecardCell(title: String, value: String, unit: String, subtext: String?, icon: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 5) {
+            HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(IconTheme.tileLeading)
                     .foregroundStyle(color)
 
                 Text(title)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
                 Text(value)
-                    .font(.system(size: 17, weight: .bold, design: .monospaced))
+                    .font(Typography.headlineValue)
+                    .fontDesign(.monospaced)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
 
                 Text(unit)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
 
             if let sub = subtext {
                 Text(sub)
-                    .font(.system(size: 9, weight: .medium, design: .monospaced))
+                    .font(Typography.badgeTag)
+                    .fontDesign(.monospaced)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme).opacity(0.8))
                     .lineLimit(1)
             }
@@ -410,11 +412,11 @@ struct NetworkSpeedTestSheet: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
         )
     }

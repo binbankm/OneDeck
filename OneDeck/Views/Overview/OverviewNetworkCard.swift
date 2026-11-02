@@ -16,7 +16,7 @@ struct OverviewNetworkCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // Header Row
             HStack {
                 OverviewSectionHeader(title: L10n.Overview.networkTraffic, icon: "arrow.up.arrow.down.circle.fill")
@@ -26,19 +26,20 @@ struct OverviewNetworkCard: View {
                 let isCellular = (net.linkType == .cellular)
                 let badgeColor = isCellular ? Color.orange : appState.accentColor
 
-                HStack(spacing: 5) {
+                HStack(spacing: SpacingTheme.tight) {
                     Circle()
                         .fill(badgeColor)
                         .frame(width: 6, height: 6)
 
                     Text(net.activeInterfaceSummary)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .font(Typography.caption)
+                        .fontWeight(.semibold)
                         .foregroundStyle(badgeColor)
                         .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
+                        .minimumScaleFactor(0.85)
                 }
-                .padding(.horizontal, 9)
-                .padding(.vertical, 3.5)
+                .padding(.horizontal, 8)
+                .padding(.vertical, SpacingTheme.micro)
                 .background(badgeColor.opacity(0.12))
                 .clipShape(Capsule())
             }
@@ -101,9 +102,9 @@ private struct OverviewMetricBentoBox: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(boxBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.prominent, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.prominent, style: .continuous)
                 .stroke(boxBorder, lineWidth: 0.5)
         )
     }
@@ -117,12 +118,12 @@ private struct OverviewMetricBentoBox: View {
                     .frame(width: 22, height: 22)
 
                 Image(systemName: isDownload ? "arrow.down" : "arrow.up")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(IconTheme.tileLeading)
                     .foregroundStyle(color)
             }
 
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(Typography.caption)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
         }
@@ -130,16 +131,16 @@ private struct OverviewMetricBentoBox: View {
 
     @ViewBuilder
     private var speedRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
+        HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
             Text(rateValue)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(Typography.title1)
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
             Text(rateUnit)
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .font(Typography.calloutLabel)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
         }
@@ -162,14 +163,15 @@ private struct OverviewMetricBentoBox: View {
 
     @ViewBuilder
     private var sessionTotalRow: some View {
-        HStack(spacing: 3) {
+        HStack(spacing: SpacingTheme.tight) {
             Text("\(L10n.Overview.sessionTotal):")
-                .font(.system(size: 9, weight: .medium))
+                .font(Typography.badgeTag)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
                 .lineLimit(1)
 
             Text(sessionTotal)
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .font(Typography.badgeTag)
+                .fontDesign(.monospaced)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
         }

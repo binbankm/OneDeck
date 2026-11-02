@@ -21,20 +21,7 @@ struct ToolsView: View {
                     VStack(spacing: 16) {
                     // MARK: - Spirit Level Card
                     VStack(alignment: .leading, spacing: 14) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(L10n.Tools.spiritLevel)
-                                    .font(.system(.headline, design: .rounded))
-                                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                                Text(L10n.Tools.spiritLevelSub)
-                                    .font(.caption)
-                                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                            }
-                            Spacer()
-                            Image(systemName: "angle")
-                                .font(.title)
-                                .foregroundStyle(appState.accentColor)
-                        }
+                        BentoSectionHeader(title: L10n.Tools.spiritLevel, icon: "angle", subtitle: L10n.Tools.spiritLevelSub)
 
                         // Simulated Spirit Level Bubble
                         ZStack {
@@ -50,7 +37,7 @@ struct ToolsView: View {
                                 .shadow(color: appState.accentColor.opacity(0.5), radius: 6)
 
                             Text("0.0°")
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .font(Typography.captionMono)
                                 .foregroundStyle(.black)
                         }
                         .frame(maxWidth: .infinity)
@@ -60,32 +47,15 @@ struct ToolsView: View {
 
                     // MARK: - Screen Caliper Card
                     HStack(spacing: 14) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(L10n.Tools.screenRuler)
-                                .font(.system(.headline, design: .rounded))
-                                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                            Text(L10n.Tools.screenRulerSub)
-                                .font(.caption)
-                                .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                        }
+                        BentoSectionHeader(title: L10n.Tools.screenRuler, icon: "ruler.fill", subtitle: L10n.Tools.screenRulerSub)
                         Spacer()
-                        Image(systemName: "ruler.fill")
-                            .font(.title)
-                            .foregroundStyle(appState.accentColor)
                     }
                     .bentoCard(accent: appState.accentColor)
 
                     // MARK: - 165Hz Water Ejector Card
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(L10n.Tools.waterEjector)
-                                    .font(.system(.headline, design: .rounded))
-                                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                                Text(L10n.Tools.waterEjectorSub)
-                                    .font(.caption)
-                                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                            }
+                            BentoSectionHeader(title: L10n.Tools.waterEjector, icon: "drop.triangle.fill", subtitle: L10n.Tools.waterEjectorSub)
                             Spacer()
                             Button {
                                 isEjectingWater.toggle()
@@ -93,8 +63,8 @@ struct ToolsView: View {
                                     Haptics.heavyImpactOccurred()
                                 }
                             } label: {
-                                Image(systemName: isEjectingWater ? "stop.circle.fill" : "drop.triangle.fill")
-                                    .font(.system(size: 32))
+                                Image(systemName: isEjectingWater ? "stop.circle.fill" : "play.circle.fill")
+                                    .font(IconTheme.prominentAction)
                                     .foregroundStyle(isEjectingWater ? .red : appState.accentColor)
                             }
                         }
@@ -104,12 +74,10 @@ struct ToolsView: View {
                     // MARK: - Precision Torch Card
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text(L10n.Tools.torchLab)
-                                .font(.system(.headline, design: .rounded))
-                                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                            BentoSectionHeader(title: L10n.Tools.torchLab, icon: "flashlight.on.fill")
                             Spacer()
                             Text("\(Int(torchLevel * 100))%")
-                                .font(.system(.subheadline, design: .monospaced, weight: .bold))
+                                .font(Typography.bodyValueMono)
                                 .foregroundStyle(appState.accentColor)
                         }
 

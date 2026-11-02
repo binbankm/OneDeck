@@ -42,7 +42,7 @@ struct OverviewHardwareCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // Header Row
             OverviewSectionHeader(title: L10n.Overview.hardwareInventory, icon: "wrench.and.screwdriver.fill")
 
@@ -57,9 +57,9 @@ struct OverviewHardwareCard: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: category.icon)
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(IconTheme.actionButton)
                             Text(category.title)
-                                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                .font(Typography.calloutLabel)
                                 .lineLimit(1)
                         }
                         .frame(maxWidth: .infinity)
@@ -74,14 +74,14 @@ struct OverviewHardwareCard: View {
                             ? Color.black
                             : Theme.textSecondary(for: colorScheme)
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
             }
 
             // Switchable Spec Details List (Structured Bento Rows with Strict 13pt Harmonized Type Hierarchy)
-            VStack(spacing: 7) {
+            VStack(spacing: SpacingTheme.standard) {
                 switch selectedCategory {
                 case .display:
                     specListRow(
@@ -239,17 +239,17 @@ struct OverviewHardwareCard: View {
         HStack(alignment: .center, spacing: 8) {
             // Tinted Micro Icon Platter (Matches Card Section Headers)
             ZStack {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
                     .fill(appState.accentColor.opacity(0.12))
                     .frame(width: 24, height: 24)
                 Image(systemName: icon)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(IconTheme.tileLeading)
                     .foregroundStyle(appState.accentColor)
             }
 
             // Balanced Label: 13pt Medium with Secondary Tone
             Text(label)
-                .font(.system(size: 13, weight: .medium))
+                .font(Typography.bodyValue.weight(.medium))
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
@@ -258,7 +258,7 @@ struct OverviewHardwareCard: View {
 
             // Balanced Value: 13pt Semibold Rounded / Monospaced (Strictly Unified 13pt Font, Zero Shrinking, Zero Jumping)
             Text(value)
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .font(Typography.bodyValue)
                 .monospacedDigit()
                 .foregroundStyle(isHighlight ? appState.accentColor : Theme.textPrimary(for: colorScheme))
                 .multilineTextAlignment(.trailing)
@@ -268,7 +268,7 @@ struct OverviewHardwareCard: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         )
     }

@@ -94,7 +94,7 @@ struct BatteryThermalChassisCard: View {
     @State private var isBreathing: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - 1. Card Header Row & Mode Toggle
             HStack(alignment: .center) {
                 OverviewSectionHeader(title: L10n.Battery.thermalChassisTitle, icon: "iphone.gen3")
@@ -110,14 +110,14 @@ struct BatteryThermalChassisCard: View {
                                 viewMode = mode
                             }
                         } label: {
-                            HStack(spacing: 3) {
+                            HStack(spacing: SpacingTheme.tight) {
                                 Image(systemName: mode.icon)
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(IconTheme.badgeInline)
                                 Text(mode.title)
-                                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                    .font(Typography.badgeTag)
                             }
                             .padding(.horizontal, 8)
-                            .padding(.vertical, 3.5)
+                            .padding(.vertical, SpacingTheme.micro)
                             .background(viewMode == mode ? appState.accentColor.opacity(0.18) : Color.clear)
                             .foregroundStyle(viewMode == mode ? appState.accentColor : Theme.textSecondary(for: colorScheme))
                             .clipShape(Capsule())
@@ -142,7 +142,7 @@ struct BatteryThermalChassisCard: View {
                 // Right: 4-Row Dedicated Full-Width Zone List & Inspector (100% Zero Truncation)
                 VStack(alignment: .leading, spacing: 6) {
                     // 4 Dedicated Full-Width Zone Rows
-                    VStack(spacing: 5) {
+                    VStack(spacing: SpacingTheme.tight) {
                         ForEach(ThermalZone.allCases) { zone in
                             zoneFullWidthRow(zone)
                         }
@@ -168,15 +168,17 @@ struct BatteryThermalChassisCard: View {
 
         return HStack(spacing: 6) {
             // Min Reading Tag
-            HStack(spacing: 3) {
+            HStack(spacing: SpacingTheme.tight) {
                 Circle().fill(minC).frame(width: 5, height: 5)
                 Text("\(L10n.Battery.minSpot) \(String(format: "%.1f", minTemperature))°C")
-                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                    .font(Typography.microAxis)
                     .foregroundStyle(minC)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
 
             // Smooth Multi-Stop False Color Thermal Gradient Track
-            RoundedRectangle(cornerRadius: 3, style: .continuous)
+            Capsule()
                 .fill(
                     LinearGradient(
                         stops: [
@@ -193,16 +195,18 @@ struct BatteryThermalChassisCard: View {
                 )
                 .frame(height: 4)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    Capsule()
                         .stroke(isDark ? Color.white.opacity(0.15) : Color.black.opacity(0.12), lineWidth: 0.5)
                 )
 
             // Max Reading Tag
-            HStack(spacing: 3) {
+            HStack(spacing: SpacingTheme.tight) {
                 Circle().fill(maxC).frame(width: 5, height: 5)
                 Text("\(L10n.Battery.maxSpot) \(String(format: "%.1f", maxTemperature))°C")
-                    .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                    .font(Typography.microAxis)
                     .foregroundStyle(maxC)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
         }
         .padding(.horizontal, 2)
@@ -240,7 +244,7 @@ struct BatteryThermalChassisCard: View {
                 // Layer 7: Screen Cutout (Dynamic Island for 14 Pro/15/16, Notch for X/XS/11/12/13/14)
                 deviceScreenCutout(w: w, h: h)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.card, style: .continuous))
         }
     }
 
@@ -249,10 +253,10 @@ struct BatteryThermalChassisCard: View {
     private func chassisChamberBackground(w: CGFloat, h: CGFloat) -> some View {
         let isDark = (colorScheme == .dark)
 
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: CornerRadiusTheme.card, style: .continuous)
             .fill(isDark ? Color(red: 0.04, green: 0.07, blue: 0.12) : Color(hex: "#ECEEF2"))
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.card, style: .continuous)
                     .stroke(
                         LinearGradient(
                             colors: isDark ? [
@@ -282,7 +286,7 @@ struct BatteryThermalChassisCard: View {
                 Capsule()
                     .fill(colorScheme == .dark ? Color.black : Color(white: 0.15))
                     .frame(width: 28, height: 7)
-                    .padding(.top, 4.5)
+                    .padding(.top, 4)
             } else {
                 // Classic Earpiece Speaker Notch Cutout
                 HStack(spacing: 2) {
@@ -409,22 +413,22 @@ struct BatteryThermalChassisCard: View {
     private func cameraModuleBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, fillAlpha: Double, strokeAlpha: Double) -> some View {
         let baseColor: Color = isDark ? Color.white : Color(hex: "#1E1E24")
         ZStack {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
                 .fill(baseColor.opacity(fillAlpha))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
                         .stroke(baseColor.opacity(strokeAlpha * 0.6), lineWidth: 0.8)
                 )
             if isProModel {
                 VStack(spacing: 2) {
-                    HStack(spacing: 3) {
+                    HStack(spacing: SpacingTheme.tight) {
                         Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 7, height: 7)
                         Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 7, height: 7)
                     }
                     Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 7, height: 7)
                 }
             } else {
-                VStack(spacing: 3) {
+                VStack(spacing: SpacingTheme.tight) {
                     Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 8, height: 8)
                     Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 8, height: 8)
                 }
@@ -502,20 +506,20 @@ struct BatteryThermalChassisCard: View {
             selectZone(.soc)
         } label: {
             ZStack {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
                     .fill(socFill)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
                             .stroke(socStroke, lineWidth: isSocActive ? 1.6 : 0.8)
                     )
 
-                VStack(spacing: 1.5) {
+                VStack(spacing: 2) {
                     Image(systemName: "cpu")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(IconTheme.tileLeading)
                         .foregroundStyle(isSocActive ? sColor : (isDark ? Color.white.opacity(0.85) : Color(hex: "#1E1E24").opacity(0.75)))
 
                     Text(chipMarketingShort)
-                        .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                        .font(Typography.microAxis)
                         .foregroundStyle(isDark ? Color.white.opacity(0.85) : Color(hex: "#1E1E24").opacity(0.85))
                         .lineLimit(1)
                 }
@@ -539,16 +543,16 @@ struct BatteryThermalChassisCard: View {
             selectZone(.pmic)
         } label: {
             ZStack {
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
                     .fill(pmicFill)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
                             .stroke(pmicStroke, lineWidth: isPmicActive ? 1.6 : 0.8)
                     )
 
-                HStack(spacing: 5) {
+                HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "bolt.fill")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(IconTheme.badgeInline)
                         .foregroundStyle(isPmicActive ? pColor : (isDark ? Color.white.opacity(0.8) : Color(hex: "#1E1E24").opacity(0.7)))
                     Capsule()
                         .fill((isDark ? Color.white : Color(hex: "#1E1E24")).opacity(0.4))
@@ -630,7 +634,7 @@ struct BatteryThermalChassisCard: View {
     private func flirCrosshairShape(color: Color, label: String, isPulse: Bool) -> some View {
         let isDark = (colorScheme == .dark)
 
-        HStack(spacing: 2.5) {
+        HStack(spacing: SpacingTheme.tight) {
             ZStack {
                 Rectangle().fill(isDark ? color : Color.white).frame(width: 6, height: 1.2)
                 Rectangle().fill(isDark ? color : Color.white).frame(width: 1.2, height: 6)
@@ -638,19 +642,19 @@ struct BatteryThermalChassisCard: View {
             .frame(width: 7, height: 7)
 
             Text(label)
-                .font(.system(size: 7, weight: .heavy, design: .monospaced))
+                .font(Typography.microAxis)
                 .foregroundStyle(isDark ? color : Color.white)
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, SpacingTheme.compact)
         .padding(.vertical, 2)
         .background(
             isDark
                 ? Color.black.opacity(0.82)
                 : color
         )
-        .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.micro, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 3.5, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.micro, style: .continuous)
                 .stroke(isDark ? color.opacity(0.40) : Color.white.opacity(0.40), lineWidth: 0.8)
         )
         .shadow(color: Color.black.opacity(isDark ? 0.35 : 0.18), radius: 2.5, x: 0, y: 1)
@@ -665,29 +669,29 @@ struct BatteryThermalChassisCard: View {
         VStack {
             HStack {
                 Text("● IR")
-                    .font(.system(size: 6.5, weight: .bold, design: .monospaced))
+                    .font(Typography.microAxis)
                     .foregroundStyle(isDark ? Color.red.opacity(0.85) : Color(hex: "#DC2626"))
                 Spacer()
                 Text("ε:0.95")
-                    .font(.system(size: 6.5, weight: .semibold, design: .monospaced))
+                    .font(Typography.microAxis)
                     .foregroundStyle(hudColor.opacity(isDark ? 0.45 : 0.65))
             }
-            .padding(.horizontal, 7)
-            .padding(.top, 5)
+            .padding(.horizontal, 8)
+            .padding(.top, 6)
 
             Spacer()
 
             HStack {
                 Text("FOV 54°")
-                    .font(.system(size: 6.5, weight: .medium, design: .monospaced))
+                    .font(Typography.microAxis)
                     .foregroundStyle(hudColor.opacity(isDark ? 0.35 : 0.55))
                 Spacer()
                 Text("LIVE")
-                    .font(.system(size: 6.5, weight: .bold, design: .monospaced))
+                    .font(Typography.microAxis)
                     .foregroundStyle(isDark ? Color.green.opacity(0.85) : Color(hex: "#15803D"))
             }
-            .padding(.horizontal, 7)
-            .padding(.bottom, 5)
+            .padding(.horizontal, 8)
+            .padding(.bottom, 6)
         }
         .allowsHitTesting(false)
     }
@@ -726,19 +730,19 @@ struct BatteryThermalChassisCard: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: zone.icon)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(IconTheme.tileLeading)
                     .foregroundStyle(iconColor)
                     .frame(width: 14)
 
                 Text(zone.shortLabel)
-                    .font(.system(size: 11.5, weight: isSelected ? .bold : .medium, design: .rounded))
+                    .font(isSelected ? Typography.calloutBold : Typography.calloutLabel)
                     .foregroundStyle(labelColor)
                     .lineLimit(1)
 
                 Spacer(minLength: 4)
 
                 Text(String(format: "%.1f °C", temp))
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(Typography.calloutBold)
                     .monospacedDigit()
                     .lineLimit(1)
                     .foregroundStyle(color)
@@ -746,9 +750,9 @@ struct BatteryThermalChassisCard: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
             .background(rowBg)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                     .stroke(rowStroke, lineWidth: 1)
             )
         }
@@ -761,17 +765,17 @@ struct BatteryThermalChassisCard: View {
         let color = thermalColor(for: temp)
         let isDark = (colorScheme == .dark)
 
-        return VStack(alignment: .leading, spacing: 3) {
+        return VStack(alignment: .leading, spacing: SpacingTheme.tight) {
             HStack {
                 Text(selectedZone.title)
-                    .font(.system(size: 11.5, weight: .bold, design: .rounded))
+                    .font(Typography.calloutBold)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
 
                 Spacer()
 
                 Text(temperatureStatusLabel(for: temp))
-                    .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                    .font(Typography.badgeTag)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(color.opacity(isDark ? 0.16 : 0.12))
@@ -785,16 +789,16 @@ struct BatteryThermalChassisCard: View {
             }
 
             Text(selectedZone.tip)
-                .font(.system(size: 9.5, weight: .regular))
+                .font(Typography.caption)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(1.5)
         }
-        .padding(7.5)
+        .padding(8)
         .background(isDark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                 .stroke(isDark ? Color.white.opacity(0.05) : Color.black.opacity(0.05), lineWidth: 0.6)
         )
     }

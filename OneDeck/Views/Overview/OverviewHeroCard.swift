@@ -14,37 +14,37 @@ struct OverviewHeroCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // Header Row: Marketing Name & Chip + Device Graphic Platter
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(system.marketingName)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(Typography.heroSubValue)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
 
-                    HStack(spacing: 5) {
+                    HStack(spacing: SpacingTheme.tight) {
                         Image(systemName: "cpu")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(IconTheme.tileLeading)
                             .foregroundStyle(appState.accentColor)
 
                         Text(system.chipNameClean)
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .font(Typography.calloutLabel)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
 
                         Text("•")
-                            .font(.system(size: 10))
+                            .font(Typography.badgeTag)
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
 
                         Image(systemName: "clock")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(IconTheme.tileLeading)
                             .foregroundStyle(appState.accentColor)
 
                         Text(system.uptimeFormatted)
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                            .font(Typography.calloutLabel)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
@@ -58,7 +58,7 @@ struct OverviewHeroCard: View {
                         .fill(appState.accentColor.opacity(0.12))
                         .frame(width: 44, height: 44)
                     Image(systemName: "iphone.gen3")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(IconTheme.heroAvatar)
                         .foregroundStyle(appState.accentColor)
                 }
             }
@@ -125,11 +125,11 @@ struct OverviewHeroCard: View {
     @ViewBuilder
     private func badge(text: String, textColor: Color, bgColor: Color, isMonospaced: Bool) -> some View {
         Text(text)
-            .font(.system(size: 10, weight: isMonospaced ? .bold : .medium, design: isMonospaced ? .monospaced : .default))
+            .font(isMonospaced ? Typography.badgeTagMono : Typography.badgeTag)
             .lineLimit(1)
             .minimumScaleFactor(0.85)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
+            .padding(.horizontal, 8)
+            .padding(.vertical, SpacingTheme.micro)
             .background(bgColor)
             .foregroundStyle(textColor)
             .clipShape(Capsule())
@@ -137,19 +137,19 @@ struct OverviewHeroCard: View {
 
     @ViewBuilder
     private func hudMetricTile(icon: String, label: String, value: String, subtitle: String, highlight: Color) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+            HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(IconTheme.tileLeading)
                     .foregroundStyle(highlight)
                 Text(label)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
             }
 
             Text(value)
-                .font(.system(.subheadline, design: .rounded, weight: .bold))
+                .font(Typography.bodyValue)
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
@@ -157,15 +157,15 @@ struct OverviewHeroCard: View {
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
             Text(subtitle)
-                .font(.system(size: 9, weight: .medium))
+                .font(Typography.badgeTag)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 9)
+        .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
     }
 }
 

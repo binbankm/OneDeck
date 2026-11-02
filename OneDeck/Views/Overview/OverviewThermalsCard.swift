@@ -14,7 +14,7 @@ struct OverviewThermalsCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // Header Row
             HStack {
                 OverviewSectionHeader(title: L10n.Overview.thermalSectionTitle, icon: "flame.fill")
@@ -27,12 +27,13 @@ struct OverviewThermalsCard: View {
                         .frame(width: 6, height: 6)
 
                     Text(thermalText)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .font(Typography.caption)
+                        .fontWeight(.semibold)
                         .foregroundStyle(thermalColor)
                         .lineLimit(1)
                 }
-                .padding(.horizontal, 9)
-                .padding(.vertical, 3.5)
+                .padding(.horizontal, 8)
+                .padding(.vertical, SpacingTheme.micro)
                 .background(thermalColor.opacity(0.12))
                 .clipShape(Capsule())
             }
@@ -60,14 +61,14 @@ struct OverviewThermalsCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(L10n.Overview.thermalPressure)
-                        .font(.system(size: 10, weight: .medium))
+                        .font(Typography.badgeTag)
                         .foregroundStyle(Theme.textTertiary(for: colorScheme))
                         .lineLimit(1)
 
                     Spacer()
 
                     Text(system.thermalPressurePercent <= 25 ? L10n.Overview.thermalOptimal : "\(system.thermalPressurePercent)%")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .font(Typography.badgeTagMono)
                         .foregroundStyle(thermalColor)
                         .lineLimit(1)
                 }
@@ -125,33 +126,33 @@ private struct TemperatureBentoTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 5) {
+            HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
-                    .font(.caption2)
+                    .font(IconTheme.tileLeading)
                     .foregroundStyle(iconColor)
 
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
                 Text(String(format: "%.1f", value))
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(Typography.title1)
                     .monospacedDigit()
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .contentTransition(.numericText())
 
                 Text("°C")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .font(Typography.calloutLabel)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
         .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
     }
 }
 

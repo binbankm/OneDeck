@@ -48,34 +48,21 @@ struct NetworkLatencyCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - Header
             HStack(spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(appState.accentColor.opacity(0.12))
-                        .frame(width: 30, height: 30)
-
-                    Image(systemName: "waveform.path.ecg")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(appState.accentColor)
-                }
-
-                Text(L10n.Network.latencyTitle)
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .lineLimit(1)
+                BentoSectionHeader(title: L10n.Network.latencyTitle, icon: "waveform.path.ecg")
 
                 Spacer()
 
                 // Quality Badge (Single-line, non-wrapping)
                 Text(qualityBadge.text)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .font(Typography.captionBold)
                     .foregroundStyle(qualityBadge.color)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
+                    .padding(.vertical, SpacingTheme.micro)
                     .background(qualityBadge.color.opacity(0.12))
                     .clipShape(Capsule())
 
@@ -89,9 +76,9 @@ struct NetworkLatencyCard: View {
                     }
                 } label: {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(IconTheme.actionButton)
                         .foregroundStyle(appState.accentColor)
-                        .padding(5)
+                        .padding(SpacingTheme.compact)
                         .background(appState.accentColor.opacity(0.1))
                         .clipShape(Circle())
                 }
@@ -122,12 +109,12 @@ struct NetworkLatencyCard: View {
             HStack(alignment: .lastTextBaseline, spacing: 16) {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(net.isConnected ? String(format: "%.0f", max(1.0, net.currentLatencyMs)) : "--")
-                        .font(.system(size: 42, weight: .bold, design: .rounded))
+                        .font(Typography.displayHero)
                         .monospacedDigit()
                         .foregroundStyle(qualityBadge.color)
 
                     Text("ms")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .font(Typography.sectionHeader)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 }
 
@@ -137,22 +124,22 @@ struct NetworkLatencyCard: View {
                 HStack(spacing: 14) {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(L10n.Network.jitter)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Typography.caption)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                         Text(net.isConnected ? String(format: "±%.1f ms", net.jitterMs) : "--")
-                            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                            .font(Typography.bodyValueMono)
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
                             .lineLimit(1)
                     }
 
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(L10n.Network.packetLoss)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Typography.caption)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                         Text(net.isConnected ? String(format: "%.0f%%", net.packetLossPercent) : "100%")
-                            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                            .font(Typography.bodyValueMono)
                             .foregroundStyle(net.packetLossPercent > 0 ? Color.orange : Theme.textPrimary(for: colorScheme))
                             .lineLimit(1)
                     }
@@ -169,25 +156,25 @@ struct NetworkLatencyCard: View {
                             net.selectedTarget = target
                             net.pingCurrentTarget()
                         } label: {
-                            HStack(spacing: 5) {
+                            HStack(spacing: SpacingTheme.tight) {
                                 Circle()
                                     .fill(isSelected ? appState.accentColor : Color.secondary.opacity(0.4))
                                     .frame(width: 6, height: 6)
 
                                 Text(target.shortName)
-                                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular, design: .rounded))
+                                    .font(isSelected ? Typography.calloutBold : Typography.calloutLabel)
                                     .foregroundStyle(isSelected ? Theme.textPrimary(for: colorScheme) : Theme.textSecondary(for: colorScheme))
                                     .lineLimit(1)
                                     .fixedSize(horizontal: true, vertical: false)
                             }
-                            .padding(.horizontal, 11)
+                            .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                                     .fill(isSelected ? appState.accentColor.opacity(0.16) : Theme.cardBackground(for: colorScheme).opacity(0.5))
                             )
                             .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                                     .stroke(isSelected ? appState.accentColor.opacity(0.5) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                             )
                         }
@@ -195,13 +182,13 @@ struct NetworkLatencyCard: View {
                         .fixedSize(horizontal: true, vertical: false)
                     }
                 }
-                .padding(.horizontal, 1)
+                .padding(.horizontal, SpacingTheme.micro)
             }
 
             // Swift Charts Rolling Latency Waveform
             VStack(alignment: .leading, spacing: 6) {
                 if net.latencyHistory.isEmpty {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                         .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
                         .frame(height: 110)
                 } else {
@@ -253,7 +240,7 @@ struct NetworkLatencyCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(L10n.Network.dnsBenchmarkDesc)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
 
@@ -269,16 +256,16 @@ struct NetworkLatencyCard: View {
                                 .scaleEffect(0.65)
                         } else {
                             Image(systemName: "bolt.horizontal.fill")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(IconTheme.actionButton)
                         }
 
                         Text(L10n.Network.runBenchmark)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(Typography.captionBold)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                     }
                     .foregroundStyle(appState.accentColor)
-                    .padding(.horizontal, 9)
+                    .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(appState.accentColor.opacity(0.12))
                     .clipShape(Capsule())
@@ -304,27 +291,27 @@ private struct DnsBenchmarkNodeRow: View {
     var body: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 5) {
+                HStack(spacing: SpacingTheme.tight) {
                     Text(node.name)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(Typography.bodyValue)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .lineLimit(1)
 
                     if node.isFastest {
                         Text(L10n.Network.fastestNode)
-                            .font(.system(size: 9, weight: .bold))
+                            .font(Typography.badgeTag)
                             .foregroundStyle(Color.green)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1)
+                            .padding(.horizontal, SpacingTheme.compact)
+                            .padding(.vertical, SpacingTheme.micro)
                             .background(Color.green.opacity(0.14))
                             .clipShape(Capsule())
                     }
                 }
 
                 Text(node.host)
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .font(Typography.badgeTagMonoMedium)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
             }
@@ -334,29 +321,29 @@ private struct DnsBenchmarkNodeRow: View {
             // Latency Readout
             if node.latencyMs == 0.0 {
                 Text(L10n.Network.pendingBenchmark)
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
             } else {
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(node.latencyMs > 900 ? "--" : String(format: "%.0f", node.latencyMs))
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(Typography.headlineValue)
                         .monospacedDigit()
                         .foregroundStyle(node.isFastest ? Color.green : (node.latencyMs < 50 ? accentColor : Color.orange))
 
                     Text("ms")
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .font(Typography.badgeTagMedium)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 }
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                 .stroke(node.isFastest ? Color.green.opacity(0.4) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
         )
     }

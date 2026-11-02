@@ -98,17 +98,17 @@ public enum Theme {
         scheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)
     }
 
-    // Text Colors
+    // Text Colors - Fully calibrated for WCAG AA compliance (Contrast >= 4.5:1)
     public static func textPrimary(for scheme: ColorScheme) -> Color {
         scheme == .dark ? Color.white : Color(hex: "#111114")
     }
 
     public static func textSecondary(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "#8E8E98") : Color(hex: "#6C6C75")
+        scheme == .dark ? Color(hex: "#A2A2B0") : Color(hex: "#54545F")
     }
 
     public static func textTertiary(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "#50505A") : Color(hex: "#A0A0A8")
+        scheme == .dark ? Color(hex: "#858594") : Color(hex: "#666672")
     }
 
     // Dynamic Gradient Generator from any single Color
@@ -127,6 +127,101 @@ public enum Theme {
             endPoint: .bottomTrailing
         )
     }
+}
+
+// MARK: - Global Typography Design System Tokens
+public enum Typography {
+    /// Hero KPI Numbers (Battery %, Latency ms, Speedtest Mbps)
+    public static let displayHero: Font = .system(size: 40, weight: .bold, design: .rounded)
+    /// Large Sub-Hero Metric (Public IP 24pt, Model Name Headline)
+    public static let heroSubValue: Font = .system(size: 24, weight: .bold, design: .rounded)
+    public static let heroSubValueMono: Font = .system(size: 24, weight: .bold, design: .monospaced)
+    /// Top View Titles & Device Names (20pt)
+    public static let title1: Font = .system(size: 20, weight: .bold, design: .rounded)
+    /// Secondary Section Projections (18pt)
+    public static let title2: Font = .system(size: 18, weight: .bold, design: .rounded)
+    /// Primary Action Button Labels & Prominent Hero Metrics (16pt)
+    public static let headlineValue: Font = .system(size: 16, weight: .bold, design: .rounded)
+    /// Bento Card Section Headers (14pt)
+    public static let sectionHeader: Font = .system(size: 14, weight: .bold, design: .rounded)
+    public static let sectionHeaderMono: Font = .system(size: 14, weight: .bold, design: .monospaced)
+    /// Core Metric Values in list tiles & gauges (13pt)
+    public static let bodyValue: Font = .system(size: 13, weight: .semibold, design: .rounded)
+    public static let bodyValueMono: Font = .system(size: 13, weight: .semibold, design: .monospaced)
+    /// List Row Field Labels & Property Names (12pt)
+    public static let calloutLabel: Font = .system(size: 12, weight: .medium)
+    public static let calloutBold: Font = .system(size: 12, weight: .bold, design: .rounded)
+    public static let calloutMono: Font = .system(size: 12, weight: .semibold, design: .monospaced)
+    /// Secondary descriptions, hardware specs & sub-details (11pt)
+    public static let caption: Font = .system(size: 11, weight: .medium)
+    public static let captionRegular: Font = .system(size: 11, weight: .regular)
+    public static let captionBold: Font = .system(size: 11, weight: .semibold, design: .rounded)
+    public static let captionMono: Font = .system(size: 11, weight: .semibold, design: .monospaced)
+    /// Micro Badges, Tags & Pill Labels (10pt)
+    public static let badgeTag: Font = .system(size: 10, weight: .bold, design: .rounded)
+    public static let badgeTagMedium: Font = .system(size: 10, weight: .medium)
+    public static let badgeTagMono: Font = .system(size: 10, weight: .bold, design: .monospaced)
+    public static let badgeTagMonoMedium: Font = .system(size: 10, weight: .medium, design: .monospaced)
+    /// Chart Axis Ticks & Viewfinder HUD indicators (8.5pt Strict Minimum Limit)
+    public static let microAxis: Font = .system(size: 8.5, weight: .semibold, design: .monospaced)
+}
+
+// MARK: - Spacing Design System Tokens (8pt Grid System)
+public enum SpacingTheme {
+    /// Tightest inline micro gap between icon & text (2pt)
+    public static let micro: CGFloat = 2.0
+    /// Inline badge & tag internal spacing (4pt)
+    public static let tight: CGFloat = 4.0
+    /// Standard component inner spacing (6pt / 8pt)
+    public static let compact: CGFloat = 6.0
+    public static let standard: CGFloat = 8.0
+    /// Bento card inner row spacing (10pt / 12pt)
+    public static let row: CGFloat = 10.0
+    public static let rowStandard: CGFloat = 12.0
+    /// Bento card internal major section spacing (14pt)
+    public static let cardInternal: CGFloat = 14.0
+    /// Section / Card stack spacing (16pt)
+    public static let cardStack: CGFloat = 16.0
+}
+
+// MARK: - Corner Radius Design System Tokens
+public enum CornerRadiusTheme {
+    /// Micro tag & indicator pill radius (4pt)
+    public static let micro: CGFloat = 4.0
+    /// Secondary badge & small platter radius (6pt)
+    public static let compact: CGFloat = 6.0
+    /// Standard section header icon platter radius (7pt / 8pt)
+    public static let platter: CGFloat = 7.0
+    public static let standard: CGFloat = 8.0
+    /// Inner list tile & sub-card container radius (10pt)
+    public static let tile: CGFloat = 10.0
+    /// Action button & prominent container radius (12pt / 14pt)
+    public static let button: CGFloat = 12.0
+    public static let prominent: CGFloat = 14.0
+    /// Modal sheet inner card radius (16pt)
+    public static let sheetCard: CGFloat = 16.0
+    /// Main Bento Card outer corner radius (18pt)
+    public static let card: CGFloat = 18.0
+}
+
+// MARK: - Icon Design System Tokens
+public enum IconTheme {
+    /// Section Header icon font size (inside 26x26 platter)
+    public static let sectionHeader: Font = .system(size: 13, weight: .bold)
+    /// Bento Tile leading icon font size (optical 1:1 match with 11pt/12pt label)
+    public static let tileLeading: Font = .system(size: 11, weight: .semibold)
+    /// Inline badge icon font size (inside status pill)
+    public static let badgeInline: Font = .system(size: 10, weight: .bold)
+    /// Top card action / refresh / copy button icon font size
+    public static let actionButton: Font = .system(size: 12, weight: .semibold)
+    /// Inline secondary copy indicator icon font size
+    public static let copyIndicator: Font = .system(size: 11, weight: .medium)
+    /// Prominent card control / action button icon font size
+    public static let prominentAction: Font = .system(size: 24, weight: .semibold)
+    /// Hero avatar / Device preview icon font size
+    public static let heroAvatar: Font = .system(size: 22, weight: .semibold)
+    /// Empty state & device graphic icon font size
+    public static let emptyState: Font = .system(size: 26, weight: .medium)
 }
 
 // MARK: - Chart Design System Tokens

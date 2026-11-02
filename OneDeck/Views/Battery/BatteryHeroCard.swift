@@ -14,7 +14,7 @@ struct BatteryHeroCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // Header Row: Unified Section Header & Fast Charge Protocol Pill
             HStack(alignment: .center) {
                 OverviewSectionHeader(title: L10n.Battery.batteryStatus, icon: "battery.100.bolt")
@@ -22,24 +22,24 @@ struct BatteryHeroCard: View {
                 Spacer()
 
                 // State & Protocol Capsule
-                HStack(spacing: 5) {
+                HStack(spacing: SpacingTheme.tight) {
                     if battery.batteryState == .charging {
                         Image(systemName: "bolt.fill")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(IconTheme.badgeInline)
                             .foregroundStyle(activeStatusColor)
                     } else if battery.isLowPowerMode {
                         Image(systemName: "bolt.batteryblock.fill")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(IconTheme.badgeInline)
                             .foregroundStyle(.yellow)
                     }
 
                     Text(battery.chargingProtocolName)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .font(Typography.captionBold)
                         .foregroundStyle(activeStatusColor)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
                 }
-                .padding(.horizontal, 9)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(activeStatusColor.opacity(0.14))
                 .clipShape(Capsule())
@@ -49,13 +49,13 @@ struct BatteryHeroCard: View {
             VStack(spacing: 10) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("\(battery.batteryLevelPercent)")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .font(Typography.displayHero)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                         .foregroundStyle(activeStatusColor)
 
                     Text("%")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(Typography.title1)
                         .foregroundStyle(activeStatusColor.opacity(0.85))
 
                     Spacer()
@@ -63,17 +63,17 @@ struct BatteryHeroCard: View {
                     // Available Energy vs Total Capacity
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(L10n.Battery.remainingEnergy)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(Typography.caption)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                         HStack(alignment: .firstTextBaseline, spacing: 2) {
                             Text("\(battery.currentRemainingMah)")
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .font(Typography.headlineValue)
                                 .monospacedDigit()
                                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
                             Text("/ \(battery.effectiveDesignCapacityMah) mAh")
-                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                .font(Typography.calloutLabel)
                                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         }
                     }
@@ -112,12 +112,12 @@ struct BatteryHeroCard: View {
                 .frame(height: 18)
 
                 // ETA Status Sub-row
-                HStack(spacing: 5) {
+                HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(IconTheme.tileLeading)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     Text(battery.etaCountdownString)
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(Typography.calloutLabel)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(1)
 
@@ -125,7 +125,7 @@ struct BatteryHeroCard: View {
 
                     if battery.isLowPowerMode {
                         Text(L10n.Battery.protocolLowPower)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(Typography.captionBold)
                             .foregroundStyle(.yellow)
                     }
                 }

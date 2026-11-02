@@ -14,7 +14,7 @@ struct BatteryCellCalibrationCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // Header Row
             OverviewSectionHeader(title: L10n.Battery.cellSettingsTitle, icon: "slider.horizontal.2.square.badge.arrow.down")
 
@@ -25,11 +25,11 @@ struct BatteryCellCalibrationCard: View {
             )) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L10n.Battery.isCustomToggle)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(Typography.bodyValue)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
                     Text(L10n.Battery.calibrateDesc)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 }
             }
@@ -40,7 +40,7 @@ struct BatteryCellCalibrationCard: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.Battery.customCapacityLabel)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                     // Preset Quick Switchers
@@ -64,7 +64,7 @@ struct BatteryCellCalibrationCard: View {
                     // Stepper Adjustment Row
                     HStack {
                         Text("\(battery.customCapacityMah) mAh")
-                            .font(.system(.subheadline, design: .rounded, weight: .bold))
+                            .font(Typography.bodyValue)
                             .foregroundStyle(appState.accentColor)
 
                         Spacer()
@@ -75,7 +75,7 @@ struct BatteryCellCalibrationCard: View {
                                 battery.setCustomBattery(enabled: true, customMah: max(1000, battery.customCapacityMah - 50))
                             } label: {
                                 Image(systemName: "minus.circle.fill")
-                                    .font(.title3)
+                                    .font(Typography.title1)
                                     .foregroundStyle(appState.accentColor)
                             }
 
@@ -84,7 +84,7 @@ struct BatteryCellCalibrationCard: View {
                                 battery.setCustomBattery(enabled: true, customMah: min(12000, battery.customCapacityMah + 50))
                             } label: {
                                 Image(systemName: "plus.circle.fill")
-                                    .font(.title3)
+                                    .font(Typography.title1)
                                     .foregroundStyle(appState.accentColor)
                             }
                         }
@@ -92,7 +92,7 @@ struct BatteryCellCalibrationCard: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
                     .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
@@ -109,9 +109,9 @@ struct BatteryCellCalibrationCard: View {
         } label: {
             VStack(spacing: 2) {
                 Text(title)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(Typography.badgeTag)
                 Text("\(mah)")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .font(Typography.captionBold)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 6)
@@ -125,7 +125,7 @@ struct BatteryCellCalibrationCard: View {
                 ? Color.black
                 : Theme.textSecondary(for: colorScheme)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         }
         .buttonStyle(.plain)
     }

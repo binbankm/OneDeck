@@ -18,17 +18,15 @@ struct SettingsView: View {
         NavigationStack {
             GeometryReader { geometry in
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: SpacingTheme.cardStack) {
                     // MARK: - Appearance & Theme Card
                     VStack(alignment: .leading, spacing: 16) {
-                        Label(L10n.Settings.appearanceSection, systemImage: "paintbrush.fill")
-                            .font(.system(.headline, design: .rounded))
-                            .foregroundStyle(appState.accentColor)
+                        BentoSectionHeader(title: L10n.Settings.appearanceSection, icon: "paintbrush.fill")
 
                         // Appearance Mode Segmented Picker
                         VStack(alignment: .leading, spacing: 8) {
                             Text(L10n.Settings.appearanceMode)
-                                .font(.subheadline)
+                                .font(Typography.calloutLabel)
                                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                             Picker(L10n.Settings.appearanceMode, selection: $appState.appearance) {
@@ -47,7 +45,7 @@ struct SettingsView: View {
                         // Theme Presets
                         VStack(alignment: .leading, spacing: 10) {
                             Text(L10n.Settings.presets)
-                                .font(.subheadline)
+                                .font(Typography.calloutLabel)
                                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                             HStack(spacing: 12) {
@@ -69,7 +67,7 @@ struct SettingsView: View {
                                             .overlay {
                                                 if appState.themeColorHex.uppercased() == preset.hex.uppercased() {
                                                     Image(systemName: "checkmark")
-                                                        .font(.system(size: 14, weight: .bold))
+                                                        .font(IconTheme.sectionHeader)
                                                         .foregroundStyle(.white)
                                                 }
                                             }
@@ -86,11 +84,10 @@ struct SettingsView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(L10n.Settings.customPalette)
-                                    .font(.subheadline)
+                                    .font(Typography.calloutLabel)
                                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                                 Text(L10n.Settings.hexCode + ": \(appState.themeColorHex)")
-                                    .font(.caption)
-                                    .fontDesign(.monospaced)
+                                    .font(Typography.captionMono)
                                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             }
 
@@ -109,9 +106,7 @@ struct SettingsView: View {
 
                     // MARK: - Language Card
                     VStack(alignment: .leading, spacing: 14) {
-                        Label(L10n.Settings.languageSection, systemImage: "globe")
-                            .font(.system(.headline, design: .rounded))
-                            .foregroundStyle(appState.accentColor)
+                        BentoSectionHeader(title: L10n.Settings.languageSection, icon: "globe")
 
                         Picker(L10n.Settings.languageSection, selection: $appState.language) {
                             ForEach(AppLanguage.allCases) { lang in
@@ -128,22 +123,20 @@ struct SettingsView: View {
 
                     // MARK: - 7-Day Certificate Countdown
                     VStack(alignment: .leading, spacing: 12) {
-                        Label(L10n.Settings.signingSection, systemImage: "signature")
-                            .font(.system(.headline, design: .rounded))
-                            .foregroundStyle(appState.accentColor)
+                        BentoSectionHeader(title: L10n.Settings.signingSection, icon: "signature")
 
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(L10n.Settings.certExpiry)
-                                    .font(.subheadline)
+                                    .font(Typography.calloutLabel)
                                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                                 Text(L10n.Settings.certDaysHours(days: 6, hours: 22))
-                                    .font(.system(.title3, design: .rounded, weight: .bold))
+                                    .font(Typography.title2)
                                     .foregroundStyle(appState.accentColor)
                             }
                             Spacer()
                             Image(systemName: "clock.badge.checkmark")
-                                .font(.title)
+                                .font(IconTheme.prominentAction)
                                 .foregroundStyle(appState.accentColor.opacity(0.8))
                         }
                     }
@@ -151,9 +144,7 @@ struct SettingsView: View {
 
                     // MARK: - System Settings Shortcuts (App-prefs)
                     VStack(alignment: .leading, spacing: 12) {
-                        Label(L10n.Settings.sysPrefsSection, systemImage: "link")
-                            .font(.system(.headline, design: .rounded))
-                            .foregroundStyle(appState.accentColor)
+                        BentoSectionHeader(title: L10n.Settings.sysPrefsSection, icon: "link")
 
                         VStack(spacing: 8) {
                             settingsLinkRow(title: L10n.Settings.prefWifi, icon: "wifi", url: "App-prefs:root=WIFI")
@@ -168,28 +159,25 @@ struct SettingsView: View {
 
                     // MARK: - About Card
                     VStack(alignment: .leading, spacing: 10) {
-                        Label(L10n.Settings.aboutSection, systemImage: "info.circle")
-                            .font(.system(.headline, design: .rounded))
-                            .foregroundStyle(appState.accentColor)
+                        BentoSectionHeader(title: L10n.Settings.aboutSection, icon: "info.circle")
 
                         HStack {
                             Text(L10n.Settings.version)
-                                .font(.subheadline)
+                                .font(Typography.calloutLabel)
                                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             Spacer()
                             Text("1.0.0 (Build 1)")
-                                .font(.subheadline)
-                                .fontDesign(.monospaced)
+                                .font(Typography.calloutMono)
                                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         }
 
                         HStack {
                             Text(L10n.Settings.openSourceRepo)
-                                .font(.subheadline)
+                                .font(Typography.calloutLabel)
                                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             Spacer()
                             Text("GitHub / OneDeck")
-                                .font(.subheadline)
+                                .font(Typography.calloutBold)
                                 .foregroundStyle(appState.accentColor)
                         }
                     }
@@ -214,16 +202,17 @@ struct SettingsView: View {
                 UIApplication.shared.open(targetURL)
             }
         } label: {
-            HStack {
+            HStack(spacing: 10) {
                 Image(systemName: icon)
-                    .frame(width: 24)
+                    .font(IconTheme.tileLeading)
+                    .frame(width: 20, height: 20)
                     .foregroundStyle(appState.accentColor)
                 Text(title)
-                    .font(.subheadline)
+                    .font(Typography.calloutLabel)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 Spacer()
                 Image(systemName: "arrow.up.forward.app")
-                    .font(.caption)
+                    .font(IconTheme.copyIndicator)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
             }
             .padding(.vertical, 8)

@@ -15,23 +15,10 @@ struct NetworkPortScannerCard: View {
     @State private var targetHostInput: String = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - Header
             HStack(spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(appState.accentColor.opacity(0.12))
-                        .frame(width: 30, height: 30)
-
-                    Image(systemName: "door.left.hand.open")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(appState.accentColor)
-                }
-
-                Text(L10n.Network.portScanTitle)
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .lineLimit(1)
+                BentoSectionHeader(title: L10n.Network.portScanTitle, icon: "door.left.hand.open")
 
                 Spacer()
 
@@ -47,16 +34,16 @@ struct NetworkPortScannerCard: View {
                                 .scaleEffect(0.65)
                         } else {
                             Image(systemName: "magnifyingglass")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(IconTheme.actionButton)
                         }
 
                         Text(net.isScanningPorts ? L10n.Network.querying : L10n.Network.checkPorts)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(Typography.captionBold)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                     }
                     .foregroundStyle(appState.accentColor)
-                    .padding(.horizontal, 9)
+                    .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(appState.accentColor.opacity(0.12))
                     .clipShape(Capsule())
@@ -68,13 +55,13 @@ struct NetworkPortScannerCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     Text(L10n.Network.targetHost)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(Typography.captionBold)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(1)
 
                     let defaultHost = (net.gatewayIPv4 != "--") ? net.gatewayIPv4 : "192.168.1.1"
                     TextField(defaultHost, text: $targetHostInput)
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .font(Typography.calloutMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .keyboardType(.numbersAndPunctuation)
                         .autocorrectionDisabled()
@@ -85,7 +72,7 @@ struct NetworkPortScannerCard: View {
                             targetHostInput = ""
                         } label: {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 12))
+                                .font(IconTheme.actionButton)
                                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
                         }
                     }
@@ -93,21 +80,23 @@ struct NetworkPortScannerCard: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                         .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                         .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                 )
 
                 // Quick Presets
-                HStack(spacing: 6) {
-                    let gw = (net.gatewayIPv4 != "--") ? net.gatewayIPv4 : "192.168.1.1"
-                    quickPresetButton(label: L10n.Network.targetGateway(ip: gw), host: gw)
-                    quickPresetButton(label: L10n.Network.targetLocalhost, host: "127.0.0.1")
-                    if net.localIPv4 != "--" && net.localIPv4 != gw {
-                        quickPresetButton(label: L10n.Network.targetSubnet, host: net.localIPv4)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: SpacingTheme.compact) {
+                        let gw = (net.gatewayIPv4 != "--") ? net.gatewayIPv4 : "192.168.1.1"
+                        quickPresetButton(label: L10n.Network.targetGateway(ip: gw), host: gw)
+                        quickPresetButton(label: L10n.Network.targetLocalhost, host: "127.0.0.1")
+                        if net.localIPv4 != "--" && net.localIPv4 != gw {
+                            quickPresetButton(label: L10n.Network.targetSubnet, host: net.localIPv4)
+                        }
                     }
                 }
             }
@@ -120,21 +109,24 @@ struct NetworkPortScannerCard: View {
                             .fill(item.isOpen ? Color.green : Color.secondary.opacity(0.3))
                             .frame(width: 6, height: 6)
 
-                        VStack(alignment: .leading, spacing: 1) {
+                        VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 4) {
                                 Text(String(item.port))
-                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                    .font(Typography.calloutLabel)
+                                    .fontDesign(.monospaced)
+                                    .fontWeight(.bold)
                                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
                                 Text(item.serviceName)
-                                    .font(.system(size: 10, weight: .medium))
+                                    .font(Typography.badgeTag)
+                                    .fontWeight(.medium)
                                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.85)
                             }
 
                             Text(item.isOpen ? L10n.Network.portOpen : L10n.Network.portClosed)
-                                .font(.system(size: 9, weight: .semibold))
+                                .font(Typography.badgeTag)
                                 .foregroundStyle(item.isOpen ? Color.green : Theme.textSecondary(for: colorScheme).opacity(0.7))
                         }
 
@@ -142,19 +134,19 @@ struct NetworkPortScannerCard: View {
 
                         if item.isOpen && item.latencyMs > 0 {
                             Text(String(format: "%.0fms", item.latencyMs))
-                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .font(Typography.badgeTagMono)
                                 .foregroundStyle(appState.accentColor)
                                 .lineLimit(1)
                         }
                     }
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 7)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
                     .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                             .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                             .stroke(item.isOpen ? Color.green.opacity(0.35) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                     )
                 }
@@ -170,10 +162,10 @@ struct NetworkPortScannerCard: View {
             Haptics.tick()
         } label: {
             Text(label)
-                .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                .font(Typography.badgeTagMonoMedium)
                 .foregroundStyle(targetHostInput == host ? appState.accentColor : Theme.textSecondary(for: colorScheme))
                 .padding(.horizontal, 6)
-                .padding(.vertical, 3)
+                .padding(.vertical, SpacingTheme.micro)
                 .background((targetHostInput == host ? appState.accentColor : Theme.cardBackground(for: colorScheme)).opacity(0.12))
                 .clipShape(Capsule())
         }

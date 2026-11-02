@@ -16,7 +16,7 @@ struct NetworkPublicIPCard: View {
     @State private var isCopied: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             headerRow
             ipHeroSection
             proxyExitBanner
@@ -29,20 +29,7 @@ struct NetworkPublicIPCard: View {
     @ViewBuilder
     private var headerRow: some View {
         HStack(spacing: 8) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(appState.accentColor.opacity(0.12))
-                    .frame(width: 30, height: 30)
-
-                Image(systemName: "globe.asia.australia.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(appState.accentColor)
-            }
-
-            Text(L10n.Network.publicIPTitle)
-                .font(.system(.headline, design: .rounded))
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .lineLimit(1)
+            BentoSectionHeader(title: L10n.Network.publicIPTitle, icon: "globe.asia.australia.fill")
 
             Spacer()
 
@@ -58,21 +45,21 @@ struct NetworkPublicIPCard: View {
                             .scaleEffect(0.65)
 
                         Text(L10n.Network.querying)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(Typography.captionBold)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                     } else {
                         Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(IconTheme.actionButton)
 
                         Text(L10n.Network.refresh)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(Typography.captionBold)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                     }
                 }
                 .foregroundStyle(appState.accentColor)
-                .padding(.horizontal, 9)
+                .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(appState.accentColor.opacity(0.12))
                 .clipShape(Capsule())
@@ -95,23 +82,23 @@ struct NetworkPublicIPCard: View {
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: SpacingTheme.tight) {
                         HStack(spacing: 6) {
                             Text(L10n.Network.publicIP)
-                                .font(.system(size: 11, weight: .medium))
+                                .font(Typography.caption)
                                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                             Text(net.publicIP.contains(":") ? "IPv6" : "IPv4")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(Typography.badgeTag)
                                 .foregroundStyle(appState.accentColor)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
+                                .padding(.horizontal, SpacingTheme.compact)
+                                .padding(.vertical, 2)
                                 .background(appState.accentColor.opacity(0.14))
-                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.micro, style: .continuous))
                         }
 
                         Text(net.publicIP)
-                            .font(.system(size: 24, weight: .bold, design: .monospaced))
+                            .font(Typography.heroSubValueMono)
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
@@ -121,12 +108,12 @@ struct NetworkPublicIPCard: View {
 
                     if isCopied {
                         Text(L10n.Network.copied)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(Typography.caption)
                             .foregroundStyle(appState.accentColor)
                     } else {
                         Image(systemName: "doc.on.doc")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Theme.textSecondary(for: colorScheme).opacity(0.6))
+                            .font(IconTheme.copyIndicator)
+                            .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     }
                 }
 
@@ -134,15 +121,15 @@ struct NetworkPublicIPCard: View {
                 if !net.publicIPv6.isEmpty && net.publicIPv6 != net.publicIP {
                     HStack(spacing: 6) {
                         Text("IPv6")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(Typography.badgeTag)
                             .foregroundStyle(appState.accentColor)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 1)
+                            .padding(.horizontal, SpacingTheme.compact)
+                            .padding(.vertical, 2)
                             .background(appState.accentColor.opacity(0.14))
-                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.micro, style: .continuous))
 
                         Text(net.publicIPv6)
-                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                            .font(Typography.captionMono)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
                             .minimumScaleFactor(0.65)
@@ -155,11 +142,11 @@ struct NetworkPublicIPCard: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
             )
         }
@@ -173,11 +160,11 @@ struct NetworkPublicIPCard: View {
             HStack(spacing: 8) {
                 HStack(spacing: 4) {
                     Image(systemName: "shield.lefthalf.filled")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(IconTheme.tileLeading)
                         .foregroundStyle(Color.orange)
 
                     Text(L10n.Network.proxyExit)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .font(Typography.captionBold)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
@@ -187,14 +174,14 @@ struct NetworkPublicIPCard: View {
 
                 HStack(spacing: 4) {
                     Text(net.proxyExitIP)
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(Typography.captionMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
 
                     if !net.proxyExitLocation.isEmpty {
                         Text("· \(net.proxyExitLocation)")
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                            .font(Typography.badgeTag)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
                             .truncationMode(.tail)
@@ -205,11 +192,11 @@ struct NetworkPublicIPCard: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                     .fill(Color.orange.opacity(0.08))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                     .stroke(Color.orange.opacity(0.18), lineWidth: 0.8)
             )
         }
@@ -238,36 +225,36 @@ struct NetworkPublicIPCard: View {
     @ViewBuilder
     private func geoCell(title: String, value: String, icon: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 5) {
+            HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(IconTheme.tileLeading)
                     .foregroundStyle(appState.accentColor)
 
                 Text(title)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
             }
 
             Text(value.isEmpty ? "--" : value)
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .font(Typography.bodyValue)
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 .lineLimit(3)
                 .minimumScaleFactor(0.7)
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 11)
-        .padding(.vertical, 9)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .frame(minHeight: 58)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
         )
     }

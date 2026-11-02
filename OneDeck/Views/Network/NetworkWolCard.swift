@@ -28,7 +28,7 @@ struct NetworkWolCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             headerRow
             macInputField
             presetsRow
@@ -42,27 +42,15 @@ struct NetworkWolCard: View {
     @ViewBuilder
     private var headerRow: some View {
         HStack(spacing: 8) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(appState.accentColor.opacity(0.12))
-                    .frame(width: 30, height: 30)
-
-                Image(systemName: "power.circle.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(appState.accentColor)
-            }
-
-            Text(L10n.Network.wolTitle)
-                .font(.system(.headline, design: .rounded))
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+            BentoSectionHeader(title: L10n.Network.wolTitle, icon: "power.circle.fill")
 
             Spacer()
 
             Text(L10n.Network.wolPortBadge)
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .font(Typography.captionMono)
                 .foregroundStyle(appState.accentColor)
                 .padding(.horizontal, 8)
-                .padding(.vertical, 3)
+                .padding(.vertical, SpacingTheme.micro)
                 .background(appState.accentColor.opacity(0.12))
                 .clipShape(Capsule())
         }
@@ -73,16 +61,17 @@ struct NetworkWolCard: View {
     private var macInputField: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(L10n.Network.macAddress)
-                .font(.system(size: 11, weight: .semibold))
+                .font(Typography.captionBold)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
             HStack(spacing: 8) {
                 Image(systemName: "number.square")
-                    .font(.system(size: 15))
+                    .font(IconTheme.sectionHeader)
                     .foregroundStyle(appState.accentColor)
 
                 TextField("AA:BB:CC:DD:EE:FF", text: $targetMac)
-                    .font(.system(size: 15, weight: .bold, design: .monospaced))
+                    .font(Typography.headlineValue)
+                    .fontDesign(.monospaced)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
                     .keyboardType(.asciiCapable)
@@ -96,7 +85,7 @@ struct NetworkWolCard: View {
                         targetMac = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 14))
+                            .font(IconTheme.actionButton)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     }
                 }
@@ -109,18 +98,18 @@ struct NetworkWolCard: View {
                     }
                 } label: {
                     Image(systemName: "doc.on.clipboard")
-                        .font(.system(size: 14))
+                        .font(IconTheme.actionButton)
                         .foregroundStyle(appState.accentColor)
                 }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .stroke(isFieldFocused ? appState.accentColor : Theme.cardBorder(for: colorScheme), lineWidth: isFieldFocused ? 1.2 : 0.8)
             )
         }
@@ -129,20 +118,26 @@ struct NetworkWolCard: View {
     // MARK: - Quick Presets
     @ViewBuilder
     private var presetsRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: SpacingTheme.standard) {
             Text(L10n.Network.presets)
-                .font(.system(size: 11, weight: .medium))
+                .font(Typography.caption)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
 
-            ForEach(presets, id: \.mac) { preset in
-                WolPresetButton(
-                    name: preset.name,
-                    mac: preset.mac,
-                    isSelected: targetMac == preset.mac,
-                    accentColor: appState.accentColor
-                ) {
-                    Haptics.selection()
-                    targetMac = preset.mac
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: SpacingTheme.compact) {
+                    ForEach(presets, id: \.mac) { preset in
+                        WolPresetButton(
+                            name: preset.name,
+                            mac: preset.mac,
+                            isSelected: targetMac == preset.mac,
+                            accentColor: appState.accentColor
+                        ) {
+                            Haptics.selection()
+                            targetMac = preset.mac
+                        }
+                    }
                 }
             }
         }
@@ -154,19 +149,19 @@ struct NetworkWolCard: View {
         if let msg = feedbackMessage {
             HStack(spacing: 6) {
                 Image(systemName: isSuccess ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                    .font(.system(size: 12))
+                    .font(IconTheme.actionButton)
                     .foregroundStyle(isSuccess ? Color.green : Color.red)
 
                 Text(msg)
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .font(Typography.calloutLabel)
                     .foregroundStyle(isSuccess ? Color.green : Color.red)
 
                 Spacer()
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 7)
+            .padding(.vertical, 8)
             .background((isSuccess ? Color.green : Color.red).opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
             .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }
@@ -191,16 +186,16 @@ struct NetworkWolCard: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "bolt.fill")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(IconTheme.sectionHeader)
 
                 Text(L10n.Network.sendWol)
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .font(Typography.sectionHeader)
             }
             .foregroundStyle(Color.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .fill(appState.accentColor)
             )
             .shadow(color: appState.accentColor.opacity(0.25), radius: 6, x: 0, y: 2)
@@ -223,18 +218,18 @@ private struct WolPresetButton: View {
     var body: some View {
         Button(action: action) {
             Text(name)
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .font(Typography.captionBold)
                 .foregroundStyle(isSelected ? accentColor : Theme.textPrimary(for: colorScheme))
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
                         .fill(isSelected ? accentColor.opacity(0.14) : Theme.cardBackground(for: colorScheme).opacity(0.5))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
                         .stroke(isSelected ? accentColor.opacity(0.4) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                 )
         }

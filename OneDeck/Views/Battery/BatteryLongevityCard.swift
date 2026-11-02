@@ -43,7 +43,7 @@ struct BatteryLongevityCard: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - 1. Header Row: Section Title & Health Grade Badge
             HStack(alignment: .center) {
                 OverviewSectionHeader(title: L10n.Battery.longevityTitle, icon: "waveform.path.badge.plus")
@@ -57,12 +57,13 @@ struct BatteryLongevityCard: View {
                         .frame(width: 6, height: 6)
 
                     Text(gradeText)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .font(Typography.caption)
+                        .fontWeight(.semibold)
                         .foregroundStyle(gradeColor)
                         .lineLimit(1)
                 }
-                .padding(.horizontal, 9)
-                .padding(.vertical, 3.5)
+                .padding(.horizontal, 8)
+                .padding(.vertical, SpacingTheme.micro)
                 .background(gradeColor.opacity(0.12))
                 .clipShape(Capsule())
             }
@@ -101,7 +102,7 @@ struct BatteryLongevityCard: View {
             }
             .padding(10)
             .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
 
             // MARK: - 5. Export Diagnostic Report Action Button
             Button {
@@ -109,20 +110,20 @@ struct BatteryLongevityCard: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: showCopiedToast ? "checkmark.circle.fill" : "doc.on.doc.fill")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(IconTheme.actionButton)
 
                     Text(showCopiedToast ? L10n.Battery.reportCopied : L10n.Battery.exportReportButton)
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .font(Typography.calloutBold)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 9)
+                .padding(.vertical, 10)
                 .background(showCopiedToast ? Color.green.opacity(0.15) : appState.accentColor.opacity(0.12))
                 .foregroundStyle(showCopiedToast ? Color.green : appState.accentColor)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                         .stroke((showCopiedToast ? Color.green : appState.accentColor).opacity(0.3), lineWidth: 0.8)
                 )
             }
@@ -149,52 +150,63 @@ struct BatteryLongevityCard: View {
         }
         .padding(10)
         .background(colorScheme == .dark ? Color.white.opacity(0.025) : Color.black.opacity(0.02))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
     }
 
     @ViewBuilder
     private var chartLegendHeaderRow: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
                 Text(L10n.Battery.degradationChartTitle)
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(Typography.calloutBold)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
 
+                Spacer(minLength: 4)
+
                 Text(L10n.Battery.degradationChartSubtitle)
-                    .font(.system(size: 9.5, weight: .medium))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     .lineLimit(1)
             }
 
-            Spacer(minLength: 8)
-
-            HStack(spacing: 7) {
-                HStack(spacing: 3) {
+            // Legend Row (Dedicated Full-Width, Zero Crowding, Zero Word Breaking)
+            HStack(spacing: SpacingTheme.standard) {
+                HStack(spacing: SpacingTheme.tight) {
                     Circle()
                         .fill(appState.accentColor)
                         .frame(width: 5, height: 5)
                     Text(L10n.Battery.degradationActualCurve)
-                        .font(.system(size: 8.5, weight: .semibold, design: .rounded))
+                        .font(Typography.microAxis)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
 
-                HStack(spacing: 3) {
+                Spacer(minLength: 0)
+
+                HStack(spacing: SpacingTheme.tight) {
                     Rectangle()
                         .fill(Theme.textTertiary(for: colorScheme))
-                        .frame(width: 7, height: 1.2)
+                        .frame(width: 8, height: 1.5)
                     Text(L10n.Battery.degradationAppleBaseline)
-                        .font(.system(size: 8.5, weight: .medium, design: .rounded))
+                        .font(Typography.microAxis)
                         .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
 
-                HStack(spacing: 3) {
+                Spacer(minLength: 0)
+
+                HStack(spacing: SpacingTheme.tight) {
                     Rectangle()
                         .fill(Color.red.opacity(0.85))
-                        .frame(width: 7, height: 1.2)
+                        .frame(width: 8, height: 1.5)
                     Text(L10n.Battery.degradationServiceThreshold)
-                        .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                        .font(Typography.microAxis)
                         .foregroundStyle(Color.red.opacity(0.85))
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
             }
         }
@@ -211,31 +223,31 @@ struct BatteryLongevityCard: View {
             let deltaFormatted: String = String(format: "%.1f%%", delta)
             let deltaText: String = isPositive ? "\(L10n.Battery.baselineAbove) +\(deltaFormatted)" : "\(L10n.Battery.baselineBelow) \(deltaFormatted)"
 
-            HStack(spacing: 5) {
+            HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: isPositive ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(IconTheme.badgeInline)
                     .foregroundStyle(badgeColor)
 
                 Text(deltaText)
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .font(Typography.badgeTag)
                     .foregroundStyle(badgeColor)
 
                 Spacer()
 
                 Text(gradeText)
-                    .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                    .font(Typography.badgeTag)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 4.5)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
             .background(badgeColor.opacity(0.10))
-            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         } else if !battery.hasRealTelemetry {
             HStack(spacing: 4) {
                 Image(systemName: "info.circle")
-                    .font(.system(size: 9))
+                    .font(IconTheme.badgeInline)
                 Text(L10n.Battery.degradationImportHint)
-                    .font(.system(size: 9.5, weight: .medium))
+                    .font(Typography.caption)
             }
             .foregroundStyle(Theme.textTertiary(for: colorScheme))
             .padding(.top, 2)
@@ -304,14 +316,14 @@ struct BatteryLongevityCard: View {
 
     @ViewBuilder
     private func careTipRow(icon: String, text: String) -> some View {
-        HStack(alignment: .top, spacing: 7) {
+        HStack(alignment: .top, spacing: SpacingTheme.standard) {
             Image(systemName: icon)
-                .font(.system(size: 10, weight: .semibold))
+                .font(IconTheme.tileLeading)
                 .foregroundStyle(appState.accentColor)
                 .frame(width: 14, height: 14)
 
             Text(text)
-                .font(.system(size: 10.5, weight: .regular))
+                .font(Typography.caption)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(2)
@@ -495,16 +507,16 @@ private struct BatteryAgingCurveChart: View {
                     alignment: .center,
                     spacing: 8
                 ) {
-                    HStack(spacing: 3) {
+                    HStack(spacing: SpacingTheme.tight) {
                         Text("\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit)")
-                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                            .font(Typography.microAxis)
                         Text("•")
-                            .font(.system(size: 7))
+                            .font(Typography.microAxis)
                         Text(String(format: "%.1f%%", battery.healthPercentDisplay))
-                            .font(.system(size: 8.5, weight: .bold, design: .monospaced))
+                            .font(Typography.microAxis)
                     }
                     .padding(.horizontal, 6)
-                    .padding(.vertical, 2.5)
+                    .padding(.vertical, 2)
                     .background(colorScheme == .dark ? Color(white: 0.10).opacity(0.92) : Color.white.opacity(0.95))
                     .foregroundStyle(appState.accentColor)
                     .clipShape(Capsule())
@@ -566,22 +578,22 @@ private struct LongevityTile: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 4) {
+        VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+            HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(IconTheme.tileLeading)
                     .foregroundStyle(accent)
 
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
                 Text(value)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(Typography.title1)
                     .monospacedDigit()
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
@@ -589,14 +601,14 @@ private struct LongevityTile: View {
 
                 if !unit.isEmpty {
                     Text(unit)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .font(Typography.captionBold)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(1)
                 }
             }
 
             Text(subtitle)
-                .font(.system(size: 9.5, weight: .medium))
+                .font(Typography.caption)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
@@ -605,6 +617,6 @@ private struct LongevityTile: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
     }
 }

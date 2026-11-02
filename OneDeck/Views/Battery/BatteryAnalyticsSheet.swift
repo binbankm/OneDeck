@@ -39,7 +39,7 @@ struct BatteryAnalyticsSheet: View {
                     Button(L10n.Common.done) {
                         dismiss()
                     }
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(Typography.sectionHeader)
                     .foregroundStyle(appState.accentColor)
                 }
             }
@@ -59,28 +59,28 @@ struct BatteryAnalyticsSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Image(systemName: "info.circle.fill")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(IconTheme.sectionHeader)
                     .foregroundStyle(appState.accentColor)
                 Text(L10n.Battery.guideStepsHeader)
-                    .font(.system(.headline, design: .rounded))
+                    .font(Typography.sectionHeader)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
             }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(L10n.Battery.guideStep1)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Typography.calloutLabel)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 Text(L10n.Battery.guideStep2)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Typography.calloutLabel)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 Text(L10n.Battery.guideStep3)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Typography.calloutLabel)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
         }
         .padding(14)
         .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.prominent, style: .continuous))
     }
 
     // MARK: - 2. File Picker Section
@@ -92,15 +92,15 @@ struct BatteryAnalyticsSheet: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "doc.badge.plus")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(IconTheme.actionButton)
                 Text(L10n.Battery.selectFileButton)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(Typography.sectionHeader)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 44)
             .background(appState.accentColor)
             .foregroundStyle(Color.black)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
     }
 
@@ -113,7 +113,7 @@ struct BatteryAnalyticsSheet: View {
                 .frame(height: 0.5)
 
             Text(L10n.Battery.orPasteSnippet)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .font(Typography.caption)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
@@ -131,15 +131,15 @@ struct BatteryAnalyticsSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             TextEditor(text: $pastedText)
                 .scrollContentBackground(.hidden)
-                .font(.system(size: 11, design: .monospaced))
+                .font(Typography.captionMono)
                 .frame(height: 120)
                 .padding(8)
                 .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 .overlay(alignment: .topLeading) {
                     if pastedText.isEmpty {
                         Text(L10n.Battery.pastePlaceholder)
-                            .font(.system(size: 11))
+                            .font(Typography.captionRegular)
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
                             .padding(12)
                             .allowsHitTesting(false)
@@ -152,14 +152,15 @@ struct BatteryAnalyticsSheet: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
+                        .font(IconTheme.actionButton)
                     Text(L10n.Battery.parseNow)
                 }
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .font(Typography.bodyValue)
                 .frame(maxWidth: .infinity)
                 .frame(height: 38)
                 .background(appState.accentColor.opacity(0.15))
                 .foregroundStyle(appState.accentColor)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
             }
             .disabled(pastedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
@@ -172,9 +173,10 @@ struct BatteryAnalyticsSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
+                        .font(IconTheme.actionButton)
                         .foregroundStyle(.green)
                     Text(L10n.Common.success)
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .font(Typography.sectionHeader)
                         .foregroundStyle(.green)
                 }
 
@@ -186,12 +188,12 @@ struct BatteryAnalyticsSheet: View {
             }
             .padding(12)
             .background(Color.green.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
 
         if let err = errorMessage {
             Text(err)
-                .font(.system(size: 12, weight: .medium))
+                .font(Typography.calloutLabel)
                 .foregroundStyle(.red)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -246,10 +248,10 @@ struct BatteryAnalyticsSheet: View {
     private func statPill(label: String, val: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(Typography.badgeTagMedium)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
             Text(val)
-                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .font(Typography.bodyValue)
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
         }
     }

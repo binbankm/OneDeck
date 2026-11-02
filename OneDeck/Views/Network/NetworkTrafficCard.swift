@@ -16,23 +16,10 @@ struct NetworkTrafficCard: View {
     @State private var showSpeedTestSheet: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - Header
             HStack(spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(appState.accentColor.opacity(0.12))
-                        .frame(width: 30, height: 30)
-
-                    Image(systemName: "arrow.up.arrow.down.circle.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(appState.accentColor)
-                }
-
-                Text(L10n.Network.trafficTitle)
-                    .font(.system(.headline, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .lineLimit(1)
+                BentoSectionHeader(title: L10n.Network.trafficTitle, icon: "arrow.up.arrow.down.circle.fill")
 
                 Spacer()
 
@@ -43,15 +30,15 @@ struct NetworkTrafficCard: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "gauge.with.dots.needle.bottom.50percent")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(IconTheme.actionButton)
 
                         Text(L10n.Network.speedTestTitle)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(Typography.captionBold)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                     }
                     .foregroundStyle(appState.accentColor)
-                    .padding(.horizontal, 9)
+                    .padding(.horizontal, 10)
                     .padding(.vertical, 4)
                     .background(appState.accentColor.opacity(0.12))
                     .clipShape(Capsule())
@@ -66,18 +53,18 @@ struct NetworkTrafficCard: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "gauge.with.dots.needle.67percent")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(IconTheme.actionButton)
                             .foregroundStyle(appState.accentColor)
 
                         Text(L10n.Network.lastSpeedTest)
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .font(Typography.captionBold)
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
                             .lineLimit(1)
                             .fixedSize()
 
                         if !last.rating.isEmpty {
                             Text(last.rating)
-                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .font(Typography.badgeTag)
                                 .foregroundStyle(appState.accentColor)
                                 .lineLimit(1)
                         }
@@ -86,36 +73,36 @@ struct NetworkTrafficCard: View {
 
                         HStack(spacing: 6) {
                             Text("↓\(String(format: "%.1f", last.downloadMbps))M")
-                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .font(Typography.badgeTagMono)
                                 .foregroundStyle(appState.accentColor)
                                 .lineLimit(1)
                                 .fixedSize()
 
                             Text("↑\(String(format: "%.1f", last.uploadMbps))M")
-                                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                .font(Typography.badgeTagMono)
                                 .foregroundStyle(Color.mint)
                                 .lineLimit(1)
                                 .fixedSize()
 
                             Text("\(String(format: "%.0f", last.pingMs))ms")
-                                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                .font(Typography.badgeTagMonoMedium)
                                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                                 .lineLimit(1)
                                 .fixedSize()
 
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(IconTheme.badgeInline)
                                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
                         }
                     }
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
+                    .padding(.vertical, 8)
                     .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                             .fill(appState.accentColor.opacity(0.06))
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                             .stroke(appState.accentColor.opacity(0.18), lineWidth: 0.8)
                     )
                 }
@@ -148,7 +135,7 @@ struct NetworkTrafficCard: View {
             // MARK: - Swift Charts Real-time Throughput Waveform
             VStack(alignment: .leading, spacing: 4) {
                 if net.trafficHistory.isEmpty {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                         .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
                         .frame(height: 100)
                 } else {
@@ -210,15 +197,15 @@ struct NetworkTrafficCard: View {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.down.to.line.compact")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(IconTheme.tileLeading)
                         .foregroundStyle(appState.accentColor)
 
                     Text(L10n.Network.totalIn)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                     Text(formatTotalBytes(net.totalBytesIn))
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .font(Typography.calloutMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 }
 
@@ -226,15 +213,15 @@ struct NetworkTrafficCard: View {
 
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.up.to.line.compact")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(IconTheme.tileLeading)
                         .foregroundStyle(Color.mint)
 
                     Text(L10n.Network.totalOut)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                     Text(formatTotalBytes(net.totalBytesOut))
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .font(Typography.calloutMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 }
             }
@@ -258,24 +245,25 @@ struct NetworkTrafficCard: View {
                     .frame(width: 28, height: 28)
 
                 Image(systemName: direction)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(IconTheme.actionButton)
                     .foregroundStyle(color)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(value)
-                        .font(.system(size: 17, weight: .bold, design: .monospaced))
+                        .font(Typography.headlineValue)
+                        .fontDesign(.monospaced)
                         .monospacedDigit()
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
                     Text(unit)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .font(Typography.badgeTag)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 }
             }
@@ -286,11 +274,11 @@ struct NetworkTrafficCard: View {
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
         )
     }
