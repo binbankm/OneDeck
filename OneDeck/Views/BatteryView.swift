@@ -9,36 +9,20 @@
 import SwiftUI
 
 struct BatteryView: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var battery = BatteryService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var battery = BatteryViewModel.shared
 
+    // MARK: - Body
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 16) {
-                        // MARK: - 1. Hero Dynamic Level Gauge & Protocol HUD
-                        BatteryHeroCard()
-
-                        // MARK: - 2. Device Thermal Chassis Blueprint (Hardware Heatmap Model)
-                        BatteryThermalChassisCard()
-
-                        // MARK: - 3. Battery Health & Cycle Matrix (Apple Diagnostics Importer)
-                        BatteryHealthCycleCard()
-
-                        // MARK: - 4. Battery Longevity Assessment & Smart Care Hub
-                        BatteryLongevityCard()
-
-                        // MARK: - 5. Live Electrical Telemetry (Wattage Waveform, Voltage & Current)
-                        BatteryLivePowerCard()
-
-                        // MARK: - 6. Third-Party Cell & Super-Capacity Calibration Hub
-                        BatteryCellCalibrationCard()
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .frame(width: geometry.size.width)
+                    cardStack
+                        .padding(.horizontal, SpacingTheme.cardStack)
+                        .padding(.vertical, SpacingTheme.rowStandard)
+                        .frame(width: geometry.size.width)
                 }
                 .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             }
@@ -52,4 +36,33 @@ struct BatteryView: View {
             }
         }
     }
+
+    // MARK: - Subviews
+    @ViewBuilder
+    private var cardStack: some View {
+        VStack(spacing: SpacingTheme.cardStack) {
+            // 1. Hero Dynamic Level Gauge & Protocol HUD
+            BatteryHeroCard()
+
+            // 2. Device Thermal Chassis Blueprint (Hardware Heatmap Model)
+            BatteryThermalChassisCard()
+
+            // 3. Battery Health & Cycle Matrix (Apple Diagnostics Importer)
+            BatteryHealthCycleCard()
+
+            // 4. Battery Longevity Assessment & Smart Care Hub
+            BatteryLongevityCard()
+
+            // 5. Live Electrical Telemetry (Wattage Waveform, Voltage & Current)
+            BatteryLivePowerCard()
+
+            // 6. Third-Party Cell & Super-Capacity Calibration Hub
+            BatteryCellCalibrationCard()
+        }
+    }
+}
+
+// MARK: - Preview
+#Preview {
+    BatteryView()
 }

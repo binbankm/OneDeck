@@ -9,92 +9,104 @@
 import SwiftUI
 
 struct OverviewThermalsCard: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var system = SystemService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var system = SystemViewModel.shared
 
+    // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
-            // Header Row
-            HStack {
-                OverviewSectionHeader(title: L10n.Overview.thermalSectionTitle, icon: "flame.fill")
-
-                Spacer()
-
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(thermalColor)
-                        .frame(width: 6, height: 6)
-
-                    Text(thermalText)
-                        .font(Typography.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(thermalColor)
-                        .lineLimit(1)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, SpacingTheme.micro)
-                .background(thermalColor.opacity(0.12))
-                .clipShape(Capsule())
-            }
-
-            // Dual Temperature Tiles (SoC Core & Battery Cell)
-            HStack(spacing: 10) {
-                // 1. SoC Junction Temperature
-                TemperatureBentoTile(
-                    icon: "cpu",
-                    iconColor: thermalColor,
-                    label: L10n.Overview.socTemp,
-                    value: system.socTemperature
-                )
-
-                // 2. Battery Cell Temperature
-                TemperatureBentoTile(
-                    icon: "battery.100.bolt",
-                    iconColor: appState.accentColor,
-                    label: L10n.Overview.batteryTemp,
-                    value: system.batteryTemperature
-                )
-            }
-
-            // Thermal Pressure Load Bar
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(L10n.Overview.thermalPressure)
-                        .font(Typography.badgeTag)
-                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                        .lineLimit(1)
-
-                    Spacer()
-
-                    Text(system.thermalPressurePercent <= 25 ? L10n.Overview.thermalOptimal : "\(system.thermalPressurePercent)%")
-                        .font(Typography.badgeTagMono)
-                        .foregroundStyle(thermalColor)
-                        .lineLimit(1)
-                }
-
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05))
-
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [thermalColor, thermalColor.opacity(0.7)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: max(8, geo.size.width * CGFloat(system.thermalPressurePercent) / 100.0))
-                    }
-                }
-                .frame(height: 5)
-            }
+            headerRow
+            dualTemperatureTiles
+            thermalPressureBar
         }
         .bentoCard(accent: appState.accentColor)
     }
 
+    // MARK: - Subviews
+    @ViewBuilder
+    private var headerRow: some View {
+        HStack {
+            OverviewSectionHeader(title: L10n.Overview.thermalSectionTitle, icon: "flame.fill")
+
+            Spacer()
+
+            HStack(spacing: SpacingTheme.tight) {
+                Circle()
+                    .fill(thermalColor)
+                    .frame(width: 6, height: 6)
+
+                Text(thermalText)
+                    .font(Typography.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(thermalColor)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, SpacingTheme.standard)
+            .padding(.vertical, SpacingTheme.micro)
+            .background(thermalColor.opacity(0.12))
+            .clipShape(Capsule())
+        }
+    }
+
+    @ViewBuilder
+    private var dualTemperatureTiles: some View {
+        HStack(spacing: SpacingTheme.row) {
+            TemperatureBentoTile(
+                icon: "cpu",
+                iconColor: thermalColor,
+                label: L10n.Overview.socTemp,
+                value: system.socTemperature
+            )
+
+            TemperatureBentoTile(
+                icon: "battery.100.bolt",
+                iconColor: appState.accentColor,
+                label: L10n.Overview.batteryTemp,
+                value: system.batteryTemperature
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var thermalPressureBar: some View {
+        VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+            HStack {
+                Text(L10n.Overview.thermalPressure)
+                    .font(Typography.badgeTag)
+                    .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                    .lineLimit(1)
+
+                Spacer()
+
+                Text(system.thermalPressurePercent <= 25 ? L10n.Overview.thermalOptimal : "\(system.thermalPressurePercent)%")
+                    .font(Typography.badgeTagMono)
+                    .foregroundStyle(thermalColor)
+                    .lineLimit(1)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05))
+
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [thermalColor, thermalColor.opacity(0.7)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: max(8, geo.size.width * CGFloat(system.thermalPressurePercent) / 100.0))
+                }
+            }
+            .frame(height: 5)
+        }
+    }
+
+    // MARK: - Dynamic Thermal Colors & Text
     private var thermalColor: Color {
         switch system.thermalState {
         case .nominal: return appState.accentColor
@@ -116,7 +128,7 @@ struct OverviewThermalsCard: View {
     }
 }
 
-// MARK: - Subviews (Extracted Struct to Eliminate Type-Checking Latency)
+// MARK: - Extracted Component
 private struct TemperatureBentoTile: View {
     let icon: String
     let iconColor: Color
@@ -125,7 +137,7 @@ private struct TemperatureBentoTile: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SpacingTheme.compact) {
             HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
                     .font(IconTheme.tileLeading)
@@ -150,9 +162,14 @@ private struct TemperatureBentoTile: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
+        .padding(SpacingTheme.row)
         .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
     }
 }
 
+// MARK: - Preview
+#Preview {
+    OverviewThermalsCard()
+        .padding()
+}

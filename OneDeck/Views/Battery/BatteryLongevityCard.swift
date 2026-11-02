@@ -16,11 +16,13 @@ import UIKit
 import Charts
 
 struct BatteryLongevityCard: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var battery = BatteryService.shared
-    @Bindable var system = SystemService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var battery = BatteryViewModel.shared
+    @Bindable private var system = SystemViewModel.shared
 
+    // MARK: - State
     @State private var showCopiedToast: Bool = false
 
     // MARK: - Static Apple Standard Specification Curve (500 cycles -> 80%)
@@ -35,6 +37,7 @@ struct BatteryLongevityCard: View {
         DegradationPoint(id: "spec-1000", cycle: 1000, health: 62.0)
     ]
 
+    // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - 1. Header Row: Section Title & Health Grade Badge
@@ -44,7 +47,7 @@ struct BatteryLongevityCard: View {
                 Spacer()
 
                 // Overall Health Grade Badge
-                HStack(spacing: 4) {
+                HStack(spacing: SpacingTheme.tight) {
                     Circle()
                         .fill(gradeColor)
                         .frame(width: 6, height: 6)
@@ -55,7 +58,7 @@ struct BatteryLongevityCard: View {
                         .foregroundStyle(gradeColor)
                         .lineLimit(1)
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, SpacingTheme.standard)
                 .padding(.vertical, SpacingTheme.micro)
                 .background(gradeColor.opacity(0.12))
                 .clipShape(Capsule())
@@ -65,7 +68,7 @@ struct BatteryLongevityCard: View {
             degradationCurveSection
 
             // MARK: - 3. 2-Tile Scientific Longevity Metrics
-            HStack(spacing: 10) {
+            HStack(spacing: SpacingTheme.row) {
                 // Metric 1: Degradation Rate Per Cycle
                 LongevityTile(
                     icon: "chart.line.downtrend.xyaxis",
@@ -88,12 +91,12 @@ struct BatteryLongevityCard: View {
             }
 
             // MARK: - 4. Scientific Battery Care Guidelines
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SpacingTheme.standard) {
                 careTipRow(icon: "battery.75", text: L10n.Battery.careTipOptimalCharge)
                 careTipRow(icon: "thermometer.sun.fill", text: L10n.Battery.careTipTemperature)
                 careTipRow(icon: "bolt.badge.checkmark", text: L10n.Battery.careTipHighVoltage)
             }
-            .padding(10)
+            .padding(SpacingTheme.row)
             .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
 
@@ -101,7 +104,7 @@ struct BatteryLongevityCard: View {
             Button {
                 exportDiagnosticReport()
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: SpacingTheme.compact) {
                     Image(systemName: showCopiedToast ? "checkmark.circle.fill" : "doc.on.doc.fill")
                         .font(IconTheme.actionButton)
 
@@ -111,7 +114,7 @@ struct BatteryLongevityCard: View {
                         .minimumScaleFactor(0.85)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding(.vertical, SpacingTheme.row)
                 .background(showCopiedToast ? Color.green.opacity(0.15) : appState.accentColor.opacity(0.12))
                 .foregroundStyle(showCopiedToast ? Color.green : appState.accentColor)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
@@ -128,7 +131,7 @@ struct BatteryLongevityCard: View {
     // MARK: - Degradation Curve Section
     @ViewBuilder
     private var degradationCurveSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SpacingTheme.row) {
             chartLegendHeaderRow
             BatteryAgingCurveChart(
                 battery: battery,
@@ -141,21 +144,19 @@ struct BatteryLongevityCard: View {
             )
             insightCapsuleRow
         }
-        .padding(10)
+        .padding(SpacingTheme.row)
         .background(colorScheme == .dark ? Color.white.opacity(0.025) : Color.black.opacity(0.02))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
     }
 
     @ViewBuilder
     private var chartLegendHeaderRow: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: SpacingTheme.compact) {
+            VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(L10n.Battery.degradationChartTitle)
                     .font(Typography.calloutBold)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
-
-                Spacer(minLength: 4)
 
                 Text(L10n.Battery.degradationChartSubtitle)
                     .font(Typography.caption)
@@ -231,19 +232,19 @@ struct BatteryLongevityCard: View {
                     .font(Typography.badgeTag)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, SpacingTheme.standard)
+            .padding(.vertical, SpacingTheme.tight)
             .background(badgeColor.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         } else if !battery.hasRealTelemetry {
-            HStack(spacing: 4) {
+            HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: "info.circle")
                     .font(IconTheme.badgeInline)
                 Text(L10n.Battery.degradationImportHint)
                     .font(Typography.caption)
             }
             .foregroundStyle(Theme.textTertiary(for: colorScheme))
-            .padding(.top, 2)
+            .padding(.top, SpacingTheme.micro)
         }
     }
 
@@ -429,8 +430,8 @@ struct BatteryLongevityCard: View {
 
 // MARK: - Isolated Aging Curve Chart View (Prevents Swift Type-Checker Exponential Slowdown)
 private struct BatteryAgingCurveChart: View {
-    @Bindable var battery: BatteryService
-    @Bindable var appState: AppState
+    let battery: BatteryViewModel
+    let appState: AppState
     let maxDomain: Double
     let ticks: [Double]
     let actualDegradationCurve: [DegradationPoint]
@@ -508,8 +509,8 @@ private struct BatteryAgingCurveChart: View {
                         Text(String(format: "%.1f%%", battery.healthPercentDisplay))
                             .font(Typography.microAxis)
                     }
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, SpacingTheme.compact)
+                    .padding(.vertical, SpacingTheme.micro)
                     .background(colorScheme == .dark ? Color(white: 0.10).opacity(0.92) : Color.white.opacity(0.95))
                     .foregroundStyle(appState.accentColor)
                     .clipShape(Capsule())
@@ -556,7 +557,7 @@ private struct BatteryAgingCurveChart: View {
             }
         }
         .frame(height: 130)
-        .padding(.horizontal, 4)
+        .padding(.horizontal, SpacingTheme.tight)
     }
 }
 
@@ -607,9 +608,16 @@ private struct LongevityTile: View {
                 .minimumScaleFactor(0.85)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, SpacingTheme.row)
+        .padding(.vertical, SpacingTheme.standard)
         .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
     }
 }
+
+// MARK: - Preview
+#Preview {
+    BatteryLongevityCard()
+        .padding()
+}
+

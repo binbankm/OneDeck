@@ -182,6 +182,10 @@ public enum SpacingTheme {
     public static let cardInternal: CGFloat = 14.0
     /// Section / Card stack spacing (16pt)
     public static let cardStack: CGFloat = 16.0
+    /// Hero container / Empty state vertical breathing room (18pt)
+    public static let heroPadding: CGFloat = 18.0
+    /// Modal sheet horizontal padding (24pt)
+    public static let modalPadding: CGFloat = 24.0
 }
 
 // MARK: - Corner Radius Design System Tokens
@@ -230,6 +234,8 @@ public enum ChartTheme {
     public static let lineWidth: CGFloat = 2.0
     public static let subLineWidth: CGFloat = 1.5
     public static let sparklineWidth: CGFloat = 1.8
+    /// Chart trailing margin for right-aligned axis labels (32pt)
+    public static let trailingMargin: CGFloat = 32.0
 
     /// Standard dashed grid line stroke style
     public static let gridStroke = StrokeStyle(lineWidth: 0.6, dash: [2.5, 3])

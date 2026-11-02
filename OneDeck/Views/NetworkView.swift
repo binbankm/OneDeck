@@ -9,42 +9,20 @@
 import SwiftUI
 
 struct NetworkView: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var net = NetworkService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var net = NetworkViewModel.shared
 
+    // MARK: - Body
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 16) {
-                        // MARK: - 1. Hero Link & Network Interface HUD
-                        NetworkHeroCard()
-
-                        // MARK: - 2. Real POSIX Latency & Jitter Monitor
-                        NetworkLatencyCard()
-
-                        // MARK: - 3. Live Throughput Waveform (Download/Upload)
-                        NetworkTrafficCard()
-
-                        // MARK: - 4. Public Gateway & GeoIP Resolver
-                        NetworkPublicIPCard()
-
-                        // MARK: - 5. LAN Bonjour mDNS Device Scanner
-                        NetworkLanScannerCard()
-
-                        // MARK: - 6. Common Services & Port Scanner
-                        NetworkPortScannerCard()
-
-                        // MARK: - 7. POSIX DNS Domain Resolution (Dig)
-                        NetworkDnsLookupCard()
-
-                        // MARK: - 8. Wake-on-LAN Magic Packet Dispatcher
-                        NetworkWolCard()
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .frame(width: geometry.size.width)
+                    cardStack
+                        .padding(.horizontal, SpacingTheme.cardStack)
+                        .padding(.vertical, SpacingTheme.rowStandard)
+                        .frame(width: geometry.size.width)
                 }
                 .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             }
@@ -58,4 +36,39 @@ struct NetworkView: View {
             }
         }
     }
+
+    // MARK: - Subviews
+    @ViewBuilder
+    private var cardStack: some View {
+        VStack(spacing: SpacingTheme.cardStack) {
+            // 1. Hero Link & Network Interface HUD
+            NetworkHeroCard()
+
+            // 2. Real POSIX Latency & Jitter Monitor
+            NetworkLatencyCard()
+
+            // 3. Live Throughput Waveform (Download/Upload)
+            NetworkTrafficCard()
+
+            // 4. Public Gateway & GeoIP Resolver
+            NetworkPublicIPCard()
+
+            // 5. LAN Bonjour mDNS Device Scanner
+            NetworkLanScannerCard()
+
+            // 6. Common Services & Port Scanner
+            NetworkPortScannerCard()
+
+            // 7. POSIX DNS Domain Resolution (Dig)
+            NetworkDnsLookupCard()
+
+            // 8. Wake-on-LAN Magic Packet Dispatcher
+            NetworkWolCard()
+        }
+    }
+}
+
+// MARK: - Preview
+#Preview {
+    NetworkView()
 }

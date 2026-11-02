@@ -16,15 +16,18 @@ import SwiftUI
 
 // MARK: - Main Thermal Chassis Card
 struct BatteryThermalChassisCard: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var battery = BatteryService.shared
-    @Bindable var system = SystemService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var battery = BatteryViewModel.shared
+    @Bindable private var system = SystemViewModel.shared
 
+    // MARK: - State
     @State private var selectedZone: ThermalZone = .soc
     @State private var viewMode: ThermalViewMode = .flir
     @State private var isBreathing: Bool = false
 
+    // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - 1. Card Header Row & Mode Toggle
@@ -34,7 +37,7 @@ struct BatteryThermalChassisCard: View {
                 Spacer()
 
                 // View Mode Segmented Pill Switcher (FLIR vs X-Ray)
-                HStack(spacing: 2) {
+                HStack(spacing: SpacingTheme.micro) {
                     ForEach(ThermalViewMode.allCases) { mode in
                         Button {
                             Haptics.selection()
@@ -48,7 +51,7 @@ struct BatteryThermalChassisCard: View {
                                 Text(mode.title)
                                     .font(Typography.badgeTag)
                             }
-                            .padding(.horizontal, 8)
+                            .padding(.horizontal, SpacingTheme.standard)
                             .padding(.vertical, SpacingTheme.micro)
                             .background(viewMode == mode ? appState.accentColor.opacity(0.18) : Color.clear)
                             .foregroundStyle(viewMode == mode ? appState.accentColor : Theme.textSecondary(for: colorScheme))
@@ -57,7 +60,7 @@ struct BatteryThermalChassisCard: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(2)
+                .padding(SpacingTheme.micro)
                 .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
                 .clipShape(Capsule())
             }
@@ -66,13 +69,13 @@ struct BatteryThermalChassisCard: View {
             thermalScaleBar
 
             // MARK: - 3. Dual-Deck: Phone Thermal Heatmap (Left) + Inspector (Right)
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: SpacingTheme.rowStandard) {
                 // Left: Industrial FLIR Chassis Viewport (118pt x 218pt)
                 phoneThermalChassis
                     .frame(width: 118, height: 218)
 
                 // Right: 4-Row Dedicated Full-Width Zone List & Inspector (100% Zero Truncation)
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: SpacingTheme.compact) {
                     // 4 Dedicated Full-Width Zone Rows
                     VStack(spacing: SpacingTheme.tight) {
                         ForEach(ThermalZone.allCases) { zone in
@@ -98,7 +101,7 @@ struct BatteryThermalChassisCard: View {
         let minC = thermalColor(for: minTemperature)
         let maxC = thermalColor(for: maxTemperature)
 
-        return HStack(spacing: 6) {
+        return HStack(spacing: SpacingTheme.compact) {
             // Min Reading Tag
             HStack(spacing: SpacingTheme.tight) {
                 Circle().fill(minC).frame(width: 5, height: 5)
@@ -141,7 +144,7 @@ struct BatteryThermalChassisCard: View {
                     .fixedSize(horizontal: true, vertical: false)
             }
         }
-        .padding(.horizontal, 2)
+        .padding(.horizontal, SpacingTheme.micro)
     }
 
     // MARK: - 3. Phone Thermal Chassis Viewport (Follows System Appearance & Real Device)
@@ -218,15 +221,15 @@ struct BatteryThermalChassisCard: View {
                 Capsule()
                     .fill(colorScheme == .dark ? Color.black : Color(white: 0.15))
                     .frame(width: 28, height: 7)
-                    .padding(.top, 4)
+                    .padding(.top, SpacingTheme.tight)
             } else {
                 // Classic Earpiece Speaker Notch Cutout
-                HStack(spacing: 2) {
+                HStack(spacing: SpacingTheme.micro) {
                     Capsule()
                         .fill(colorScheme == .dark ? Color.white.opacity(0.3) : Color.black.opacity(0.25))
                         .frame(width: 22, height: 3)
                 }
-                .padding(.top, 4)
+                .padding(.top, SpacingTheme.tight)
             }
             Spacer()
         }
@@ -352,7 +355,7 @@ struct BatteryThermalChassisCard: View {
                         .stroke(baseColor.opacity(strokeAlpha * 0.6), lineWidth: 0.8)
                 )
             if isProModel {
-                VStack(spacing: 2) {
+                VStack(spacing: SpacingTheme.micro) {
                     HStack(spacing: SpacingTheme.tight) {
                         Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 7, height: 7)
                         Circle().stroke(baseColor.opacity(strokeAlpha * 0.8), lineWidth: 0.8).frame(width: 7, height: 7)
@@ -445,7 +448,7 @@ struct BatteryThermalChassisCard: View {
                             .stroke(socStroke, lineWidth: isSocActive ? 1.6 : 0.8)
                     )
 
-                VStack(spacing: 2) {
+                VStack(spacing: SpacingTheme.micro) {
                     Image(systemName: "cpu")
                         .font(IconTheme.tileLeading)
                         .foregroundStyle(isSocActive ? sColor : (isDark ? Color.white.opacity(0.85) : Color(hex: "#1E1E24").opacity(0.75)))
@@ -578,7 +581,7 @@ struct BatteryThermalChassisCard: View {
                 .foregroundStyle(isDark ? color : Color.white)
         }
         .padding(.horizontal, SpacingTheme.compact)
-        .padding(.vertical, 2)
+        .padding(.vertical, SpacingTheme.micro)
         .background(
             isDark
                 ? Color.black.opacity(0.82)
@@ -608,8 +611,8 @@ struct BatteryThermalChassisCard: View {
                     .font(Typography.microAxis)
                     .foregroundStyle(hudColor.opacity(isDark ? 0.45 : 0.65))
             }
-            .padding(.horizontal, 8)
-            .padding(.top, 6)
+            .padding(.horizontal, SpacingTheme.standard)
+            .padding(.top, SpacingTheme.compact)
 
             Spacer()
 
@@ -622,8 +625,8 @@ struct BatteryThermalChassisCard: View {
                     .font(Typography.microAxis)
                     .foregroundStyle(isDark ? Color.green.opacity(0.85) : Color(hex: "#15803D"))
             }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 6)
+            .padding(.horizontal, SpacingTheme.standard)
+            .padding(.bottom, SpacingTheme.compact)
         }
         .allowsHitTesting(false)
     }
@@ -660,7 +663,7 @@ struct BatteryThermalChassisCard: View {
         Button {
             selectZone(zone)
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: SpacingTheme.compact) {
                 Image(systemName: zone.icon)
                     .font(IconTheme.tileLeading)
                     .foregroundStyle(iconColor)
@@ -679,8 +682,8 @@ struct BatteryThermalChassisCard: View {
                     .lineLimit(1)
                     .foregroundStyle(color)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .padding(.horizontal, SpacingTheme.standard)
+            .padding(.vertical, SpacingTheme.compact)
             .background(rowBg)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
             .overlay(
@@ -708,8 +711,8 @@ struct BatteryThermalChassisCard: View {
 
                 Text(temperatureStatusLabel(for: temp))
                     .font(Typography.badgeTag)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, SpacingTheme.compact)
+                    .padding(.vertical, SpacingTheme.micro)
                     .background(color.opacity(isDark ? 0.16 : 0.12))
                     .foregroundStyle(color)
                     .clipShape(Capsule())
@@ -726,7 +729,7 @@ struct BatteryThermalChassisCard: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(1.5)
         }
-        .padding(8)
+        .padding(SpacingTheme.standard)
         .background(isDark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         .overlay(
@@ -878,3 +881,10 @@ struct LShapedBatteryShape: Shape {
         return path
     }
 }
+
+// MARK: - Preview
+#Preview {
+    BatteryThermalChassisCard()
+        .padding()
+}
+

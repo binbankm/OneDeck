@@ -9,36 +9,20 @@
 import SwiftUI
 
 struct OverviewView: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var system = SystemService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var system = SystemViewModel.shared
 
+    // MARK: - Body
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 16) {
-                        // MARK: - 1. Hero Device Flagship Deck
-                        OverviewHeroCard()
-
-                        // MARK: - 2. CPU Multi-Core Telemetry & Real-Time Waveform
-                        OverviewCpuCard()
-
-                        // MARK: - 3. Dual-Zone Thermals & Heat Management
-                        OverviewThermalsCard()
-
-                        // MARK: - 4. Real-Time Network Bandwidth & Sparklines
-                        OverviewNetworkCard()
-
-                        // MARK: - 5. Memory & Storage Bento (Rigid Zero-Jitter Geometry)
-                        OverviewMemoryStorageCard()
-
-                        // MARK: - 6. Comprehensive Hardware Inventory Hub
-                        OverviewHardwareCard()
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .frame(width: geometry.size.width)
+                    cardStack
+                        .padding(.horizontal, SpacingTheme.cardStack)
+                        .padding(.vertical, SpacingTheme.rowStandard)
+                        .frame(width: geometry.size.width)
                 }
                 .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             }
@@ -52,4 +36,33 @@ struct OverviewView: View {
             }
         }
     }
+
+    // MARK: - Subviews
+    @ViewBuilder
+    private var cardStack: some View {
+        VStack(spacing: SpacingTheme.cardStack) {
+            // 1. Hero Device Flagship Deck
+            OverviewHeroCard()
+
+            // 2. CPU Multi-Core Telemetry & Real-Time Waveform
+            OverviewCpuCard()
+
+            // 3. Dual-Zone Thermals & Heat Management
+            OverviewThermalsCard()
+
+            // 4. Real-Time Network Bandwidth & Sparklines
+            OverviewNetworkCard()
+
+            // 5. Memory & Storage Bento (Rigid Zero-Jitter Geometry)
+            OverviewMemoryStorageCard()
+
+            // 6. Comprehensive Hardware Inventory Hub
+            OverviewHardwareCard()
+        }
+    }
+}
+
+// MARK: - Preview
+#Preview {
+    OverviewView()
 }

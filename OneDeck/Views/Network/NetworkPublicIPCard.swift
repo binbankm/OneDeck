@@ -10,11 +10,15 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct NetworkPublicIPCard: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var net = NetworkService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var net = NetworkViewModel.shared
+
+    // MARK: - State
     @State private var isCopied: Bool = false
 
+    // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             headerRow
@@ -25,10 +29,10 @@ struct NetworkPublicIPCard: View {
         .bentoCard(accent: appState.accentColor)
     }
 
-    // MARK: - Header
+    // MARK: - Subviews
     @ViewBuilder
     private var headerRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: SpacingTheme.standard) {
             BentoSectionHeader(title: L10n.Network.publicIPTitle, icon: "globe.asia.australia.fill")
 
             Spacer()
@@ -38,7 +42,7 @@ struct NetworkPublicIPCard: View {
                 Haptics.tick()
                 net.fetchPublicIPInfo(force: true)
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: SpacingTheme.tight) {
                     if net.isQueryingPublicIP {
                         ProgressView()
                             .tint(appState.accentColor)
@@ -59,8 +63,8 @@ struct NetworkPublicIPCard: View {
                     }
                 }
                 .foregroundStyle(appState.accentColor)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
+                .padding(.horizontal, SpacingTheme.row)
+                .padding(.vertical, SpacingTheme.tight)
                 .background(appState.accentColor.opacity(0.12))
                 .clipShape(Capsule())
             }
@@ -68,7 +72,6 @@ struct NetworkPublicIPCard: View {
         }
     }
 
-    // MARK: - IP Hero Section
     @ViewBuilder
     private var ipHeroSection: some View {
         Button {
@@ -80,10 +83,10 @@ struct NetworkPublicIPCard: View {
                 withAnimation { isCopied = false }
             }
         } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: SpacingTheme.compact) {
+                HStack(spacing: SpacingTheme.row) {
                     VStack(alignment: .leading, spacing: SpacingTheme.tight) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: SpacingTheme.compact) {
                             Text(L10n.Network.publicIP)
                                 .font(Typography.caption)
                                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
@@ -92,7 +95,7 @@ struct NetworkPublicIPCard: View {
                                 .font(Typography.badgeTag)
                                 .foregroundStyle(appState.accentColor)
                                 .padding(.horizontal, SpacingTheme.compact)
-                                .padding(.vertical, 2)
+                                .padding(.vertical, SpacingTheme.micro)
                                 .background(appState.accentColor.opacity(0.14))
                                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.micro, style: .continuous))
                         }
@@ -119,12 +122,12 @@ struct NetworkPublicIPCard: View {
 
                 // Dual-stack IPv6 display if both are present
                 if !net.publicIPv6.isEmpty && net.publicIPv6 != net.publicIP {
-                    HStack(spacing: 6) {
+                    HStack(spacing: SpacingTheme.compact) {
                         Text("IPv6")
                             .font(Typography.badgeTag)
                             .foregroundStyle(appState.accentColor)
                             .padding(.horizontal, SpacingTheme.compact)
-                            .padding(.vertical, 2)
+                            .padding(.vertical, SpacingTheme.micro)
                             .background(appState.accentColor.opacity(0.14))
                             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.micro, style: .continuous))
 
@@ -136,11 +139,11 @@ struct NetworkPublicIPCard: View {
 
                         Spacer()
                     }
-                    .padding(.top, 2)
+                    .padding(.top, SpacingTheme.micro)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, SpacingTheme.rowStandard)
+            .padding(.vertical, SpacingTheme.row)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
@@ -153,12 +156,11 @@ struct NetworkPublicIPCard: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Proxy Exit Banner (Only when actual proxy exit detected)
     @ViewBuilder
     private var proxyExitBanner: some View {
         if !net.proxyExitIP.isEmpty && net.proxyExitIP != net.publicIP && net.proxyExitIP != net.publicIPv6 {
-            HStack(spacing: 8) {
-                HStack(spacing: 4) {
+            HStack(spacing: SpacingTheme.standard) {
+                HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "shield.lefthalf.filled")
                         .font(IconTheme.tileLeading)
                         .foregroundStyle(Color.orange)
@@ -170,9 +172,9 @@ struct NetworkPublicIPCard: View {
                         .fixedSize(horizontal: true, vertical: false)
                 }
 
-                Spacer(minLength: 6)
+                Spacer(minLength: SpacingTheme.compact)
 
-                HStack(spacing: 4) {
+                HStack(spacing: SpacingTheme.tight) {
                     Text(net.proxyExitIP)
                         .font(Typography.captionMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
@@ -189,8 +191,8 @@ struct NetworkPublicIPCard: View {
                 }
                 .lineLimit(1)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, SpacingTheme.row)
+            .padding(.vertical, SpacingTheme.compact)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                     .fill(Color.orange.opacity(0.08))
@@ -202,10 +204,9 @@ struct NetworkPublicIPCard: View {
         }
     }
 
-    // MARK: - Geo Grid
     @ViewBuilder
     private var geoGrid: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: SpacingTheme.row) {
             geoCell(
                 title: L10n.Network.carrierIsp,
                 value: net.ispName,
@@ -224,7 +225,7 @@ struct NetworkPublicIPCard: View {
 
     @ViewBuilder
     private func geoCell(title: String, value: String, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SpacingTheme.tight) {
             HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
                     .font(IconTheme.tileLeading)
@@ -245,8 +246,8 @@ struct NetworkPublicIPCard: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, SpacingTheme.row)
+        .padding(.vertical, SpacingTheme.standard)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .frame(minHeight: 58)
         .background(
@@ -258,4 +259,10 @@ struct NetworkPublicIPCard: View {
                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
         )
     }
+}
+
+// MARK: - Preview
+#Preview {
+    NetworkPublicIPCard()
+        .padding()
 }

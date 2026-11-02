@@ -9,8 +9,10 @@
 import SwiftUI
 
 struct ContentView: View {
-    @Bindable var appState = AppState.shared
+    // MARK: - Dependencies & Environment
+    @Bindable private var appState = AppState.shared
 
+    // MARK: - Body
     var body: some View {
         TabView(selection: $appState.activeTab) {
             overviewTab

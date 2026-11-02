@@ -10,27 +10,30 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct BatteryAnalyticsSheet: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var battery = BatteryService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var battery = BatteryViewModel.shared
 
+    // MARK: - State
     @State private var showFilePicker: Bool = false
     @State private var pastedText: String = ""
     @State private var errorMessage: String?
     @State private var successRecord: BatteryAnalyticsRecord?
 
+    // MARK: - Body
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: SpacingTheme.cardStack) {
                     guideSection
                     filePickerSection
                     dividerSection
                     textPasteSection
                     resultSection
                 }
-                .padding(16)
+                .padding(SpacingTheme.cardStack)
             }
             .navigationTitle(L10n.Battery.guideTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -53,10 +56,10 @@ struct BatteryAnalyticsSheet: View {
         }
     }
 
-    // MARK: - 1. Guide Section
+    // MARK: - Subviews
     @ViewBuilder
     private var guideSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SpacingTheme.row) {
             HStack {
                 Image(systemName: "info.circle.fill")
                     .font(IconTheme.sectionHeader)
@@ -66,7 +69,7 @@ struct BatteryAnalyticsSheet: View {
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: SpacingTheme.compact) {
                 Text(L10n.Battery.guideStep1)
                     .font(Typography.calloutLabel)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
@@ -78,19 +81,18 @@ struct BatteryAnalyticsSheet: View {
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
         }
-        .padding(14)
+        .padding(SpacingTheme.cardInternal)
         .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.prominent, style: .continuous))
     }
 
-    // MARK: - 2. File Picker Section
     @ViewBuilder
     private var filePickerSection: some View {
         Button {
             Haptics.impact(.medium)
             showFilePicker = true
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: "doc.badge.plus")
                     .font(IconTheme.actionButton)
                 Text(L10n.Battery.selectFileButton)
@@ -104,10 +106,9 @@ struct BatteryAnalyticsSheet: View {
         }
     }
 
-    // MARK: - Divider
     @ViewBuilder
     private var dividerSection: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: SpacingTheme.rowStandard) {
             Rectangle()
                 .fill(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.12))
                 .frame(height: 0.5)
@@ -122,18 +123,17 @@ struct BatteryAnalyticsSheet: View {
                 .fill(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.12))
                 .frame(height: 0.5)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, SpacingTheme.tight)
     }
 
-    // MARK: - 3. Text Paste Section
     @ViewBuilder
     private var textPasteSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SpacingTheme.row) {
             TextEditor(text: $pastedText)
                 .scrollContentBackground(.hidden)
                 .font(Typography.captionMono)
                 .frame(height: 120)
-                .padding(8)
+                .padding(SpacingTheme.standard)
                 .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 .overlay(alignment: .topLeading) {
@@ -141,7 +141,7 @@ struct BatteryAnalyticsSheet: View {
                         Text(L10n.Battery.pastePlaceholder)
                             .font(Typography.captionRegular)
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                            .padding(12)
+                            .padding(SpacingTheme.rowStandard)
                             .allowsHitTesting(false)
                     }
                 }
@@ -150,7 +150,7 @@ struct BatteryAnalyticsSheet: View {
                 Haptics.impact(.medium)
                 handlePasteParse()
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: SpacingTheme.compact) {
                     Image(systemName: "sparkles")
                         .font(IconTheme.actionButton)
                     Text(L10n.Battery.parseNow)
@@ -166,11 +166,10 @@ struct BatteryAnalyticsSheet: View {
         }
     }
 
-    // MARK: - 4. Result Section
     @ViewBuilder
     private var resultSection: some View {
         if let record = successRecord {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: SpacingTheme.standard) {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
                         .font(IconTheme.actionButton)
@@ -180,13 +179,13 @@ struct BatteryAnalyticsSheet: View {
                         .foregroundStyle(.green)
                 }
 
-                HStack(spacing: 14) {
+                HStack(spacing: SpacingTheme.cardInternal) {
                     statPill(label: L10n.Battery.cycleCount, val: "\(record.cycleCount) \(L10n.Battery.cyclesUnit)")
                     statPill(label: L10n.Battery.health, val: String(format: "%.1f%%", record.healthPercent))
                     statPill(label: L10n.Battery.currentMaxCapacity, val: "\(record.nominalChargeCapacityMah) mAh")
                 }
             }
-            .padding(12)
+            .padding(SpacingTheme.rowStandard)
             .background(Color.green.opacity(0.12))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
@@ -197,6 +196,18 @@ struct BatteryAnalyticsSheet: View {
                 .foregroundStyle(.red)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
+        }
+    }
+
+    @ViewBuilder
+    private func statPill(label: String, val: String) -> some View {
+        VStack(alignment: .leading, spacing: SpacingTheme.micro) {
+            Text(label)
+                .font(Typography.badgeTagMedium)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+            Text(val)
+                .font(Typography.bodyValue)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
         }
     }
 
@@ -243,16 +254,9 @@ struct BatteryAnalyticsSheet: View {
             self.errorMessage = err.localizedDescription
         }
     }
+}
 
-    @ViewBuilder
-    private func statPill(label: String, val: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(Typography.badgeTagMedium)
-                .foregroundStyle(Theme.textSecondary(for: colorScheme))
-            Text(val)
-                .font(Typography.bodyValue)
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-        }
-    }
+// MARK: - Preview
+#Preview {
+    BatteryAnalyticsSheet()
 }

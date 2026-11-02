@@ -10,70 +10,80 @@ import SwiftUI
 import Charts
 
 struct OverviewNetworkCard: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var system = SystemService.shared
-    @Bindable var net = NetworkService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var system = SystemViewModel.shared
+    @Bindable private var net = NetworkViewModel.shared
 
+    // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
-            // Header Row
-            HStack {
-                OverviewSectionHeader(title: L10n.Overview.networkTraffic, icon: "arrow.up.arrow.down.circle.fill")
-
-                Spacer()
-
-                let isCellular = (net.linkType == .cellular)
-                let badgeColor = isCellular ? Color.orange : appState.accentColor
-
-                HStack(spacing: SpacingTheme.tight) {
-                    Circle()
-                        .fill(badgeColor)
-                        .frame(width: 6, height: 6)
-
-                    Text(net.activeInterfaceSummary)
-                        .font(Typography.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(badgeColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, SpacingTheme.micro)
-                .background(badgeColor.opacity(0.12))
-                .clipShape(Capsule())
-            }
-
-            // Dual Bento Boxes: Download & Upload
-            HStack(spacing: 10) {
-                // Download Speed Bento Box
-                OverviewMetricBentoBox(
-                    isDownload: true,
-                    label: L10n.Overview.downloadSpeed,
-                    rateValue: system.downloadRate.value,
-                    rateUnit: system.downloadRate.unit,
-                    history: system.downloadHistory,
-                    color: appState.accentColor,
-                    sessionTotal: system.sessionDownloadTotalFormatted
-                )
-
-                // Upload Speed Bento Box
-                OverviewMetricBentoBox(
-                    isDownload: false,
-                    label: L10n.Overview.uploadSpeed,
-                    rateValue: system.uploadRate.value,
-                    rateUnit: system.uploadRate.unit,
-                    history: system.uploadHistory,
-                    color: Color(hex: "#00C9FF"),
-                    sessionTotal: system.sessionUploadTotalFormatted
-                )
-            }
+            headerRow
+            dualBentoBoxes
         }
         .bentoCard(accent: appState.accentColor)
     }
+
+    // MARK: - Subviews
+    @ViewBuilder
+    private var headerRow: some View {
+        HStack {
+            OverviewSectionHeader(title: L10n.Overview.networkTraffic, icon: "arrow.up.arrow.down.circle.fill")
+
+            Spacer()
+
+            let isCellular = (net.linkType == .cellular)
+            let badgeColor = isCellular ? Color.orange : appState.accentColor
+
+            HStack(spacing: SpacingTheme.tight) {
+                Circle()
+                    .fill(badgeColor)
+                    .frame(width: 6, height: 6)
+
+                Text(net.activeInterfaceSummary)
+                    .font(Typography.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(badgeColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .padding(.horizontal, SpacingTheme.standard)
+            .padding(.vertical, SpacingTheme.micro)
+            .background(badgeColor.opacity(0.12))
+            .clipShape(Capsule())
+        }
+    }
+
+    @ViewBuilder
+    private var dualBentoBoxes: some View {
+        HStack(spacing: SpacingTheme.row) {
+            // Download Speed Bento Box
+            OverviewMetricBentoBox(
+                isDownload: true,
+                label: L10n.Overview.downloadSpeed,
+                rateValue: system.downloadRate.value,
+                rateUnit: system.downloadRate.unit,
+                history: system.downloadHistory,
+                color: appState.accentColor,
+                sessionTotal: system.sessionDownloadTotalFormatted
+            )
+
+            // Upload Speed Bento Box
+            OverviewMetricBentoBox(
+                isDownload: false,
+                label: L10n.Overview.uploadSpeed,
+                rateValue: system.uploadRate.value,
+                rateUnit: system.uploadRate.unit,
+                history: system.uploadHistory,
+                color: Color(hex: "#00C9FF"),
+                sessionTotal: system.sessionUploadTotalFormatted
+            )
+        }
+    }
 }
 
-// MARK: - Subviews (Extracted Structs to Prevent Exponential Type-Checker Latency)
+// MARK: - Subviews
 private struct OverviewMetricBentoBox: View {
     let isDownload: Bool
     let label: String
@@ -93,14 +103,14 @@ private struct OverviewMetricBentoBox: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: SpacingTheme.standard) {
             headerRow
             speedRow
             sparklineArea
             sessionTotalRow
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(SpacingTheme.rowStandard)
         .background(boxBackground)
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.prominent, style: .continuous))
         .overlay(
@@ -111,7 +121,7 @@ private struct OverviewMetricBentoBox: View {
 
     @ViewBuilder
     private var headerRow: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: SpacingTheme.compact) {
             ZStack {
                 Circle()
                     .fill(color.opacity(0.15))
@@ -168,17 +178,19 @@ private struct OverviewMetricBentoBox: View {
                 .font(Typography.badgeTag)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
 
             Text(sessionTotal)
                 .font(Typography.badgeTag)
                 .fontDesign(.monospaced)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
         }
     }
 }
 
-// MARK: - Standalone Sparkline View (Extracted to prevent Swift type-checker timeouts)
+// MARK: - Standalone Sparkline View
 private struct OverviewSparklineView: View {
     let history: [MetricPoint]
     let color: Color
@@ -208,3 +220,8 @@ private struct OverviewSparklineView: View {
     }
 }
 
+// MARK: - Preview
+#Preview {
+    OverviewNetworkCard()
+        .padding()
+}

@@ -9,9 +9,11 @@
 import SwiftUI
 
 struct OverviewSectionHeader: View {
-    @Bindable var appState = AppState.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
 
+    // MARK: - Configuration Properties
     let title: String
     let icon: String
     var subtitle: String? = nil
@@ -21,8 +23,9 @@ struct OverviewSectionHeader: View {
         accentColor ?? appState.accentColor
     }
 
+    // MARK: - Body
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: SpacingTheme.standard) {
             Image(systemName: icon)
                 .font(IconTheme.sectionHeader)
                 .foregroundStyle(activeAccent)
@@ -30,7 +33,7 @@ struct OverviewSectionHeader: View {
                 .background(activeAccent.opacity(0.14))
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.platter, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(title)
                     .font(Typography.sectionHeader)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
@@ -48,5 +51,14 @@ struct OverviewSectionHeader: View {
     }
 }
 
+// MARK: - Typealias & Preview
 typealias BentoSectionHeader = OverviewSectionHeader
 
+#Preview {
+    OverviewSectionHeader(
+        title: "CPU & Engine",
+        icon: "cpu",
+        subtitle: "Real-time Telemetry"
+    )
+    .padding()
+}

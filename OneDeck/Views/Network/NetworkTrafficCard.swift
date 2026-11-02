@@ -10,221 +10,23 @@ import SwiftUI
 import Charts
 
 struct NetworkTrafficCard: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var net = NetworkService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var net = NetworkViewModel.shared
+
+    // MARK: - State
     @State private var showSpeedTestSheet: Bool = false
 
+    // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
-            // MARK: - Header
-            HStack(spacing: 8) {
-                BentoSectionHeader(title: L10n.Network.trafficTitle, icon: "arrow.up.arrow.down.circle.fill")
-
-                Spacer()
-
-                // Single Speed Test Trigger Button
-                Button {
-                    Haptics.impact(.medium)
-                    showSpeedTestSheet = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "gauge.with.dots.needle.bottom.50percent")
-                            .font(IconTheme.actionButton)
-
-                        Text(L10n.Network.speedTestTitle)
-                            .font(Typography.captionBold)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
-                    }
-                    .foregroundStyle(appState.accentColor)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(appState.accentColor.opacity(0.12))
-                    .clipShape(Capsule())
-                }
-            }
-
-            // MARK: - Completed Test Summary Banner (Tap to view details in sheet)
-            if let last = net.latestSpeedTestRecord {
-                Button {
-                    Haptics.selection()
-                    showSpeedTestSheet = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "gauge.with.dots.needle.67percent")
-                            .font(IconTheme.actionButton)
-                            .foregroundStyle(appState.accentColor)
-
-                        Text(L10n.Network.lastSpeedTest)
-                            .font(Typography.captionBold)
-                            .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                            .lineLimit(1)
-                            .fixedSize()
-
-                        if !last.rating.isEmpty {
-                            Text(last.rating)
-                                .font(Typography.badgeTag)
-                                .foregroundStyle(appState.accentColor)
-                                .lineLimit(1)
-                        }
-
-                        Spacer(minLength: 4)
-
-                        HStack(spacing: 6) {
-                            Text("↓\(String(format: "%.1f", last.downloadMbps))M")
-                                .font(Typography.badgeTagMono)
-                                .foregroundStyle(appState.accentColor)
-                                .lineLimit(1)
-                                .fixedSize()
-
-                            Text("↑\(String(format: "%.1f", last.uploadMbps))M")
-                                .font(Typography.badgeTagMono)
-                                .foregroundStyle(Color.mint)
-                                .lineLimit(1)
-                                .fixedSize()
-
-                            Text("\(String(format: "%.0f", last.pingMs))ms")
-                                .font(Typography.badgeTagMonoMedium)
-                                .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                                .lineLimit(1)
-                                .fixedSize()
-
-                            Image(systemName: "chevron.right")
-                                .font(IconTheme.badgeInline)
-                                .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                            .fill(appState.accentColor.opacity(0.06))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                            .stroke(appState.accentColor.opacity(0.18), lineWidth: 0.8)
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-
-            // MARK: - Instant Speed Counters
-            HStack(spacing: 12) {
-                // Download
-                let down = formatRate(net.downloadSpeedBps)
-                speedBlock(
-                    direction: "arrow.down",
-                    color: appState.accentColor,
-                    label: L10n.Network.downloadSpeed,
-                    value: down.value,
-                    unit: down.unit
-                )
-
-                // Upload
-                let up = formatRate(net.uploadSpeedBps)
-                speedBlock(
-                    direction: "arrow.up",
-                    color: Color.mint,
-                    label: L10n.Network.uploadSpeed,
-                    value: up.value,
-                    unit: up.unit
-                )
-            }
-
-            // MARK: - Swift Charts Real-time Throughput Waveform
-            VStack(alignment: .leading, spacing: 4) {
-                if net.trafficHistory.isEmpty {
-                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                        .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
-                        .frame(height: 100)
-                } else {
-                    Chart {
-                        ForEach(net.trafficHistory) { pt in
-                            LineMark(
-                                x: .value("Time", pt.timestamp),
-                                y: .value("Rate", pt.downBps / 1024.0),
-                                series: .value("Direction", "Down")
-                            )
-                            .foregroundStyle(appState.accentColor)
-                            .lineStyle(StrokeStyle(lineWidth: ChartTheme.lineWidth, lineCap: .round, lineJoin: .round))
-                            .interpolationMethod(.monotone)
-
-                            AreaMark(
-                                x: .value("Time", pt.timestamp),
-                                y: .value("Rate", pt.downBps / 1024.0)
-                            )
-                            .foregroundStyle(ChartTheme.areaGradient(for: appState.accentColor))
-                            .interpolationMethod(.monotone)
-
-                            LineMark(
-                                x: .value("Time", pt.timestamp),
-                                y: .value("Rate", pt.upBps / 1024.0),
-                                series: .value("Direction", "Up")
-                            )
-                            .foregroundStyle(Color.mint)
-                            .lineStyle(StrokeStyle(lineWidth: ChartTheme.subLineWidth, lineCap: .round, lineJoin: .round))
-                            .interpolationMethod(.monotone)
-                        }
-                    }
-                    .chartXAxis(.hidden)
-                    .chartYAxis {
-                        AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { val in
-                            AxisGridLine(stroke: ChartTheme.gridStroke)
-                                .foregroundStyle(ChartTheme.gridColor(for: colorScheme))
-                            AxisValueLabel {
-                                if let kb = val.as(Double.self) {
-                                    if kb >= 1024 {
-                                        Text(String(format: "%.1fM", kb / 1024.0))
-                                            .font(ChartTheme.axisLabelFont)
-                                            .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
-                                    } else {
-                                        Text(String(format: "%.0fK", kb))
-                                            .font(ChartTheme.axisLabelFont)
-                                            .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .frame(height: 100)
-                }
-            }
-
+            headerSection
+            latestSpeedTestBanner
+            instantSpeedCounters
+            waveformSection
             Divider().opacity(0.3)
-
-            // MARK: - Cumulative Session Totals
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.down.to.line.compact")
-                        .font(IconTheme.tileLeading)
-                        .foregroundStyle(appState.accentColor)
-
-                    Text(L10n.Network.totalIn)
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-
-                    Text(formatTotalBytes(net.totalBytesIn))
-                        .font(Typography.calloutMono)
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                }
-
-                Spacer()
-
-                HStack(spacing: 6) {
-                    Image(systemName: "arrow.up.to.line.compact")
-                        .font(IconTheme.tileLeading)
-                        .foregroundStyle(Color.mint)
-
-                    Text(L10n.Network.totalOut)
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-
-                    Text(formatTotalBytes(net.totalBytesOut))
-                        .font(Typography.calloutMono)
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                }
-            }
+            cumulativeTotalsSection
         }
         .bentoCard(accent: appState.accentColor)
         .sheet(isPresented: $showSpeedTestSheet) {
@@ -234,11 +36,226 @@ struct NetworkTrafficCard: View {
         }
     }
 
-    // MARK: - Subviews & Helpers
+    // MARK: - Subviews
+    @ViewBuilder
+    private var headerSection: some View {
+        HStack(spacing: SpacingTheme.standard) {
+            BentoSectionHeader(title: L10n.Network.trafficTitle, icon: "arrow.up.arrow.down.circle.fill")
+
+            Spacer()
+
+            // Single Speed Test Trigger Button
+            Button {
+                Haptics.impact(.medium)
+                showSpeedTestSheet = true
+            } label: {
+                HStack(spacing: SpacingTheme.tight) {
+                    Image(systemName: "gauge.with.dots.needle.bottom.50percent")
+                        .font(IconTheme.actionButton)
+
+                    Text(L10n.Network.speedTestTitle)
+                        .font(Typography.captionBold)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .foregroundStyle(appState.accentColor)
+                .padding(.horizontal, SpacingTheme.row)
+                .padding(.vertical, SpacingTheme.tight)
+                .background(appState.accentColor.opacity(0.12))
+                .clipShape(Capsule())
+            }
+        }
+    }
 
     @ViewBuilder
+    private var latestSpeedTestBanner: some View {
+        if let last = net.latestSpeedTestRecord {
+            Button {
+                Haptics.selection()
+                showSpeedTestSheet = true
+            } label: {
+                HStack(spacing: SpacingTheme.standard) {
+                    Image(systemName: "gauge.with.dots.needle.67percent")
+                        .font(IconTheme.actionButton)
+                        .foregroundStyle(appState.accentColor)
+
+                    Text(L10n.Network.lastSpeedTest)
+                        .font(Typography.captionBold)
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .lineLimit(1)
+                        .fixedSize()
+
+                    if !last.rating.isEmpty {
+                        Text(last.rating)
+                            .font(Typography.badgeTag)
+                            .foregroundStyle(appState.accentColor)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: SpacingTheme.tight)
+
+                    HStack(spacing: SpacingTheme.compact) {
+                        Text("↓\(String(format: "%.1f", last.downloadMbps))M")
+                            .font(Typography.badgeTagMono)
+                            .foregroundStyle(appState.accentColor)
+                            .lineLimit(1)
+                            .fixedSize()
+
+                        Text("↑\(String(format: "%.1f", last.uploadMbps))M")
+                            .font(Typography.badgeTagMono)
+                            .foregroundStyle(Color.mint)
+                            .lineLimit(1)
+                            .fixedSize()
+
+                        Text("\(String(format: "%.0f", last.pingMs))ms")
+                            .font(Typography.badgeTagMonoMedium)
+                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                            .lineLimit(1)
+                            .fixedSize()
+
+                        Image(systemName: "chevron.right")
+                            .font(IconTheme.badgeInline)
+                            .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                    }
+                }
+                .padding(.horizontal, SpacingTheme.row)
+                .padding(.vertical, SpacingTheme.standard)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                        .fill(appState.accentColor.opacity(0.06))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                        .stroke(appState.accentColor.opacity(0.18), lineWidth: 0.8)
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var instantSpeedCounters: some View {
+        HStack(spacing: SpacingTheme.rowStandard) {
+            let down = formatRate(net.downloadSpeedBps)
+            speedBlock(
+                direction: "arrow.down",
+                color: appState.accentColor,
+                label: L10n.Network.downloadSpeed,
+                value: down.value,
+                unit: down.unit
+            )
+
+            let up = formatRate(net.uploadSpeedBps)
+            speedBlock(
+                direction: "arrow.up",
+                color: Color.mint,
+                label: L10n.Network.uploadSpeed,
+                value: up.value,
+                unit: up.unit
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var waveformSection: some View {
+        VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+            if net.trafficHistory.isEmpty {
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
+                    .frame(height: 100)
+            } else {
+                Chart {
+                    ForEach(net.trafficHistory) { pt in
+                        LineMark(
+                            x: .value("Time", pt.timestamp),
+                            y: .value("Rate", pt.downBps / 1024.0),
+                            series: .value("Direction", "Down")
+                        )
+                        .foregroundStyle(appState.accentColor)
+                        .lineStyle(StrokeStyle(lineWidth: ChartTheme.lineWidth, lineCap: .round, lineJoin: .round))
+                        .interpolationMethod(.monotone)
+
+                        AreaMark(
+                            x: .value("Time", pt.timestamp),
+                            y: .value("Rate", pt.downBps / 1024.0)
+                        )
+                        .foregroundStyle(ChartTheme.areaGradient(for: appState.accentColor))
+                        .interpolationMethod(.monotone)
+
+                        LineMark(
+                            x: .value("Time", pt.timestamp),
+                            y: .value("Rate", pt.upBps / 1024.0),
+                            series: .value("Direction", "Up")
+                        )
+                        .foregroundStyle(Color.mint)
+                        .lineStyle(StrokeStyle(lineWidth: ChartTheme.subLineWidth, lineCap: .round, lineJoin: .round))
+                        .interpolationMethod(.monotone)
+                    }
+                }
+                .chartXAxis(.hidden)
+                .chartYAxis {
+                    AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { val in
+                        AxisGridLine(stroke: ChartTheme.gridStroke)
+                            .foregroundStyle(ChartTheme.gridColor(for: colorScheme))
+                        AxisValueLabel {
+                            if let kb = val.as(Double.self) {
+                                if kb >= 1024 {
+                                    Text(String(format: "%.1fM", kb / 1024.0))
+                                        .font(ChartTheme.axisLabelFont)
+                                        .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
+                                } else {
+                                    Text(String(format: "%.0fK", kb))
+                                        .font(ChartTheme.axisLabelFont)
+                                        .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
+                                }
+                            }
+                        }
+                    }
+                }
+                .frame(height: 100)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var cumulativeTotalsSection: some View {
+        HStack {
+            HStack(spacing: SpacingTheme.compact) {
+                Image(systemName: "arrow.down.to.line.compact")
+                    .font(IconTheme.tileLeading)
+                    .foregroundStyle(appState.accentColor)
+
+                Text(L10n.Network.totalIn)
+                    .font(Typography.caption)
+                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+
+                Text(formatTotalBytes(net.totalBytesIn))
+                    .font(Typography.calloutMono)
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+            }
+
+            Spacer()
+
+            HStack(spacing: SpacingTheme.compact) {
+                Image(systemName: "arrow.up.to.line.compact")
+                    .font(IconTheme.tileLeading)
+                    .foregroundStyle(Color.mint)
+
+                Text(L10n.Network.totalOut)
+                    .font(Typography.caption)
+                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+
+                Text(formatTotalBytes(net.totalBytesOut))
+                    .font(Typography.calloutMono)
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+            }
+        }
+    }
+
+    // MARK: - Helpers
+    @ViewBuilder
     private func speedBlock(direction: String, color: Color, label: String, value: String, unit: String) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: SpacingTheme.standard) {
             ZStack {
                 Circle()
                     .fill(color.opacity(0.12))
@@ -249,13 +266,13 @@ struct NetworkTrafficCard: View {
                     .foregroundStyle(color)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(label)
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
 
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
                     Text(value)
                         .font(Typography.headlineValue)
                         .fontDesign(.monospaced)
@@ -270,8 +287,8 @@ struct NetworkTrafficCard: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, SpacingTheme.row)
+        .padding(.vertical, SpacingTheme.standard)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
@@ -307,4 +324,10 @@ struct NetworkTrafficCard: View {
             return "\(bytes) B"
         }
     }
+}
+
+// MARK: - Preview
+#Preview {
+    NetworkTrafficCard()
+        .padding()
 }

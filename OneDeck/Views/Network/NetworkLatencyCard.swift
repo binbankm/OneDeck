@@ -10,9 +10,12 @@ import SwiftUI
 import Charts
 
 struct NetworkLatencyCard: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var net = NetworkService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var net = NetworkViewModel.shared
+
+    // MARK: - State
     @State private var selectedMode: LatencyCardMode = .live
 
     private var qualityBadge: (text: String, color: Color) {
@@ -33,50 +36,11 @@ struct NetworkLatencyCard: View {
         }
     }
 
+    // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
-            // MARK: - Header
-            HStack(spacing: 8) {
-                BentoSectionHeader(title: L10n.Network.latencyTitle, icon: "waveform.path.ecg")
-
-                Spacer()
-
-                // Quality Badge (Single-line, non-wrapping)
-                Text(qualityBadge.text)
-                    .font(Typography.captionBold)
-                    .foregroundStyle(qualityBadge.color)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, SpacingTheme.micro)
-                    .background(qualityBadge.color.opacity(0.12))
-                    .clipShape(Capsule())
-
-                // Instant Refresh Button
-                Button {
-                    Haptics.tick()
-                    if selectedMode == .live {
-                        net.pingCurrentTarget()
-                    } else {
-                        net.runDnsBenchmark()
-                    }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(IconTheme.actionButton)
-                        .foregroundStyle(appState.accentColor)
-                        .padding(SpacingTheme.compact)
-                        .background(appState.accentColor.opacity(0.1))
-                        .clipShape(Circle())
-                }
-            }
-
-            // Mode Toggle Bar
-            Picker("", selection: $selectedMode) {
-                ForEach(LatencyCardMode.allCases) { m in
-                    Text(m.title).tag(m)
-                }
-            }
-            .pickerStyle(.segmented)
+            headerSection
+            modeToggleBar
 
             if selectedMode == .live {
                 livePingSection
@@ -87,13 +51,61 @@ struct NetworkLatencyCard: View {
         .bentoCard(accent: appState.accentColor)
     }
 
-    // MARK: - 1. Live Ping Subview
+    // MARK: - Subviews
+    @ViewBuilder
+    private var headerSection: some View {
+        HStack(spacing: SpacingTheme.standard) {
+            BentoSectionHeader(title: L10n.Network.latencyTitle, icon: "waveform.path.ecg")
+
+            Spacer()
+
+            // Quality Badge
+            Text(qualityBadge.text)
+                .font(Typography.captionBold)
+                .foregroundStyle(qualityBadge.color)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, SpacingTheme.standard)
+                .padding(.vertical, SpacingTheme.micro)
+                .background(qualityBadge.color.opacity(0.12))
+                .clipShape(Capsule())
+
+            // Instant Refresh Button
+            Button {
+                Haptics.tick()
+                if selectedMode == .live {
+                    net.pingCurrentTarget()
+                } else {
+                    net.runDnsBenchmark()
+                }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(IconTheme.actionButton)
+                    .foregroundStyle(appState.accentColor)
+                    .padding(SpacingTheme.compact)
+                    .background(appState.accentColor.opacity(0.1))
+                    .clipShape(Circle())
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var modeToggleBar: some View {
+        Picker("", selection: $selectedMode) {
+            ForEach(LatencyCardMode.allCases) { m in
+                Text(m.title).tag(m)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    // MARK: - Live Ping Section
     @ViewBuilder
     private var livePingSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // Hero Ping Metric & Jitter / Loss HUD
-            HStack(alignment: .lastTextBaseline, spacing: 16) {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
+            HStack(alignment: .lastTextBaseline, spacing: SpacingTheme.cardStack) {
+                HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.tight) {
                     Text(net.isConnected ? String(format: "%.0f", max(1.0, net.currentLatencyMs)) : "--")
                         .font(Typography.displayHero)
                         .monospacedDigit()
@@ -107,8 +119,8 @@ struct NetworkLatencyCard: View {
                 Spacer()
 
                 // Jitter & Packet Loss stats
-                HStack(spacing: 14) {
-                    VStack(alignment: .trailing, spacing: 2) {
+                HStack(spacing: SpacingTheme.cardInternal) {
+                    VStack(alignment: .trailing, spacing: SpacingTheme.micro) {
                         Text(L10n.Network.jitter)
                             .font(Typography.caption)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
@@ -119,7 +131,7 @@ struct NetworkLatencyCard: View {
                             .lineLimit(1)
                     }
 
-                    VStack(alignment: .trailing, spacing: 2) {
+                    VStack(alignment: .trailing, spacing: SpacingTheme.micro) {
                         Text(L10n.Network.packetLoss)
                             .font(Typography.caption)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
@@ -134,7 +146,7 @@ struct NetworkLatencyCard: View {
 
             // Ping Target Selector
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: SpacingTheme.standard) {
                     ForEach(PingTargetNode.allCases) { target in
                         let isSelected = (net.selectedTarget == target)
                         Button {
@@ -153,8 +165,8 @@ struct NetworkLatencyCard: View {
                                     .lineLimit(1)
                                     .fixedSize(horizontal: true, vertical: false)
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, SpacingTheme.row)
+                            .padding(.vertical, SpacingTheme.compact)
                             .background(
                                 RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                                     .fill(isSelected ? appState.accentColor.opacity(0.16) : Theme.cardBackground(for: colorScheme).opacity(0.5))
@@ -172,7 +184,7 @@ struct NetworkLatencyCard: View {
             }
 
             // Swift Charts Rolling Latency Waveform
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: SpacingTheme.compact) {
                 if net.latencyHistory.isEmpty {
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                         .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
@@ -220,10 +232,10 @@ struct NetworkLatencyCard: View {
         }
     }
 
-    // MARK: - 2. Multi-Node DNS Benchmark Subview
+    // MARK: - DNS Benchmark Section
     @ViewBuilder
     private var dnsBenchmarkSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: SpacingTheme.row) {
             HStack {
                 Text(L10n.Network.dnsBenchmarkDesc)
                     .font(Typography.caption)
@@ -235,7 +247,7 @@ struct NetworkLatencyCard: View {
                 Button {
                     net.runDnsBenchmark()
                 } label: {
-                    HStack(spacing: 4) {
+                    HStack(spacing: SpacingTheme.tight) {
                         if net.isBenchmarkingDns {
                             ProgressView()
                                 .tint(appState.accentColor)
@@ -251,15 +263,15 @@ struct NetworkLatencyCard: View {
                             .fixedSize(horizontal: true, vertical: false)
                     }
                     .foregroundStyle(appState.accentColor)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, SpacingTheme.row)
+                    .padding(.vertical, SpacingTheme.tight)
                     .background(appState.accentColor.opacity(0.12))
                     .clipShape(Capsule())
                 }
                 .disabled(net.isBenchmarkingDns)
             }
 
-            VStack(spacing: 8) {
+            VStack(spacing: SpacingTheme.standard) {
                 ForEach(net.dnsBenchmarkResults) { node in
                     DnsBenchmarkNodeRow(node: node, accentColor: appState.accentColor)
                 }
@@ -275,8 +287,8 @@ private struct DnsBenchmarkNodeRow: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: SpacingTheme.row) {
+            VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 HStack(spacing: SpacingTheme.tight) {
                     Text(node.name)
                         .font(Typography.bodyValue)
@@ -304,13 +316,12 @@ private struct DnsBenchmarkNodeRow: View {
 
             Spacer()
 
-            // Latency Readout
             if node.latencyMs == 0.0 {
                 Text(L10n.Network.pendingBenchmark)
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
             } else {
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
                     Text(node.latencyMs > 900 ? "--" : String(format: "%.0f", node.latencyMs))
                         .font(Typography.headlineValue)
                         .monospacedDigit()
@@ -322,8 +333,8 @@ private struct DnsBenchmarkNodeRow: View {
                 }
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, SpacingTheme.row)
+        .padding(.vertical, SpacingTheme.standard)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
@@ -333,4 +344,10 @@ private struct DnsBenchmarkNodeRow: View {
                 .stroke(node.isFastest ? Color.green.opacity(0.4) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
         )
     }
+}
+
+// MARK: - Preview
+#Preview {
+    NetworkLatencyCard()
+        .padding()
 }

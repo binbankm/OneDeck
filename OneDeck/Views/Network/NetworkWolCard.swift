@@ -9,10 +9,12 @@
 import SwiftUI
 
 struct NetworkWolCard: View {
-    @Bindable var appState = AppState.shared
-    @Bindable var net = NetworkService.shared
+    // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var net = NetworkViewModel.shared
 
+    // MARK: - State
     @AppStorage("onedeck_last_wol_mac") private var targetMac: String = "00:11:32:8A:2C:1F"
     @State private var feedbackMessage: String?
     @State private var isSuccess: Bool = true
@@ -27,6 +29,7 @@ struct NetworkWolCard: View {
         ]
     }
 
+    // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             headerRow
@@ -41,7 +44,7 @@ struct NetworkWolCard: View {
     // MARK: - Header
     @ViewBuilder
     private var headerRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: SpacingTheme.standard) {
             BentoSectionHeader(title: L10n.Network.wolTitle, icon: "power.circle.fill")
 
             Spacer()
@@ -49,7 +52,7 @@ struct NetworkWolCard: View {
             Text(L10n.Network.wolPortBadge)
                 .font(Typography.captionMono)
                 .foregroundStyle(appState.accentColor)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, SpacingTheme.standard)
                 .padding(.vertical, SpacingTheme.micro)
                 .background(appState.accentColor.opacity(0.12))
                 .clipShape(Capsule())
@@ -59,12 +62,12 @@ struct NetworkWolCard: View {
     // MARK: - MAC Input Field
     @ViewBuilder
     private var macInputField: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: SpacingTheme.compact) {
             Text(L10n.Network.macAddress)
                 .font(Typography.captionBold)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-            HStack(spacing: 8) {
+            HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: "number.square")
                     .font(IconTheme.sectionHeader)
                     .foregroundStyle(appState.accentColor)
@@ -102,8 +105,8 @@ struct NetworkWolCard: View {
                         .foregroundStyle(appState.accentColor)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, SpacingTheme.rowStandard)
+            .padding(.vertical, SpacingTheme.row)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
@@ -124,6 +127,7 @@ struct NetworkWolCard: View {
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
+                .layoutPriority(1)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: SpacingTheme.compact) {
@@ -147,7 +151,7 @@ struct NetworkWolCard: View {
     @ViewBuilder
     private var feedbackBanner: some View {
         if let msg = feedbackMessage {
-            HStack(spacing: 6) {
+            HStack(spacing: SpacingTheme.compact) {
                 Image(systemName: isSuccess ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(IconTheme.actionButton)
                     .foregroundStyle(isSuccess ? Color.green : Color.red)
@@ -158,8 +162,8 @@ struct NetworkWolCard: View {
 
                 Spacer()
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
+            .padding(.horizontal, SpacingTheme.row)
+            .padding(.vertical, SpacingTheme.standard)
             .background((isSuccess ? Color.green : Color.red).opacity(0.12))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
             .transition(.opacity.combined(with: .move(edge: .top)))
@@ -184,7 +188,7 @@ struct NetworkWolCard: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: "bolt.fill")
                     .font(IconTheme.sectionHeader)
 
@@ -193,7 +197,7 @@ struct NetworkWolCard: View {
             }
             .foregroundStyle(Color.white)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, SpacingTheme.rowStandard)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .fill(appState.accentColor)
@@ -206,7 +210,7 @@ struct NetworkWolCard: View {
     }
 }
 
-// MARK: - Preset Button (Extracted for Swift type checker speed)
+// MARK: - Preset Button Component
 private struct WolPresetButton: View {
     let name: String
     let mac: String
@@ -222,8 +226,8 @@ private struct WolPresetButton: View {
                 .foregroundStyle(isSelected ? accentColor : Theme.textPrimary(for: colorScheme))
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+                .padding(.horizontal, SpacingTheme.standard)
+                .padding(.vertical, SpacingTheme.tight)
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
                         .fill(isSelected ? accentColor.opacity(0.14) : Theme.cardBackground(for: colorScheme).opacity(0.5))
@@ -235,4 +239,10 @@ private struct WolPresetButton: View {
         }
         .buttonStyle(.plain)
     }
+}
+
+// MARK: - Preview
+#Preview {
+    NetworkWolCard()
+        .padding()
 }

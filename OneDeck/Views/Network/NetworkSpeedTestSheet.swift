@@ -9,11 +9,13 @@
 import SwiftUI
 
 struct NetworkSpeedTestSheet: View {
+    // MARK: - Dependencies & Environment
     @Environment(\.dismiss) private var dismiss
-    @Bindable var appState = AppState.shared
-    @Bindable var net = NetworkService.shared
     @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+    @Bindable private var net = NetworkViewModel.shared
 
+    // MARK: - Body
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -24,8 +26,8 @@ struct NetworkSpeedTestSheet: View {
                     actionDispatcherSection
                     historySection
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 16)
+                .padding(.horizontal, SpacingTheme.cardStack)
+                .padding(.vertical, SpacingTheme.cardStack)
             }
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Network.speedTestTitle)
@@ -45,9 +47,8 @@ struct NetworkSpeedTestSheet: View {
     // MARK: - 1. Speedometer Arc Gauge HUD
     @ViewBuilder
     private var gaugeSection: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: SpacingTheme.row) {
             ZStack {
-                // Speedometer Gauge Arc (240-degree top arch)
                 SpeedometerGaugeArc(
                     currentMbps: net.speedTestCurrentMbps,
                     maxScale: 500.0,
@@ -55,8 +56,7 @@ struct NetworkSpeedTestSheet: View {
                 )
                 .frame(width: 200, height: 160)
 
-                // Digital Center Readout
-                VStack(spacing: 2) {
+                VStack(spacing: SpacingTheme.micro) {
                     Text(String(format: "%.1f", net.speedTestCurrentMbps))
                         .font(Typography.displayHero)
                         .monospacedDigit()
@@ -72,17 +72,15 @@ struct NetworkSpeedTestSheet: View {
             }
             .frame(width: 200, height: 160)
 
-            // Stage Pill (In bottom arch opening)
             stageIndicatorPill
 
-            // Linear Overall Progress Bar
             ProgressView(value: net.speedTestProgress)
                 .tint(appState.accentColor)
                 .scaleEffect(x: 1, y: 1.6, anchor: .center)
-                .padding(.horizontal, 24)
-                .padding(.top, 4)
+                .padding(.horizontal, SpacingTheme.modalPadding)
+                .padding(.top, SpacingTheme.tight)
         }
-        .padding(.vertical, 16)
+        .padding(.vertical, SpacingTheme.cardStack)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.sheetCard, style: .continuous)
                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
@@ -96,7 +94,7 @@ struct NetworkSpeedTestSheet: View {
     // MARK: - 2. 4-Quadrant Scorecard Bento Grid
     @ViewBuilder
     private var scorecardGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: SpacingTheme.row) {
             scorecardCell(
                 title: L10n.Network.downloadSpeed,
                 value: net.speedTestDownloadMbps > 0 ? String(format: "%.1f", net.speedTestDownloadMbps) : "--",
@@ -138,7 +136,7 @@ struct NetworkSpeedTestSheet: View {
     // MARK: - 3. Rating & Server Info Banner
     @ViewBuilder
     private var serverBanner: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: SpacingTheme.standard) {
             if !net.speedTestRating.isEmpty {
                 HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "rosette")
@@ -148,8 +146,8 @@ struct NetworkSpeedTestSheet: View {
                         .lineLimit(1)
                 }
                 .foregroundStyle(appState.accentColor)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
+                .padding(.horizontal, SpacingTheme.row)
+                .padding(.vertical, SpacingTheme.tight)
                 .background(appState.accentColor.opacity(0.12))
                 .clipShape(Capsule())
             } else {
@@ -170,8 +168,8 @@ struct NetworkSpeedTestSheet: View {
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, SpacingTheme.cardInternal)
+        .padding(.vertical, SpacingTheme.row)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
@@ -185,13 +183,13 @@ struct NetworkSpeedTestSheet: View {
     // MARK: - 4. Action Dispatcher Controls
     @ViewBuilder
     private var actionDispatcherSection: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: SpacingTheme.row) {
             if net.isRunningSpeedTest {
                 Button {
                     Haptics.impact(.medium)
                     net.stopSpeedTest()
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: SpacingTheme.compact) {
                         Image(systemName: "stop.fill")
                             .font(IconTheme.sectionHeader)
                         Text(L10n.Network.speedTestStop)
@@ -207,7 +205,7 @@ struct NetworkSpeedTestSheet: View {
                 }
                 .buttonStyle(.plain)
             } else if net.speedTestStage == .completed {
-                HStack(spacing: 12) {
+                HStack(spacing: SpacingTheme.rowStandard) {
                     Button {
                         Haptics.selection()
                         net.resetSpeedTest()
@@ -216,7 +214,7 @@ struct NetworkSpeedTestSheet: View {
                             .font(Typography.sectionHeader)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
+                            .padding(.vertical, SpacingTheme.rowStandard)
                             .background(
                                 RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                                     .fill(Theme.cardBackground(for: colorScheme).opacity(0.8))
@@ -232,7 +230,7 @@ struct NetworkSpeedTestSheet: View {
                         Haptics.impact(.medium)
                         net.startSpeedTest()
                     } label: {
-                        HStack(spacing: 6) {
+                        HStack(spacing: SpacingTheme.compact) {
                             Image(systemName: "arrow.clockwise")
                                 .font(IconTheme.sectionHeader)
                             Text(L10n.Network.speedTestRestart)
@@ -240,7 +238,7 @@ struct NetworkSpeedTestSheet: View {
                         }
                         .foregroundStyle(Color.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, SpacingTheme.rowStandard)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                                 .fill(appState.accentColor)
@@ -253,7 +251,7 @@ struct NetworkSpeedTestSheet: View {
                     Haptics.impact(.medium)
                     net.startSpeedTest()
                 } label: {
-                    HStack(spacing: 8) {
+                    HStack(spacing: SpacingTheme.standard) {
                         Image(systemName: "play.fill")
                             .font(IconTheme.sectionHeader)
                         Text(L10n.Network.startSpeedTest)
@@ -261,7 +259,7 @@ struct NetworkSpeedTestSheet: View {
                     }
                     .foregroundStyle(Color.white)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, SpacingTheme.cardInternal)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                             .fill(appState.accentColor)
@@ -271,14 +269,14 @@ struct NetworkSpeedTestSheet: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.top, 6)
+        .padding(.top, SpacingTheme.compact)
     }
 
     // MARK: - 5. Speed Test History Section
     @ViewBuilder
     private var historySection: some View {
         if !net.speedTestHistory.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: SpacingTheme.row) {
                 HStack {
                     Text(L10n.Network.speedTestHistory)
                         .font(Typography.bodyValue)
@@ -296,10 +294,10 @@ struct NetworkSpeedTestSheet: View {
                     }
                 }
 
-                VStack(spacing: 8) {
+                VStack(spacing: SpacingTheme.standard) {
                     ForEach(net.speedTestHistory) { item in
                         HStack {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                                 Text(item.date, format: .dateTime.month().day().hour().minute())
                                     .font(Typography.captionMono)
                                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
@@ -312,7 +310,7 @@ struct NetworkSpeedTestSheet: View {
 
                             Spacer()
 
-                            HStack(spacing: 8) {
+                            HStack(spacing: SpacingTheme.standard) {
                                 Text("↓\(String(format: "%.1f", item.downloadMbps))M")
                                     .font(Typography.calloutMono)
                                     .foregroundStyle(appState.accentColor)
@@ -326,8 +324,8 @@ struct NetworkSpeedTestSheet: View {
                                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             }
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, SpacingTheme.rowStandard)
+                        .padding(.vertical, SpacingTheme.standard)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                                 .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
@@ -339,12 +337,11 @@ struct NetworkSpeedTestSheet: View {
                     }
                 }
             }
-            .padding(.top, 4)
+            .padding(.top, SpacingTheme.tight)
         }
     }
 
-    // MARK: - Subviews
-
+    // MARK: - Subviews & Helpers
     @ViewBuilder
     private var stageIndicatorPill: some View {
         HStack(spacing: SpacingTheme.tight) {
@@ -358,7 +355,7 @@ struct NetworkSpeedTestSheet: View {
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, SpacingTheme.standard)
         .padding(.vertical, SpacingTheme.micro)
         .background(Theme.cardBackground(for: colorScheme).opacity(0.8))
         .clipShape(Capsule())
@@ -376,7 +373,7 @@ struct NetworkSpeedTestSheet: View {
 
     @ViewBuilder
     private func scorecardCell(title: String, value: String, unit: String, subtext: String?, icon: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: SpacingTheme.tight) {
             HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
                     .font(IconTheme.tileLeading)
@@ -408,8 +405,8 @@ struct NetworkSpeedTestSheet: View {
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, SpacingTheme.rowStandard)
+        .padding(.vertical, SpacingTheme.row)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
@@ -422,14 +419,13 @@ struct NetworkSpeedTestSheet: View {
     }
 }
 
-// MARK: - Speedometer Gauge Arc Shape (240° arch over the top)
+// MARK: - Speedometer Gauge Arc Shape
 private struct SpeedometerGaugeArc: View {
     let currentMbps: Double
     let maxScale: Double
     let accentColor: Color
     @Environment(\.colorScheme) private var colorScheme
 
-    // Non-linear calibrated ratio (sqrt) for intuitive dynamic response across 1-500 Mbps
     private var progressRatio: Double {
         guard currentMbps > 0.05 else { return 0.0 }
         let linear = min(1.0, max(0.0, currentMbps / maxScale))
@@ -438,7 +434,6 @@ private struct SpeedometerGaugeArc: View {
 
     var body: some View {
         ZStack {
-            // Track Arc: 240 degrees arch starting at 150° (bottom-left) to 30° (bottom-right)
             Circle()
                 .trim(from: 0.0, to: 0.6667)
                 .stroke(
@@ -447,7 +442,6 @@ private struct SpeedometerGaugeArc: View {
                 )
                 .rotationEffect(.degrees(150))
 
-            // Dynamic Fill Arc (only drawn when currentMbps has actual signal)
             if progressRatio > 0.005 {
                 Circle()
                     .trim(from: 0.0, to: 0.6667 * progressRatio)
@@ -464,6 +458,11 @@ private struct SpeedometerGaugeArc: View {
                     .animation(.easeOut(duration: 0.25), value: progressRatio)
             }
         }
-        .padding(8)
+        .padding(SpacingTheme.standard)
     }
+}
+
+// MARK: - Preview
+#Preview {
+    NetworkSpeedTestSheet()
 }
