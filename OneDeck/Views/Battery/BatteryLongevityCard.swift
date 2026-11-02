@@ -77,7 +77,7 @@ struct BatteryLongevityCard: View {
                     icon: "chart.line.downtrend.xyaxis",
                     label: L10n.Battery.cycleDegradationRate,
                     value: degradationRateText,
-                    unit: battery.hasImportedBMS ? "/ \(L10n.Battery.cyclesUnit)" : "",
+                    unit: "/ \(L10n.Battery.cyclesUnit)",
                     subtitle: degradationSubText,
                     accent: appState.accentColor
                 )
@@ -87,7 +87,7 @@ struct BatteryLongevityCard: View {
                     icon: "shield.lefthalf.filled.badge.checkmark",
                     label: L10n.Battery.serviceThresholdMargin,
                     value: serviceMarginText,
-                    unit: battery.hasImportedBMS ? "%" : "",
+                    unit: "%",
                     subtitle: serviceMarginSubText,
                     accent: gradeColor
                 )
@@ -202,7 +202,7 @@ struct BatteryLongevityCard: View {
 
     @ViewBuilder
     private var insightCapsuleRow: some View {
-        if battery.hasImportedBMS && battery.cycleCountDisplay > 0 {
+        if battery.hasRealTelemetry && battery.cycleCountDisplay > 0 {
             let currentCycle: Double = Double(battery.cycleCountDisplay)
             let specHealthAtCurrent: Double = max(60.0, 100.0 - (currentCycle / 500.0) * 20.0)
             let delta: Double = battery.healthPercentDisplay - specHealthAtCurrent
@@ -230,7 +230,7 @@ struct BatteryLongevityCard: View {
             .padding(.vertical, 4.5)
             .background(badgeColor.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-        } else if !battery.hasImportedBMS {
+        } else if !battery.hasRealTelemetry {
             HStack(spacing: 4) {
                 Image(systemName: "info.circle")
                     .font(.system(size: 9))
@@ -260,7 +260,7 @@ struct BatteryLongevityCard: View {
     // MARK: - Electrochemical Degradation Curve Generators
     /// Device Actual Degradation Path from Day 1 to Current BMS Record (Physics-accurate SEI growth)
     private var actualDegradationCurve: [DegradationPoint] {
-        guard battery.hasImportedBMS, battery.cycleCountDisplay > 0 else { return [] }
+        guard battery.hasRealTelemetry, battery.cycleCountDisplay > 0 else { return [] }
         let currentCycle = Double(battery.cycleCountDisplay)
         let currentHealth = battery.healthPercentDisplay
 
@@ -280,7 +280,7 @@ struct BatteryLongevityCard: View {
 
     /// Predictive Future Trajectory (Dashed projection to the horizon)
     private var projectedDegradationCurve: [DegradationPoint] {
-        guard battery.hasImportedBMS, battery.cycleCountDisplay > 0 else { return [] }
+        guard battery.hasRealTelemetry, battery.cycleCountDisplay > 0 else { return [] }
         let currentCycle = Double(battery.cycleCountDisplay)
         let currentHealth = battery.healthPercentDisplay
         let maxDomain = maxCycleDomain
@@ -320,17 +320,19 @@ struct BatteryLongevityCard: View {
 
     // MARK: - Computed Properties
     private var gradeText: String {
-        guard battery.hasImportedBMS else {
-            return L10n.Battery.pendingImport
-        }
         let health = battery.healthPercentDisplay
-        if health >= 85 { return L10n.Battery.gradeA }
-        if health >= 80 { return L10n.Battery.gradeB }
-        return L10n.Battery.gradeC
+        let baseGrade: String = {
+            if health >= 85 { return L10n.Battery.gradeA }
+            if health >= 80 { return L10n.Battery.gradeB }
+            return L10n.Battery.gradeC
+        }()
+        if !battery.hasRealTelemetry {
+            return "\(baseGrade) (\(L10n.Battery.baselineEstimated))"
+        }
+        return baseGrade
     }
 
     private var gradeColor: Color {
-        guard battery.hasImportedBMS else { return .orange }
         let health = battery.healthPercentDisplay
         if health >= 85 { return appState.accentColor }
         if health >= 80 { return .yellow }
@@ -338,21 +340,14 @@ struct BatteryLongevityCard: View {
     }
 
     private var degradationRateText: String {
-        guard battery.hasImportedBMS, battery.cycleCountDisplay > 0 else {
-            return "--"
-        }
+        let count = battery.cycleCountDisplay
+        guard count > 0 else { return "0.000%" }
         let loss = max(0.0, 100.0 - battery.healthPercentDisplay)
-        let rate = loss / Double(battery.cycleCountDisplay)
-        if rate == 0 {
-            return "0.000%"
-        }
+        let rate = loss / Double(count)
         return String(format: "%.3f%%", rate)
     }
 
     private var degradationSubText: String {
-        guard battery.hasImportedBMS else {
-            return L10n.Battery.pendingImport
-        }
         let count = battery.cycleCountDisplay
         if count < 500 { return L10n.Battery.cycleTierGolden }
         if count < 800 { return L10n.Battery.cycleTierAging }
@@ -360,17 +355,11 @@ struct BatteryLongevityCard: View {
     }
 
     private var serviceMarginText: String {
-        guard battery.hasImportedBMS else {
-            return "--"
-        }
         let margin = max(0.0, battery.healthPercentDisplay - 80.0)
         return String(format: "+%.1f", margin)
     }
 
     private var serviceMarginSubText: String {
-        guard battery.hasImportedBMS else {
-            return L10n.Battery.pendingImport
-        }
         let margin = max(0.0, battery.healthPercentDisplay - 80.0)
         if margin > 10.0 {
             return L10n.Battery.marginSafe
@@ -387,23 +376,33 @@ struct BatteryLongevityCard: View {
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         let nowString = formatter.string(from: Date())
 
-        let pendingText = L10n.Battery.reportPendingCalibration
+        let cellsFormatted = battery.cellVoltages.isEmpty ? L10n.Battery.singleCell : battery.cellVoltages.map { "\($0) mV" }.joined(separator: " · ")
+        let dataSource = battery.hasImportedBMS
+            ? L10n.Battery.sourceBmsLog
+            : (battery.isHardwareCycleDirect ? L10n.Battery.sourceHardwareDirect : L10n.Battery.sourceModelEstimate)
 
         let report = """
         ========================================
         \(L10n.Battery.reportHeader)
         ========================================
         - \(L10n.Battery.reportDeviceModel): \(system.marketingName) (\(system.machineIdentifier))
+        - \(L10n.Overview.deviceSerial): \(system.serialNumber == "N/A" ? L10n.Overview.sandboxProtected : system.serialNumber)
+        - \(L10n.Overview.modelNumberLabel): \(system.modelNumber == "N/A" ? system.machineIdentifier : system.modelNumber)
         - \(L10n.Battery.reportChip): \(system.chipNameClean)
+        - \(L10n.Battery.batterySerial): \(battery.batterySerialNumber ?? "N/A")
+        - \(L10n.Battery.manufactureDate): \(battery.batteryManufactureDate ?? "N/A")
+        - \(L10n.Battery.batteryChemistry): \(battery.batteryChemistry ?? "N/A")
+        - \(L10n.Battery.cellVoltagesLabel): \(cellsFormatted)
         - \(L10n.Battery.reportFactoryDesignCap): \(battery.officialDesignCapacityMah) mAh
         - \(L10n.Battery.reportEffectiveDesignCap): \(battery.effectiveDesignCapacityMah) mAh
-        - \(L10n.Battery.reportActualMaxCap): \(battery.hasImportedBMS ? "\(battery.actualMaxCapacityMahDisplay) mAh" : pendingText)
-        - \(L10n.Battery.reportCycleCount): \(battery.hasImportedBMS ? "\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit)" : pendingText)
-        - \(L10n.Battery.reportHealth): \(battery.hasImportedBMS ? String(format: "%.1f%%", battery.healthPercentDisplay) : pendingText)
+        - \(L10n.Battery.reportActualMaxCap): \(battery.hasRealTelemetry ? "\(battery.actualMaxCapacityMahDisplay) mAh" : "\(battery.actualMaxCapacityMahDisplay) mAh (\(L10n.Battery.baselineEstimated))")
+        - \(L10n.Battery.reportCycleCount): \(battery.hasRealTelemetry ? "\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit)" : "\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit) (\(L10n.Battery.baselineEstimated))")
+        - \(L10n.Battery.reportHealth): \(battery.hasRealTelemetry ? String(format: "%.1f%%", battery.healthPercentDisplay) : "\(String(format: "%.1f%%", battery.healthPercentDisplay)) (\(L10n.Battery.baselineEstimated))")
         - \(L10n.Battery.reportRemainingEnergy): \(battery.batteryLevelPercent)% (\(battery.currentRemainingMah) mAh)
         - \(L10n.Battery.reportCellTemp): \(String(format: "%.1f °C", battery.batteryTemperature))
         - \(L10n.Battery.reportPowerMode): \(battery.chargingProtocolName) (\(String(format: "%.1f W", abs(battery.liveWattage))))
         - \(L10n.Battery.reportThermalState): \(system.thermalStateText)
+        - 数据源通道: \(dataSource)
         - \(L10n.Battery.reportGeneratedTime): \(nowString)
         ========================================
         """
@@ -452,8 +451,8 @@ private struct BatteryAgingCurveChart: View {
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
                 .foregroundStyle(Color.red.opacity(0.75))
 
-            // 3. Device Actual Degradation Path (when BMS data loaded)
-            if battery.hasImportedBMS && battery.cycleCountDisplay > 0 {
+            // 3. Device Actual Degradation Path (when BMS or Hardware Telemetry data loaded)
+            if battery.hasRealTelemetry && battery.cycleCountDisplay > 0 {
                 // Actual Past Trajectory Curve
                 ForEach(actualDegradationCurve) { pt in
                     LineMark(
@@ -470,16 +469,7 @@ private struct BatteryAgingCurveChart: View {
                         yEnd: .value(L10n.Battery.degradationHealthAxis, pt.health)
                     )
                     .interpolationMethod(.monotone)
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                appState.accentColor.opacity(0.18),
-                                appState.accentColor.opacity(0.0)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
+                    .foregroundStyle(ChartTheme.areaGradient(for: appState.accentColor))
                 }
 
                 // Predictive Future Trajectory
@@ -530,13 +520,13 @@ private struct BatteryAgingCurveChart: View {
         .chartYScale(domain: 68...106)
         .chartXAxis {
             AxisMarks(values: ticks) { value in
-                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
-                    .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                AxisGridLine(stroke: ChartTheme.gridStroke)
+                    .foregroundStyle(ChartTheme.gridColor(for: colorScheme))
                 let cycleVal = value.as(Double.self) ?? 0
                 AxisValueLabel(anchor: cycleVal >= maxDomain * 0.8 ? .topTrailing : .top) {
                     Text("\(Int(cycleVal))")
-                        .font(.system(size: 8.5, weight: .medium, design: .monospaced))
-                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                        .font(ChartTheme.axisLabelFont)
+                        .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
                         .lineLimit(1)
                         .fixedSize()
                 }
@@ -544,17 +534,18 @@ private struct BatteryAgingCurveChart: View {
         }
         .chartYAxis {
             AxisMarks(values: [70, 80, 90, 100]) { value in
-                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 2]))
-                    .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                AxisGridLine(stroke: ChartTheme.gridStroke)
+                    .foregroundStyle(ChartTheme.gridColor(for: colorScheme))
                 AxisValueLabel {
                     if let health = value.as(Double.self) {
                         Text("\(Int(health))%")
-                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                            .font(ChartTheme.axisLabelFont)
                             .foregroundStyle(
                                 health == 80.0
                                 ? Color.red.opacity(0.85)
-                                : Theme.textTertiary(for: colorScheme)
+                                : ChartTheme.axisLabelColor(for: colorScheme)
                             )
+                            .frame(width: 28, alignment: .trailing)
                     }
                 }
             }

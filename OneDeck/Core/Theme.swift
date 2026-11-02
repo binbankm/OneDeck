@@ -129,6 +129,51 @@ public enum Theme {
     }
 }
 
+// MARK: - Chart Design System Tokens
+public enum ChartTheme {
+    /// Standard curve stroke width
+    public static let lineWidth: CGFloat = 2.0
+    public static let subLineWidth: CGFloat = 1.5
+    public static let sparklineWidth: CGFloat = 1.8
+
+    /// Standard dashed grid line stroke style
+    public static let gridStroke = StrokeStyle(lineWidth: 0.6, dash: [2.5, 3])
+
+    /// Bento adaptive grid line color
+    public static func gridColor(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)
+    }
+
+    /// Unified area under curve gradient (standard 0.24 to 0.0)
+    public static func areaGradient(for color: Color) -> LinearGradient {
+        LinearGradient(
+            colors: [color.opacity(0.24), color.opacity(0.0)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    /// Unified axis typography
+    public static let axisLabelFont: Font = .system(size: 8.5, weight: .semibold, design: .monospaced)
+    public static let compactAxisLabelFont: Font = .system(size: 8, weight: .semibold, design: .monospaced)
+
+    /// Unified axis label color
+    public static func axisLabelColor(for scheme: ColorScheme) -> Color {
+        Theme.textTertiary(for: scheme)
+    }
+}
+
+// MARK: - Dedicated Horizontal Dashed Grid Line Shape
+public struct HorizontalDashedLine: Shape {
+    public init() {}
+    public func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: 0, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.width, y: rect.midY))
+        return path
+    }
+}
+
 // MARK: - Color Hex Extensions
 extension Color {
     public init(hex: String) {

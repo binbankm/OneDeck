@@ -160,24 +160,15 @@ struct NetworkTrafficCard: View {
                                 series: .value("Direction", "Down")
                             )
                             .foregroundStyle(appState.accentColor)
-                            .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                            .interpolationMethod(.catmullRom)
+                            .lineStyle(StrokeStyle(lineWidth: ChartTheme.lineWidth, lineCap: .round, lineJoin: .round))
+                            .interpolationMethod(.monotone)
 
                             AreaMark(
                                 x: .value("Time", pt.timestamp),
                                 y: .value("Rate", pt.downBps / 1024.0)
                             )
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [
-                                        appState.accentColor.opacity(0.25),
-                                        appState.accentColor.opacity(0.01)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .interpolationMethod(.catmullRom)
+                            .foregroundStyle(ChartTheme.areaGradient(for: appState.accentColor))
+                            .interpolationMethod(.monotone)
 
                             LineMark(
                                 x: .value("Time", pt.timestamp),
@@ -185,25 +176,25 @@ struct NetworkTrafficCard: View {
                                 series: .value("Direction", "Up")
                             )
                             .foregroundStyle(Color.mint)
-                            .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-                            .interpolationMethod(.catmullRom)
+                            .lineStyle(StrokeStyle(lineWidth: ChartTheme.subLineWidth, lineCap: .round, lineJoin: .round))
+                            .interpolationMethod(.monotone)
                         }
                     }
                     .chartXAxis(.hidden)
                     .chartYAxis {
                         AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { val in
-                            AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
-                                .foregroundStyle(Color.secondary.opacity(0.2))
+                            AxisGridLine(stroke: ChartTheme.gridStroke)
+                                .foregroundStyle(ChartTheme.gridColor(for: colorScheme))
                             AxisValueLabel {
                                 if let kb = val.as(Double.self) {
                                     if kb >= 1024 {
                                         Text(String(format: "%.1fM", kb / 1024.0))
-                                            .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                                            .font(ChartTheme.axisLabelFont)
+                                            .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
                                     } else {
                                         Text(String(format: "%.0fK", kb))
-                                            .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                                            .font(ChartTheme.axisLabelFont)
+                                            .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
                                     }
                                 }
                             }

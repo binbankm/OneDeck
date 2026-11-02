@@ -189,7 +189,7 @@ private struct OverviewSparklineView: View {
                     y: .value("Speed", point.value)
                 )
                 .interpolationMethod(.monotone)
-                .lineStyle(StrokeStyle(lineWidth: 1.8, lineCap: .round, lineJoin: .round))
+                .lineStyle(StrokeStyle(lineWidth: ChartTheme.sparklineWidth, lineCap: .round, lineJoin: .round))
                 .foregroundStyle(color)
 
                 AreaMark(
@@ -197,13 +197,7 @@ private struct OverviewSparklineView: View {
                     y: .value("Speed", point.value)
                 )
                 .interpolationMethod(.monotone)
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [color.opacity(0.24), color.opacity(0.0)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
+                .foregroundStyle(ChartTheme.areaGradient(for: color))
             }
         }
         .chartXAxis(.hidden)

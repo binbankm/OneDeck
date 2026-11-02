@@ -111,18 +111,35 @@ struct NetworkLanScannerCard: View {
                             }
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(device.name)
-                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.85)
+                                HStack(spacing: 6) {
+                                    Text(device.name)
+                                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.85)
+
+                                    if let vendor = device.vendorName, vendor != device.name {
+                                        Text(vendor)
+                                            .font(.system(size: 9.5, weight: .medium))
+                                            .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                                            .lineLimit(1)
+                                    }
+                                }
 
                                 HStack(spacing: 6) {
-                                    Text(friendlyServiceType(device.serviceType))
-                                        .font(.system(size: 10, weight: .medium, design: .monospaced))
-                                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                                    if device.ipAddress != "--" {
+                                        Text(device.ipAddress)
+                                            .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                                            .foregroundStyle(appState.accentColor)
+                                    }
 
-                                    Text("· \(device.interfaceName)")
+                                    if let mac = device.macAddress {
+                                        Text(mac.uppercased())
+                                            .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                                    }
+
+                                    Text("· \(friendlyServiceType(device.serviceType))")
                                         .font(.system(size: 10, weight: .medium))
                                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                                 }
@@ -130,10 +147,26 @@ struct NetworkLanScannerCard: View {
 
                             Spacer()
 
-                            // Active Signal Badge
-                            Circle()
-                                .fill(Color.green)
-                                .frame(width: 6, height: 6)
+                            if let lat = device.latencyMs {
+                                Text(String(format: "%.0fms", lat))
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(Color.green)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(Color.green.opacity(0.12))
+                                    .clipShape(Capsule())
+                            } else {
+                                Circle()
+                                    .fill(Color.green)
+                                    .frame(width: 6, height: 6)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            if device.ipAddress != "--" {
+                                UIPasteboard.general.string = device.ipAddress
+                                Haptics.tick()
+                            }
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)

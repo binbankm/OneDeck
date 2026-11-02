@@ -60,6 +60,31 @@ public final class BatteryService {
     public var chargingProtocolName: String = ""
     public var etaCountdownString: String = ""
 
+    // Hardware Probe Telemetry (IOPS & AppleSmartBattery Direct Access)
+    public var isHardwareDirectWattage: Bool = false
+    public var adapterWatts: Int? = nil
+    public var adapterVoltageMv: Int? = nil
+    public var adapterCurrentMa: Int? = nil
+    public var adapterName: String? = nil
+    public var pathLossWatts: Double = 0.0
+    public var hardwareCycleCount: Int? = nil
+    public var hardwareMaxCapacityMah: Int? = nil
+    public var hardwareDesignCapacityMah: Int? = nil
+    public var batterySerialNumber: String? = nil
+    public var cellVoltages: [Int] = []
+    public var hardwarePmicTemp: Double? = nil
+    public var hardwareWirelessTemp: Double? = nil
+    public var batteryChemistry: String? = nil
+    public var batteryManufactureDate: String? = nil
+
+    public var isHardwareCycleDirect: Bool {
+        analyticsRecord == nil && (hardwareCycleCount ?? 0) > 0
+    }
+
+    public var hasRealTelemetry: Bool {
+        analyticsRecord != nil || isHardwareCycleDirect || (hardwareCycleCount ?? 0) > 0 || (hardwareMaxCapacityMah ?? 0) > 500
+    }
+
     // Hardware Database & Capacities
     public var officialDesignCapacityMah: Int = 2658
     public var isCustomBattery: Bool = false
@@ -81,6 +106,9 @@ public final class BatteryService {
         if let record = analyticsRecord {
             return record.cycleCount
         }
+        if let hwCycles = hardwareCycleCount, hwCycles > 0 {
+            return hwCycles
+        }
         // Baseline estimate if no log imported
         return estimatedCyclesFromMachine
     }
@@ -92,6 +120,10 @@ public final class BatteryService {
             }
             return min(100.0, record.healthPercent)
         }
+        if let hwMax = hardwareMaxCapacityMah, hwMax > 500 {
+            let h = (Double(hwMax) / Double(effectiveDesignCapacityMah)) * 100.0
+            return min(100.0, max(1.0, h))
+        }
         // Baseline estimate if no log imported
         return min(100.0, estimatedHealthFromMachine)
     }
@@ -99,6 +131,9 @@ public final class BatteryService {
     public var actualMaxCapacityMahDisplay: Int {
         if let record = analyticsRecord {
             return record.nominalChargeCapacityMah
+        }
+        if let hwMax = hardwareMaxCapacityMah, hwMax > 500 {
+            return hwMax
         }
         return Int(Double(effectiveDesignCapacityMah) * (healthPercentDisplay / 100.0))
     }
@@ -234,8 +269,14 @@ public final class BatteryService {
 
     @MainActor
     public func updateTelemetrySnapshot() {
-        if let exactPercent = Self.readExactSystemBatteryPercentage() {
-            self.batteryLevel = Double(exactPercent) / 100.0
+        // 1. Query Hardware Telemetry via Private APIs (Watts, IOPS & AppleSmartBattery)
+        let hw = HardwareBatteryProbe.sample()
+
+        // 2. Battery Percentage
+        if let cur = hw.currentCapacityMah, let maxCap = hw.maxCapacityMah, maxCap > 0 {
+            self.batteryLevel = min(1.0, max(0.0, Double(cur) / Double(maxCap)))
+        } else if let exactSysPercent = Self.readExactSystemBatteryPercentage() {
+            self.batteryLevel = Double(exactSysPercent) / 100.0
         } else {
             let rawLevel = UIDevice.current.batteryLevel
             if rawLevel >= 0 {
@@ -245,68 +286,140 @@ public final class BatteryService {
             }
         }
 
+        // 3. Hardware Cell Attributes
+        if let cyc = hw.cycleCount, cyc > 0 { self.hardwareCycleCount = cyc }
+        if let maxCap = hw.maxCapacityMah, maxCap > 500 { self.hardwareMaxCapacityMah = maxCap }
+        if let desCap = hw.designCapacityMah, desCap > 500 { self.hardwareDesignCapacityMah = desCap }
+        if let sn = hw.batterySerialNumber, !sn.isEmpty { self.batterySerialNumber = sn }
+        if let cells = hw.cellVoltages, !cells.isEmpty { self.cellVoltages = cells }
+        if let chem = hw.chemistry { self.batteryChemistry = chem }
+        if let mDate = hw.manufactureDate { self.batteryManufactureDate = mDate }
+
+        // 4. State & Thermal
         self.batteryState = UIDevice.current.batteryState
         self.isLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
-        self.batteryTemperature = SystemService.shared.batteryTemperature
+        if let hwTemp = hw.temperatureCelsius {
+            self.batteryTemperature = hwTemp
+        } else {
+            self.batteryTemperature = SystemService.shared.batteryTemperature
+        }
+        if let soc = hw.socTemperatureCelsius {
+            SystemService.shared.socTemperature = soc
+        }
+        if let p = hw.pmicTemperatureCelsius { self.hardwarePmicTemp = p }
+        if let w = hw.wirelessTemperatureCelsius { self.hardwareWirelessTemp = w }
 
-        // Open-Circuit Voltage Modeling: 3.65V (0%) ~ 4.35V (100%)
-        let baseV: Int = 3650 + Int(self.batteryLevel * 650.0)
-        let isCharging: Bool = (batteryState == .charging || batteryState == .full)
-        let chargingIrDrop: Int = isCharging ? 120 : 0
-        self.liveVoltageMv = baseV + chargingIrDrop
+        // 5. Adapter Details (Charger Watts & Profile)
+        self.adapterWatts = hw.adapterWatts
+        self.adapterVoltageMv = hw.adapterVoltageMv
+        self.adapterCurrentMa = hw.adapterCurrentMa
+        self.adapterName = hw.adapterName
 
+        let isPluggedIn = (batteryState == .charging || batteryState == .full || hw.isExternalConnected == true || hw.adapterWatts != nil)
+
+        // 6. Voltage & Amperage
+        var physicalV = hw.voltageMv ?? 0
+        if physicalV <= 2500 {
+            // Open-circuit voltage model fallback if hardware register is unreadable
+            let baseV: Int = 3650 + Int(self.batteryLevel * 650.0)
+            let chargingIrDrop: Int = isPluggedIn ? 120 : 0
+            physicalV = baseV + chargingIrDrop
+        }
+        self.liveVoltageMv = physicalV
         let voltageVolts: Double = max(3.0, Double(self.liveVoltageMv) / 1000.0)
 
-        // Power & Current Modeling
-        if batteryState == .full {
+        // 7. Power Flow & Protocol Logic
+        let hwAmps = hw.instantAmperageMa ?? hw.amperageMa
+
+        if batteryState == .full || (hw.isFullyCharged == true) {
             self.liveCurrentMa = 0
             self.liveWattage = 0.0
+            self.isHardwareDirectWattage = true
             self.chargingProtocolName = L10n.Battery.stateFull
             self.etaCountdownString = L10n.Battery.fullyChargedText
-        } else if batteryState == .charging {
-            // Charging Stages:
-            // 0% - 50%: USB-PD Peak Fast Charge
-            // 50% - 80%: Constant Voltage Tapering
-            // 80% - 100%: Smart Trickle Maintenance
-            if batteryLevel < 0.50 {
-                let peakW: Double = effectiveDesignCapacityMah >= 3500 ? 25.5 : 19.8
-                self.liveWattage = peakW
-                let currentAmps: Double = peakW / voltageVolts
+            self.pathLossWatts = 0.0
+        } else if isPluggedIn {
+            // Charging or External Power Connected
+            if let amps = hwAmps, amps > 0 {
+                // Direct hardware physical reading!
+                self.liveCurrentMa = amps
+                let calculatedW = (Double(physicalV) * Double(amps)) / 1_000_000.0
+                self.liveWattage = (calculatedW * 10.0).rounded() / 10.0
+                self.isHardwareDirectWattage = true
+            } else if let ratedW = hw.adapterWatts, ratedW > 0 {
+                // Adapter watts is known from hardware!
+                // Compute real continuous USB-PD CV Tapering curve
+                self.liveWattage = HardwareBatteryProbe.computeDynamicPDWattage(
+                    ratedWatts: ratedW,
+                    batteryLevel: self.batteryLevel,
+                    temperatureCelsius: self.batteryTemperature
+                )
+                let currentAmps: Double = self.liveWattage / voltageVolts
                 self.liveCurrentMa = Int(currentAmps * 1000.0)
-                self.chargingProtocolName = L10n.Battery.protocolFastPD(watt: Int(peakW))
-                let remainingMins: Int = Int(round((1.0 - batteryLevel) * 75.0))
-                self.etaCountdownString = L10n.Battery.etaToFull(mins: max(5, remainingMins))
-            } else if batteryLevel < 0.80 {
-                let midW: Double = 12.8
-                self.liveWattage = midW
-                let currentAmps: Double = midW / voltageVolts
-                self.liveCurrentMa = Int(currentAmps * 1000.0)
-                self.chargingProtocolName = L10n.Battery.protocolStandardPD
-                let remainingMins: Int = Int(round((1.0 - batteryLevel) * 90.0))
-                self.etaCountdownString = L10n.Battery.etaToFull(mins: max(5, remainingMins))
+                self.isHardwareDirectWattage = false
             } else {
-                let trickleW: Double = 3.8
-                self.liveWattage = trickleW
-                let currentAmps: Double = trickleW / voltageVolts
+                // Model fallback when adapter is unclassified
+                let defaultRated = self.effectiveDesignCapacityMah >= 3500 ? 27 : 20
+                self.liveWattage = HardwareBatteryProbe.computeDynamicPDWattage(
+                    ratedWatts: defaultRated,
+                    batteryLevel: self.batteryLevel,
+                    temperatureCelsius: self.batteryTemperature
+                )
+                let currentAmps: Double = self.liveWattage / voltageVolts
                 self.liveCurrentMa = Int(currentAmps * 1000.0)
-                self.chargingProtocolName = L10n.Battery.protocolTrickle
-                let remainingMins: Int = Int(round((1.0 - batteryLevel) * 120.0))
-                self.etaCountdownString = L10n.Battery.etaToFull(mins: max(5, remainingMins))
+                self.isHardwareDirectWattage = false
             }
+
+            // Protocol Name formatting
+            if let watts = hw.adapterWatts, watts > 0 {
+                let v = Double(hw.adapterVoltageMv ?? 0) / 1000.0
+                let a = Double(hw.adapterCurrentMa ?? 0) / 1000.0
+                if watts <= 6 {
+                    self.chargingProtocolName = L10n.Battery.adapterTypeSlow
+                } else if let name = hw.adapterName, name.lowercased().contains("wireless") || name.lowercased().contains("magsafe") {
+                    self.chargingProtocolName = L10n.Battery.adapterTypeWireless
+                } else if v > 4.5 && a > 0.5 {
+                    let baseName = L10n.Battery.protocolFastPD(watt: watts)
+                    self.chargingProtocolName = L10n.Battery.protocolWithNegotiation(name: baseName, volts: v, amps: a)
+                } else {
+                    self.chargingProtocolName = L10n.Battery.protocolFastPD(watt: watts)
+                }
+                let inputW = Double(watts)
+                self.pathLossWatts = max(0.0, ((inputW - abs(self.liveWattage)) * 10.0).rounded() / 10.0)
+            } else if batteryLevel >= 0.80 {
+                self.chargingProtocolName = L10n.Battery.protocolTrickle
+                self.pathLossWatts = 0.5
+            } else {
+                self.chargingProtocolName = L10n.Battery.protocolStandardPD
+                self.pathLossWatts = 1.8
+            }
+
+            let remainingMins: Int = Int(round((1.0 - batteryLevel) * 85.0))
+            self.etaCountdownString = L10n.Battery.etaToFull(mins: max(5, remainingMins))
         } else {
             // Discharging on Battery
-            let cpuFactor: Double = SystemService.shared.totalCpuUsage / 100.0
-            let lowPowerAdj: Double = isLowPowerMode ? -0.4 : 0.0
-            let drainW: Double = 1.2 + (cpuFactor * 3.4) + lowPowerAdj
-            let roundedDrain: Double = (drainW * 10.0).rounded() / 10.0
-            self.liveWattage = -roundedDrain
-
-            let dischargeAmps: Double = drainW / voltageVolts
-            let dischargeMa: Int = Int(dischargeAmps * 1000.0)
-            self.liveCurrentMa = -dischargeMa
+            if let amps = hwAmps, amps < 0 {
+                // Direct hardware physical reading!
+                self.liveCurrentMa = amps
+                let calculatedW = (Double(physicalV) * Double(amps)) / 1_000_000.0
+                self.liveWattage = (calculatedW * 10.0).rounded() / 10.0
+                self.isHardwareDirectWattage = true
+            } else {
+                // Dynamic CPU model fallback
+                self.isHardwareDirectWattage = false
+                let cpuFactor: Double = SystemService.shared.totalCpuUsage / 100.0
+                let lowPowerAdj: Double = isLowPowerMode ? -0.4 : 0.0
+                let drainW: Double = 1.2 + (cpuFactor * 3.4) + lowPowerAdj
+                let roundedDrain: Double = (drainW * 10.0).rounded() / 10.0
+                self.liveWattage = -roundedDrain
+                let dischargeAmps: Double = drainW / voltageVolts
+                let dischargeMa: Int = Int(dischargeAmps * 1000.0)
+                self.liveCurrentMa = -dischargeMa
+            }
+            self.pathLossWatts = 0.0
             self.chargingProtocolName = isLowPowerMode ? L10n.Battery.protocolLowPower : L10n.Battery.protocolDischarge
 
-            let drainMaPerMin: Double = max(1.0, Double(abs(dischargeMa))) / 60.0
+            let drainMaPerMin: Double = max(1.0, Double(abs(self.liveCurrentMa))) / 60.0
             let availableMins: Int = Int(Double(currentRemainingMah) / drainMaPerMin)
             let hours: Int = max(0, availableMins / 60)
             let mins: Int = max(0, availableMins % 60)

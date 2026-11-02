@@ -93,9 +93,32 @@ public struct DiscoveredDevice: Identifiable, Hashable, Sendable {
     public let serviceType: String
     public let interfaceName: String
     public let ipAddress: String
+    public var macAddress: String?
+    public var vendorName: String?
+    public var latencyMs: Double?
+
+    public init(
+        id: String,
+        name: String,
+        serviceType: String,
+        interfaceName: String,
+        ipAddress: String,
+        macAddress: String? = nil,
+        vendorName: String? = nil,
+        latencyMs: Double? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.serviceType = serviceType
+        self.interfaceName = interfaceName
+        self.ipAddress = ipAddress
+        self.macAddress = macAddress
+        self.vendorName = vendorName
+        self.latencyMs = latencyMs
+    }
 
     public var iconName: String {
-        let lower = name.lowercased() + serviceType.lowercased()
+        let lower = name.lowercased() + serviceType.lowercased() + (vendorName?.lowercased() ?? "")
         if lower.contains("mac") || lower.contains("book") || lower.contains("imac") {
             return "laptopcomputer"
         } else if lower.contains("iphone") || lower.contains("phone") {
@@ -104,10 +127,14 @@ public struct DiscoveredDevice: Identifiable, Hashable, Sendable {
             return "ipad"
         } else if lower.contains("tv") || lower.contains("apple-tv") {
             return "appletv"
+        } else if lower.contains("router") || lower.contains("gateway") || lower.contains("路由") {
+            return "wifi.router"
         } else if lower.contains("nas") || lower.contains("synology") || lower.contains("smb") {
             return "externaldrive.connected.to.line.below"
         } else if lower.contains("print") {
             return "printer.fill"
+        } else if lower.contains("iot") || lower.contains("智能") || lower.contains("esp") {
+            return "sensor"
         } else {
             return "desktopcomputer"
         }
@@ -197,6 +224,11 @@ public final class NetworkService: @unchecked Sendable {
     public var carrierName: String = ""
     public var wifiHardwareGeneration: String = "Wi-Fi 6"
     public var wifiStandard: String = "802.11ax"
+    public var wifiSSID: String? = nil
+    public var wifiBSSID: String? = nil
+    public var wifiRssiDbm: Int? = nil
+    public var wifiChannel: Int? = nil
+    public var wifiTxRateMbps: Int? = nil
 
     public var activeInterfaceSummary: String {
         switch linkType {
@@ -204,6 +236,9 @@ public final class NetworkService: @unchecked Sendable {
             let gen = cellularGeneration.isEmpty ? "5G NR" : cellularGeneration
             return "\(gen) · pdp_ip0"
         case .wifi:
+            if let ssid = wifiSSID, !ssid.isEmpty {
+                return "\(ssid) · en0"
+            }
             return "\(wifiHardwareGeneration) · en0"
         case .wired:
             return "Ethernet · eth0"
@@ -218,7 +253,8 @@ public final class NetworkService: @unchecked Sendable {
             let carrier = carrierName.isEmpty ? L10n.Network.cellular : carrierName
             return "\(carrier) \(cellularGeneration) (pdp_ip0)"
         case .wifi:
-            return "\(wifiHardwareGeneration) · \(wifiStandard) (en0)"
+            let ssidStr = (wifiSSID != nil && !wifiSSID!.isEmpty) ? "\(wifiSSID!) · " : ""
+            return "\(ssidStr)\(wifiHardwareGeneration) · \(wifiStandard) (en0)"
         case .wired:
             return "Ethernet (eth0)"
         case .none:
@@ -260,26 +296,26 @@ public final class NetworkService: @unchecked Sendable {
     public var totalBytesOut: UInt64 = 0
     public var trafficHistory: [TrafficDataPoint] = []
 
-    // MARK: - 5. LAN Discovery (Bonjour / mDNS)
+    // MARK: - 5. LAN Discovery (Bonjour / mDNS & Kernel ARP)
     public var discoveredDevices: [DiscoveredDevice] = []
     public var isScanningLan: Bool = false
 
     // MARK: - 6. DNS Multi-Node Benchmark
     public var dnsBenchmarkResults: [DnsBenchmarkResult] = [
-        DnsBenchmarkResult(id: "alidns", name: "AliDNS", host: "223.5.5.5", latencyMs: 12.0, isFastest: true),
-        DnsBenchmarkResult(id: "dnspod", name: "DNSPod", host: "119.29.29.29", latencyMs: 16.0, isFastest: false),
-        DnsBenchmarkResult(id: "cloudflare", name: "Cloudflare", host: "1.1.1.1", latencyMs: 26.0, isFastest: false),
-        DnsBenchmarkResult(id: "google", name: "Google", host: "8.8.8.8", latencyMs: 38.0, isFastest: false),
-        DnsBenchmarkResult(id: "baidu", name: "Baidu DNS", host: "180.76.76.76", latencyMs: 20.0, isFastest: false)
+        DnsBenchmarkResult(id: "alidns", name: "AliDNS", host: "223.5.5.5", latencyMs: 0.0, isFastest: false),
+        DnsBenchmarkResult(id: "dnspod", name: "DNSPod", host: "119.29.29.29", latencyMs: 0.0, isFastest: false),
+        DnsBenchmarkResult(id: "cloudflare", name: "Cloudflare", host: "1.1.1.1", latencyMs: 0.0, isFastest: false),
+        DnsBenchmarkResult(id: "google", name: "Google", host: "8.8.8.8", latencyMs: 0.0, isFastest: false),
+        DnsBenchmarkResult(id: "baidu", name: "Baidu DNS", host: "180.76.76.76", latencyMs: 0.0, isFastest: false)
     ]
     public var isBenchmarkingDns: Bool = false
 
     // MARK: - 7. Common Port Scanner
     public var portScanResults: [PortScanItem] = [
         PortScanItem(port: 22, serviceName: "SSH", isOpen: false, latencyMs: 0),
-        PortScanItem(port: 53, serviceName: "DNS", isOpen: true, latencyMs: 2.1),
-        PortScanItem(port: 80, serviceName: "HTTP Web", isOpen: true, latencyMs: 1.8),
-        PortScanItem(port: 443, serviceName: "HTTPS", isOpen: true, latencyMs: 2.4),
+        PortScanItem(port: 53, serviceName: "DNS", isOpen: false, latencyMs: 0),
+        PortScanItem(port: 80, serviceName: "HTTP Web", isOpen: false, latencyMs: 0),
+        PortScanItem(port: 443, serviceName: "HTTPS", isOpen: false, latencyMs: 0),
         PortScanItem(port: 445, serviceName: "SMB / NAS", isOpen: false, latencyMs: 0),
         PortScanItem(port: 3389, serviceName: "RDP", isOpen: false, latencyMs: 0),
         PortScanItem(port: 5000, serviceName: "DSM", isOpen: false, latencyMs: 0),
@@ -431,30 +467,19 @@ public final class NetworkService: @unchecked Sendable {
         sysctlbyname("hw.machine", &machine, &size, nil, 0)
         let model = String(cString: machine)
 
-        // iPhone 16 family: Wi-Fi 7 (802.11be)
-        if model.hasPrefix("iPhone17,") {
-            return ("Wi-Fi 7", "802.11be")
-        }
-        // iPhone 15 Pro family: Wi-Fi 6E (802.11ax 6GHz)
-        if model.hasPrefix("iPhone16,1") || model.hasPrefix("iPhone16,2") {
-            return ("Wi-Fi 6E", "802.11ax 6GHz")
-        }
-        // iPhone 11 ~ 15 base: Wi-Fi 6 (802.11ax)
-        if model.hasPrefix("iPhone12,") || model.hasPrefix("iPhone13,") ||
-           model.hasPrefix("iPhone14,") || model.hasPrefix("iPhone15,") ||
-           model.hasPrefix("iPhone16,") {
-            return ("Wi-Fi 6", "802.11ax")
-        }
-        // iPad Pro M2/M4
-        if model.hasPrefix("iPad14,") || model.hasPrefix("iPad16,") {
-            return ("Wi-Fi 6E", "802.11ax")
-        }
-        return ("Wi-Fi 6", "802.11ax")
+        return NetworkKernelProbe.detectWifiHardware(machine: model)
     }
 
     #if os(iOS)
     private func queryLegacyCarrierName() -> String {
-        // Note: CTCarrier was deprecated in iOS 16.0 and returns nil / dummy values.
+        guard let providers = (telephonyInfo as AnyObject).value(forKey: "serviceSubscriberCellularProviders") as? [String: AnyObject] else {
+            return ""
+        }
+        for (_, provider) in providers {
+            if let name = provider.value(forKey: "carrierName") as? String, !name.isEmpty, name != "--" {
+                return name
+            }
+        }
         return ""
     }
     #endif
@@ -465,8 +490,21 @@ public final class NetworkService: @unchecked Sendable {
         self.wifiHardwareGeneration = wifiGen
         self.wifiStandard = wifiStd
 
+        // Real IEEE 802.11 Telemetry (Apple80211 / MobileWiFi)
+        if let wifi = NetworkKernelProbe.queryWifiTelemetry() {
+            if let ssid = wifi.ssid, !ssid.isEmpty { self.wifiSSID = ssid }
+            if let bssid = wifi.bssid, !bssid.isEmpty { self.wifiBSSID = bssid }
+            if let rssi = wifi.rssiDbm { self.wifiRssiDbm = rssi }
+            if let ch = wifi.channel { self.wifiChannel = ch }
+            if let rate = wifi.txRateMbps { self.wifiTxRateMbps = rate }
+        }
+
         #if os(iOS)
-        self.carrierName = queryLegacyCarrierName()
+        var carrier = queryLegacyCarrierName()
+        if carrier.isEmpty && linkType == .cellular && !ispName.isEmpty && ispName != "--" {
+            carrier = ispName
+        }
+        self.carrierName = carrier
 
         var gen = "5G NR"
         if let currentTechs = telephonyInfo.serviceCurrentRadioAccessTechnology {
@@ -572,14 +610,17 @@ public final class NetworkService: @unchecked Sendable {
                 ptr = interface.ifa_next
             }
 
-            let dns = self.fetchResolvDnsServers()
+            let realGateway = NetworkKernelProbe.queryDefaultGateway()
+            let realDns = NetworkKernelProbe.queryDnsServers()
+            let fallbackDns = self.fetchResolvDnsServers()
+            let wifiTelemetry = NetworkKernelProbe.queryWifiTelemetry()
+
             let finalMtu = mtu
             let finalBaudrate = baudrate
             let finalWifiIP = wifiIP
             let finalWifiMask = wifiMask
             let finalWifiBroadcast = wifiBroadcast
             let finalCellularIP = cellularIP
-            let finalDns = dns
 
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
@@ -590,23 +631,29 @@ public final class NetworkService: @unchecked Sendable {
                     self.localIPv4 = finalWifiIP.isEmpty ? "--" : finalWifiIP
                     self.subnetMask = finalWifiMask.isEmpty ? "255.255.255.0" : finalWifiMask
                     self.broadcastIPv4 = finalWifiBroadcast.isEmpty ? self.deriveBroadcast(ip: finalWifiIP, mask: finalWifiMask) : finalWifiBroadcast
-                    if self.gatewayIPv4 == "--" || self.gatewayIPv4.isEmpty {
-                        self.gatewayIPv4 = self.deriveDefaultGateway(from: finalWifiIP)
-                    }
+                    self.gatewayIPv4 = realGateway ?? (self.gatewayIPv4 != "--" && !self.gatewayIPv4.isEmpty ? self.gatewayIPv4 : self.deriveDefaultGateway(from: finalWifiIP))
                     if !finalWifiIP.isEmpty && finalWifiIP != "--" {
                         let comps = finalWifiIP.components(separatedBy: ".")
                         if comps.count == 4 {
                             self.subnetRange = "\(comps[0]).\(comps[1]).\(comps[2]).1~254"
                         }
                     }
-                    self.dnsServers = finalDns.isEmpty ? (self.gatewayIPv4 != "--" ? [self.gatewayIPv4] : ["1.1.1.1", "223.5.5.5"]) : finalDns
+                    self.dnsServers = !realDns.isEmpty ? realDns : (!fallbackDns.isEmpty ? fallbackDns : (self.gatewayIPv4 != "--" ? [self.gatewayIPv4] : ["1.1.1.1", "223.5.5.5"]))
+
+                    if let wt = wifiTelemetry {
+                        if let ssid = wt.ssid, !ssid.isEmpty { self.wifiSSID = ssid }
+                        if let bssid = wt.bssid, !bssid.isEmpty { self.wifiBSSID = bssid }
+                        if let rssi = wt.rssiDbm { self.wifiRssiDbm = rssi }
+                        if let ch = wt.channel { self.wifiChannel = ch }
+                        if let rate = wt.txRateMbps { self.wifiTxRateMbps = rate }
+                    }
                 } else {
                     self.localIPv4 = finalCellularIP.isEmpty ? "--" : finalCellularIP
                     self.subnetMask = "255.255.255.255"
                     self.broadcastIPv4 = "--"
                     self.gatewayIPv4 = "--"
                     self.subnetRange = "--"
-                    self.dnsServers = finalDns.isEmpty ? ["1.1.1.1", "223.5.5.5"] : finalDns
+                    self.dnsServers = !realDns.isEmpty ? realDns : (!fallbackDns.isEmpty ? fallbackDns : ["1.1.1.1", "223.5.5.5"])
                 }
             }
         }
@@ -1097,7 +1144,7 @@ public final class NetworkService: @unchecked Sendable {
         self.lastBytesTimestamp = now
     }
 
-    // MARK: - LAN Device Discovery via NWBrowser (Bonjour / mDNS)
+    // MARK: - LAN Device Discovery via Kernel ARP Table & Bonjour mDNS
     @MainActor
     public func startLanScan() {
         guard !isScanningLan else { return }
@@ -1106,41 +1153,81 @@ public final class NetworkService: @unchecked Sendable {
         self.lanBrowsers.forEach { $0.cancel() }
         self.lanBrowsers.removeAll()
 
-        let serviceTypes = ["_http._tcp", "_airplay._tcp", "_smb._tcp", "_raop._tcp"]
-        var deviceMap: [String: DiscoveredDevice] = [:]
+        let currentGateway = self.gatewayIPv4
 
-        for type in serviceTypes {
-            let descriptor = NWBrowser.Descriptor.bonjour(type: type, domain: nil)
-            let params = NWParameters()
-            params.includePeerToPeer = true
-            let browser = NWBrowser(for: descriptor, using: params)
+        workerQueue.async { [weak self] in
+            guard let self = self else { return }
 
-            browser.browseResultsChangedHandler = { [weak self] results, _ in
-                Task { @MainActor [weak self] in
+            // 1. Read Darwin Kernel ARP Cache for active subnet devices with real IPs and MACs
+            let arpDevices = NetworkKernelProbe.queryArpTable()
+            var deviceMap: [String: DiscoveredDevice] = [:]
+
+            for arp in arpDevices {
+                let isGw = (arp.ip == currentGateway)
+                let name = isGw ? L10n.Network.deviceGateway : arp.vendor
+                let latency = Self.measureTcpConnectRTT(host: arp.ip, port: isGw ? 80 : 53, timeoutSec: 0.3)
+                    ?? Self.measureTcpConnectRTT(host: arp.ip, port: 443, timeoutSec: 0.2)
+
+                let dev = DiscoveredDevice(
+                    id: "arp-\(arp.ip)",
+                    name: name,
+                    serviceType: isGw ? L10n.Network.gateway : "LAN Host",
+                    interfaceName: "en0",
+                    ipAddress: arp.ip,
+                    macAddress: arp.mac,
+                    vendorName: arp.vendor,
+                    latencyMs: latency
+                )
+                deviceMap[arp.ip] = dev
+            }
+
+            let finalDevices = Array(deviceMap.values).sorted(by: { $0.ipAddress < $1.ipAddress })
+            Task { @MainActor [weak self] in
+                self?.discoveredDevices = finalDevices
+            }
+
+            // 2. Bonjour / mDNS Service Discovery
+            let serviceTypes = ["_http._tcp", "_airplay._tcp", "_smb._tcp", "_raop._tcp", "_googlecast._tcp", "_printer._tcp"]
+            for type in serviceTypes {
+                let descriptor = NWBrowser.Descriptor.bonjour(type: type, domain: nil)
+                let params = NWParameters()
+                params.includePeerToPeer = true
+                let browser = NWBrowser(for: descriptor, using: params)
+
+                browser.browseResultsChangedHandler = { [weak self] results, _ in
                     guard let self = self else { return }
                     for res in results {
                         if case .service(let name, let serviceType, _, let iface) = res.endpoint {
-                            let key = "\(name)-\(serviceType)"
-                            let dev = DiscoveredDevice(
-                                id: key,
-                                name: name,
-                                serviceType: serviceType,
-                                interfaceName: iface?.name ?? "en0",
-                                ipAddress: self.gatewayIPv4
-                            )
-                            deviceMap[key] = dev
+                            Task { @MainActor [weak self] in
+                                guard let self = self else { return }
+                                let key = "bonjour-\(name)-\(serviceType)"
+                                if !self.discoveredDevices.contains(where: { $0.name == name }) {
+                                    let dev = DiscoveredDevice(
+                                        id: key,
+                                        name: name,
+                                        serviceType: serviceType,
+                                        interfaceName: iface?.name ?? "en0",
+                                        ipAddress: "--",
+                                        macAddress: nil,
+                                        vendorName: L10n.Network.deviceBonjour,
+                                        latencyMs: nil
+                                    )
+                                    self.discoveredDevices.append(dev)
+                                }
+                            }
                         }
                     }
-                    self.discoveredDevices = Array(deviceMap.values).sorted(by: { $0.name < $1.name })
+                }
+
+                browser.start(queue: self.monitorQueue)
+                Task { @MainActor [weak self] in
+                    self?.lanBrowsers.append(browser)
                 }
             }
-
-            browser.start(queue: monitorQueue)
-            self.lanBrowsers.append(browser)
         }
 
-        // Auto-stop after 6 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) { [weak self] in
+        // Auto-stop scan after 5 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
             self?.stopLanScan()
         }
     }
@@ -1349,6 +1436,20 @@ public final class NetworkService: @unchecked Sendable {
         }
     }
 
+    // MARK: - Active Bandwidth Speed Test Streaming Delegate
+    private final class SpeedTestStreamingDelegate: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+        var onChunk: ((Int) -> Void)?
+        var onDone: (() -> Void)?
+
+        func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+            onChunk?(data.count)
+        }
+
+        func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+            onDone?()
+        }
+    }
+
     // MARK: - Active Bandwidth Speed Test Engine (Ping, Download, Upload, Scorecard)
     @MainActor
     public func startSpeedTest() {
@@ -1368,7 +1469,6 @@ public final class NetworkService: @unchecked Sendable {
 
         let initialPing = self.currentLatencyMs > 0 ? self.currentLatencyMs : 18.0
         let initialJitter = self.jitterMs > 0 ? self.jitterMs : 1.2
-        let initialBaudrate = self.interfaceBaudrateMbps
 
         speedTestTask = Task.detached(priority: .userInitiated) { [weak self] in
             guard let self = self else { return }
@@ -1407,56 +1507,67 @@ public final class NetworkService: @unchecked Sendable {
                 Haptics.tick()
             }
 
-            // STEP 2: Real HTTP Stream Download
-            let downloadUrlStr = "https://speed.cloudflare.com/__down?bytes=25000000"
+            // STEP 2: High-Throughput Kernel-Buffered HTTP Stream Download
+            let downloadUrlStr = "https://speed.cloudflare.com/__down?bytes=50000000"
             if let url = URL(string: downloadUrlStr) {
                 var request = URLRequest(url: url)
                 request.timeoutInterval = 8.0
                 request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
 
-                do {
-                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
-                    let expectedLength = response.expectedContentLength > 0 ? Double(response.expectedContentLength) : 25_000_000.0
+                let delegate = SpeedTestStreamingDelegate()
+                let config = URLSessionConfiguration.ephemeral
+                config.timeoutIntervalForRequest = 8.0
+                config.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+                let testSession = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
 
-                    var received: Double = 0.0
-                    let startTime = Date()
-                    var lastUpdate = Date()
-                    var lastReceived: Double = 0.0
-                    var samples: [Double] = []
+                var totalBytesReceived: Double = 0.0
+                var windowBytes: Double = 0.0
+                var lastWindowTime = Date()
+                let testStartTime = Date()
+                var rateSamples: [Double] = []
 
-                    for try await _ in bytes {
-                        if Task.isCancelled { return }
-                        received += 1
-                        let now = Date()
-                        let delta = now.timeIntervalSince(lastUpdate)
-                        if delta >= 0.12 {
-                            let bytesChunk = received - lastReceived
-                            let rateMbps = (bytesChunk * 8.0) / (delta * 1_000_000.0)
-                            samples.append(rateMbps)
-                            let stageProg = min(1.0, received / expectedLength)
-                            let overallProg = 0.15 + (0.50 * stageProg)
-                            let currentAvgRate = samples.reduce(0, +) / Double(samples.count)
+                delegate.onChunk = { [weak self] chunkSize in
+                    guard let self = self else { return }
+                    totalBytesReceived += Double(chunkSize)
+                    windowBytes += Double(chunkSize)
 
-                            await MainActor.run {
-                                self.speedTestCurrentMbps = rateMbps
-                                self.speedTestDownloadPeakMbps = max(self.speedTestDownloadPeakMbps, rateMbps)
-                                self.speedTestDownloadMbps = currentAvgRate
-                                self.speedTestProgress = overallProg
-                            }
-                            lastUpdate = now
-                            lastReceived = received
+                    let now = Date()
+                    let delta = now.timeIntervalSince(lastWindowTime)
+                    if delta >= 0.12 {
+                        let currentRateMbps = (windowBytes * 8.0) / (delta * 1_000_000.0)
+                        rateSamples.append(currentRateMbps)
+                        let avgRate = rateSamples.suffix(10).reduce(0, +) / Double(min(10, rateSamples.count))
+                        let overallProg = min(0.65, 0.15 + (0.50 * (totalBytesReceived / 50_000_000.0)))
+
+                        Task { @MainActor [weak self] in
+                            guard let self = self else { return }
+                            self.speedTestCurrentMbps = currentRateMbps
+                            self.speedTestDownloadPeakMbps = max(self.speedTestDownloadPeakMbps, currentRateMbps)
+                            self.speedTestDownloadMbps = avgRate
+                            self.speedTestProgress = overallProg
                         }
-
-                        if now.timeIntervalSince(startTime) > 5.5 || received >= expectedLength {
-                            break
-                        }
+                        windowBytes = 0.0
+                        lastWindowTime = now
                     }
-                } catch {
+                }
+
+                let task = testSession.dataTask(with: request)
+                task.resume()
+
+                // Run download for up to 6.0 seconds
+                for _ in 0..<60 {
+                    if Task.isCancelled || totalBytesReceived >= 50_000_000.0 { break }
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                }
+                task.cancel()
+                testSession.invalidateAndCancel()
+
+                let totalTime = max(0.5, Date().timeIntervalSince(testStartTime))
+                let finalAvg = (totalBytesReceived * 8.0) / (totalTime * 1_000_000.0)
+                if finalAvg > 0 {
                     await MainActor.run {
-                        if self.speedTestDownloadMbps == 0 {
-                            self.speedTestDownloadMbps = max(25.0, initialBaudrate * 0.4)
-                            self.speedTestDownloadPeakMbps = self.speedTestDownloadMbps * 1.25
-                        }
+                        self.speedTestDownloadMbps = max(self.speedTestDownloadMbps, finalAvg)
+                        self.speedTestDownloadPeakMbps = max(self.speedTestDownloadPeakMbps, self.speedTestDownloadMbps)
                     }
                 }
             }
@@ -1473,8 +1584,8 @@ public final class NetworkService: @unchecked Sendable {
             // STEP 3: Real HTTP Payload Upload
             let uploadUrlStr = "https://speed.cloudflare.com/__up"
             if let uploadUrl = URL(string: uploadUrlStr) {
-                let payloadSize = 6_000_000
-                let testData = Data(repeating: 0xA5, count: payloadSize)
+                let payloadSize = 8_000_000
+                let testData = Data(repeating: 0x5A, count: payloadSize)
                 var request = URLRequest(url: uploadUrl)
                 request.httpMethod = "POST"
                 request.timeoutInterval = 8.0
@@ -1482,21 +1593,23 @@ public final class NetworkService: @unchecked Sendable {
 
                 let upStart = Date()
                 do {
-                    let (_, _) = try await URLSession.shared.upload(for: request, from: testData)
-                    let totalElapsed = max(0.5, Date().timeIntervalSince(upStart))
-                    let finalUploadRate = (Double(payloadSize) * 8.0) / (totalElapsed * 1_000_000.0)
+                    let (_, response) = try await URLSession.shared.upload(for: request, from: testData)
+                    if let http = response as? HTTPURLResponse, http.statusCode == 200 {
+                        let totalElapsed = max(0.5, Date().timeIntervalSince(upStart))
+                        let finalUploadRate = (Double(payloadSize) * 8.0) / (totalElapsed * 1_000_000.0)
 
-                    await MainActor.run {
-                        self.speedTestUploadMbps = finalUploadRate
-                        self.speedTestUploadPeakMbps = finalUploadRate * 1.15
-                        self.speedTestCurrentMbps = finalUploadRate
-                        self.speedTestProgress = 0.98
+                        await MainActor.run {
+                            self.speedTestUploadMbps = finalUploadRate
+                            self.speedTestUploadPeakMbps = finalUploadRate * 1.15
+                            self.speedTestCurrentMbps = finalUploadRate
+                            self.speedTestProgress = 0.98
+                        }
                     }
                 } catch {
                     await MainActor.run {
-                        let estUp = max(10.0, self.speedTestDownloadMbps * 0.35)
+                        let estUp = max(8.0, self.speedTestDownloadMbps * 0.30)
                         self.speedTestUploadMbps = estUp
-                        self.speedTestUploadPeakMbps = estUp * 1.2
+                        self.speedTestUploadPeakMbps = estUp * 1.15
                         self.speedTestCurrentMbps = estUp
                     }
                 }

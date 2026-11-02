@@ -52,59 +52,71 @@ struct OverviewCpuCard: View {
                         .lineLimit(1)
                 }
 
-                Chart {
-                    // Reference Lines
-                    RuleMark(y: .value("Load", 50))
-                        .lineStyle(StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
-                        .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                ZStack(alignment: .topLeading) {
+                    // Layer 1: Dashed Grid Lines (Spanning full width) & Far-Right Aligned Labels
+                    GeometryReader { geo in
+                        let w = geo.size.width
+                        let h = geo.size.height
+                        let labelWidth: CGFloat = 28
+                        let gridColor = ChartTheme.gridColor(for: colorScheme)
+                        let lineEndX = max(0, w - labelWidth - 4)
+                        let y100: CGFloat = 5
+                        let y50: CGFloat = h * 0.5
 
-                    RuleMark(y: .value("Load", 100))
-                        .lineStyle(StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
-                        .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                        // 100% Horizontal Grid Line
+                        HorizontalDashedLine()
+                            .stroke(gridColor, style: ChartTheme.gridStroke)
+                            .frame(width: lineEndX, height: 1)
+                            .position(x: lineEndX / 2, y: y100)
 
-                    ForEach(system.cpuHistory) { point in
-                        LineMark(
-                            x: .value("Time", point.timestamp),
-                            y: .value("Load", point.value)
-                        )
-                        .interpolationMethod(.monotone)
-                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                        .foregroundStyle(appState.accentColor)
+                        // 100% Percentage Label (Far Right Aligned, flush with card header "30s Rolling")
+                        Text("100%")
+                            .font(ChartTheme.compactAxisLabelFont)
+                            .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
+                            .frame(width: labelWidth, alignment: .trailing)
+                            .position(x: w - labelWidth / 2, y: y100)
 
-                        AreaMark(
-                            x: .value("Time", point.timestamp),
-                            y: .value("Load", point.value)
-                        )
-                        .interpolationMethod(.monotone)
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [
-                                    appState.accentColor.opacity(0.25),
-                                    appState.accentColor.opacity(0.0)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
+                        // 50% Horizontal Grid Line
+                        HorizontalDashedLine()
+                            .stroke(gridColor, style: ChartTheme.gridStroke)
+                            .frame(width: lineEndX, height: 1)
+                            .position(x: lineEndX / 2, y: y50)
+
+                        // 50% Percentage Label (Far Right Aligned, exactly matching 100% right edge)
+                        Text("50%")
+                            .font(ChartTheme.compactAxisLabelFont)
+                            .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
+                            .frame(width: labelWidth, alignment: .trailing)
+                            .position(x: w - labelWidth / 2, y: y50)
                     }
+
+                    // Layer 2: Real-time CPU Area & Line Waveform
+                    // Inset on trailing by 32pt so the waveform stops safely before 100% and 50% labels
+                    Chart {
+                        ForEach(system.cpuHistory) { point in
+                            LineMark(
+                                x: .value("Time", point.timestamp),
+                                y: .value("Load", point.value)
+                            )
+                            .interpolationMethod(.monotone)
+                            .lineStyle(StrokeStyle(lineWidth: ChartTheme.lineWidth, lineCap: .round, lineJoin: .round))
+                            .foregroundStyle(appState.accentColor)
+
+                            AreaMark(
+                                x: .value("Time", point.timestamp),
+                                y: .value("Load", point.value)
+                            )
+                            .interpolationMethod(.monotone)
+                            .foregroundStyle(ChartTheme.areaGradient(for: appState.accentColor))
+                        }
+                    }
+                    .chartXAxis(.hidden)
+                    .chartYAxis(.hidden)
+                    .chartYScale(domain: 0...100)
+                    .padding(.trailing, 32)
+                    .allowsHitTesting(false)
                 }
-                .chartXAxis(.hidden)
-                .chartYAxis(.hidden)
-                .chartYScale(domain: 0...100)
                 .frame(height: 54)
-                .allowsHitTesting(false)
-                .overlay(alignment: .topTrailing) {
-                    Text("100%")
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
-                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                        .padding(.trailing, 2)
-                }
-                .overlay(alignment: .trailing) {
-                    Text("50%")
-                        .font(.system(size: 8, weight: .medium, design: .monospaced))
-                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                        .padding(.trailing, 2)
-                }
             }
 
             // Discrete Core Load Columns (Refined Geometric Level Meters)

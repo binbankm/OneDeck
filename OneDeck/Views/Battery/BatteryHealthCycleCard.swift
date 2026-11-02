@@ -22,44 +22,49 @@ struct BatteryHealthCycleCard: View {
 
                 Spacer()
 
-                // Authenticity Badge
+                // Authenticity Badge (BMS Log or Hardware Direct)
+                let isDataActive = battery.hasRealTelemetry
+                let badgeColor: Color = isDataActive ? .green : .orange
+                let badgeText: String = battery.hasImportedBMS ? L10n.Battery.bmsRaw : (battery.hasRealTelemetry ? L10n.Battery.hardwareDirectTag : L10n.Battery.baselineEstimated)
+
                 HStack(spacing: 4) {
                     Circle()
-                        .fill(battery.hasImportedBMS ? Color.green : Color.orange)
+                        .fill(badgeColor)
                         .frame(width: 6, height: 6)
 
-                    Text(battery.hasImportedBMS ? L10n.Battery.bmsRaw : L10n.Battery.pendingImport)
+                    Text(badgeText)
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(battery.hasImportedBMS ? Color.green : Color.orange)
+                        .foregroundStyle(badgeColor)
                         .lineLimit(1)
                 }
                 .padding(.horizontal, 9)
                 .padding(.vertical, 3.5)
-                .background((battery.hasImportedBMS ? Color.green : Color.orange).opacity(0.12))
+                .background(badgeColor.opacity(0.12))
                 .clipShape(Capsule())
             }
 
             // 2x2 Bento Stat Matrix (Rock-Solid Geometry, Zero Wrap)
+            let isDataActive = battery.hasRealTelemetry
             VStack(spacing: 8) {
                 HStack(spacing: 10) {
                     // Cell 1: Cycle Count
                     healthTile(
                         icon: "arrow.triangle.2.circlepath",
                         label: L10n.Battery.cycleCount,
-                        value: battery.hasImportedBMS ? "\(battery.cycleCountDisplay)" : "--",
-                        unit: battery.hasImportedBMS ? L10n.Battery.cyclesUnit : "",
-                        status: battery.hasImportedBMS ? cycleTierText : L10n.Battery.pendingImport,
-                        statusColor: battery.hasImportedBMS ? cycleTierColor : .orange
+                        value: "\(battery.cycleCountDisplay)",
+                        unit: L10n.Battery.cyclesUnit,
+                        status: isDataActive ? cycleTierText : L10n.Battery.baselineEstimated,
+                        statusColor: isDataActive ? cycleTierColor : .orange
                     )
 
                     // Cell 2: Battery Health %
                     healthTile(
                         icon: "heart.fill",
                         label: L10n.Battery.health,
-                        value: battery.hasImportedBMS ? String(format: "%.1f", battery.healthPercentDisplay) : "--",
-                        unit: battery.hasImportedBMS ? "%" : "",
-                        status: battery.hasImportedBMS ? healthTierText : L10n.Battery.pendingImport,
-                        statusColor: battery.hasImportedBMS ? healthTierColor : .orange
+                        value: String(format: "%.1f", battery.healthPercentDisplay),
+                        unit: "%",
+                        status: isDataActive ? healthTierText : L10n.Battery.baselineEstimated,
+                        statusColor: isDataActive ? healthTierColor : .orange
                     )
                 }
 
@@ -68,10 +73,10 @@ struct BatteryHealthCycleCard: View {
                     healthTile(
                         icon: "battery.100.bolt",
                         label: L10n.Battery.currentMaxCapacity,
-                        value: battery.hasImportedBMS ? "\(battery.actualMaxCapacityMahDisplay)" : "--",
-                        unit: battery.hasImportedBMS ? "mAh" : "",
-                        status: battery.hasImportedBMS ? L10n.Battery.effectiveCap : L10n.Battery.pendingImport,
-                        statusColor: battery.hasImportedBMS ? appState.accentColor : .orange
+                        value: "\(battery.actualMaxCapacityMahDisplay)",
+                        unit: "mAh",
+                        status: isDataActive ? L10n.Battery.effectiveCap : L10n.Battery.baselineEstimated,
+                        statusColor: isDataActive ? appState.accentColor : .orange
                     )
 
                     // Cell 4: Factory Design Capacity (Known accurately from factory DB)
@@ -84,6 +89,117 @@ struct BatteryHealthCycleCard: View {
                         statusColor: battery.isCustomBattery ? .orange : Theme.textSecondary(for: colorScheme)
                     )
                 }
+            }
+
+            // Baseline Estimate Calibration Hint (When log not yet imported)
+            if !battery.hasRealTelemetry {
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.orange)
+
+                    Text(L10n.Battery.baselineNotice)
+                        .font(.system(size: 10.5, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(2)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(colorScheme == .dark ? 0.08 : 0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+
+            // Real Hardware Telemetry Sub-deck (Serial Number & Cell Voltages)
+            if let sn = battery.batterySerialNumber, !sn.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "barcode")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(appState.accentColor)
+
+                    Text(L10n.Battery.batterySerial)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+
+                    Spacer()
+
+                    Text(sn)
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+
+            if let mDate = battery.batteryManufactureDate, !mDate.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(appState.accentColor)
+
+                    Text(L10n.Battery.manufactureDate)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+
+                    Spacer()
+
+                    Text(mDate)
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+
+            if let chem = battery.batteryChemistry, !chem.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "atom")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(appState.accentColor)
+
+                    Text(L10n.Battery.batteryChemistry)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+
+                    Spacer()
+
+                    Text(chem)
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+
+            if !battery.cellVoltages.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "battery.100.bolt")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(appState.accentColor)
+
+                    Text(L10n.Battery.cellVoltagesLabel)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+
+                    Spacer()
+
+                    Text(battery.cellVoltages.map { "\($0) mV" }.joined(separator: " · "))
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(appState.accentColor)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
             // Official Diagnostics Log Importer & Reset Row

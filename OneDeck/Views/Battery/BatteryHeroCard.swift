@@ -37,6 +37,7 @@ struct BatteryHeroCard: View {
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundStyle(activeStatusColor)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                 }
                 .padding(.horizontal, 9)
                 .padding(.vertical, 4)

@@ -154,7 +154,7 @@ struct BatteryThermalChassisCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .bentoCard(accent: flirColor(for: temperature(of: selectedZone)))
+        .bentoCard(accent: thermalColor(for: temperature(of: selectedZone)))
         .onAppear {
             isBreathing = true
         }
@@ -162,13 +162,17 @@ struct BatteryThermalChassisCard: View {
 
     // MARK: - 2. Thermal Spectrum Scale Bar with MAX / MIN Indicators
     private var thermalScaleBar: some View {
-        HStack(spacing: 6) {
+        let isDark = (colorScheme == .dark)
+        let minC = thermalColor(for: minTemperature)
+        let maxC = thermalColor(for: maxTemperature)
+
+        return HStack(spacing: 6) {
             // Min Reading Tag
             HStack(spacing: 3) {
-                Circle().fill(Color(red: 0.0, green: 0.82, blue: 0.88)).frame(width: 5, height: 5)
+                Circle().fill(minC).frame(width: 5, height: 5)
                 Text("\(L10n.Battery.minSpot) \(String(format: "%.1f", minTemperature))°C")
                     .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .foregroundStyle(minC)
             }
 
             // Smooth Multi-Stop False Color Thermal Gradient Track
@@ -181,7 +185,7 @@ struct BatteryThermalChassisCard: View {
                             .init(color: Color(red: 0.15, green: 0.85, blue: 0.40), location: 0.45),
                             .init(color: Color(red: 0.98, green: 0.65, blue: 0.05), location: 0.70),
                             .init(color: Color(red: 1.00, green: 0.25, blue: 0.20), location: 0.88),
-                            .init(color: Color(red: 1.00, green: 0.95, blue: 0.80), location: 1.00)
+                            .init(color: Color(red: 0.75, green: 0.06, blue: 0.14), location: 1.00)
                         ],
                         startPoint: .leading,
                         endPoint: .trailing
@@ -190,15 +194,15 @@ struct BatteryThermalChassisCard: View {
                 .frame(height: 4)
                 .overlay(
                     RoundedRectangle(cornerRadius: 3, style: .continuous)
-                        .stroke(colorScheme == .dark ? Color.white.opacity(0.15) : Color.black.opacity(0.1), lineWidth: 0.5)
+                        .stroke(isDark ? Color.white.opacity(0.15) : Color.black.opacity(0.12), lineWidth: 0.5)
                 )
 
             // Max Reading Tag
             HStack(spacing: 3) {
-                Circle().fill(Color(red: 1.00, green: 0.25, blue: 0.20)).frame(width: 5, height: 5)
+                Circle().fill(maxC).frame(width: 5, height: 5)
                 Text("\(L10n.Battery.maxSpot) \(String(format: "%.1f", maxTemperature))°C")
                     .font(.system(size: 8.5, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color(red: 1.00, green: 0.35, blue: 0.30))
+                    .foregroundStyle(maxC)
             }
         }
         .padding(.horizontal, 2)
@@ -246,7 +250,7 @@ struct BatteryThermalChassisCard: View {
         let isDark = (colorScheme == .dark)
 
         RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .fill(isDark ? Color(red: 0.04, green: 0.07, blue: 0.12) : Color(white: 0.94))
+            .fill(isDark ? Color(red: 0.04, green: 0.07, blue: 0.12) : Color(hex: "#ECEEF2"))
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .stroke(
@@ -256,9 +260,9 @@ struct BatteryThermalChassisCard: View {
                                 Color.white.opacity(0.06),
                                 Color.black.opacity(0.4)
                             ] : [
-                                Color.black.opacity(0.18),
+                                Color.black.opacity(0.20),
                                 Color.black.opacity(0.08),
-                                Color.white.opacity(0.6)
+                                Color.white.opacity(0.7)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -301,10 +305,10 @@ struct BatteryThermalChassisCard: View {
         let pmicTemp = temperature(of: .pmic)
         let wirelessTemp = temperature(of: .wireless)
 
-        let socColor = flirColor(for: socTemp)
-        let bColor = flirColor(for: batteryTemp)
-        let pColor = flirColor(for: pmicTemp)
-        let wColor = flirColor(for: wirelessTemp)
+        let socColor = thermalColor(for: socTemp)
+        let bColor = thermalColor(for: batteryTemp)
+        let pColor = thermalColor(for: pmicTemp)
+        let wColor = thermalColor(for: wirelessTemp)
         let isDark = (colorScheme == .dark)
 
         ZStack {
@@ -403,7 +407,7 @@ struct BatteryThermalChassisCard: View {
 
     @ViewBuilder
     private func cameraModuleBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, fillAlpha: Double, strokeAlpha: Double) -> some View {
-        let baseColor: Color = isDark ? Color.white : Color.black
+        let baseColor: Color = isDark ? Color.white : Color(hex: "#1E1E24")
         ZStack {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(baseColor.opacity(fillAlpha))
@@ -433,10 +437,10 @@ struct BatteryThermalChassisCard: View {
     @ViewBuilder
     private func batteryPackBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, fillAlpha: Double, isXRay: Bool) -> some View {
         let isBatteryActive = (selectedZone == .battery)
-        let bColor = flirColor(for: temperature(of: .battery))
+        let bColor = thermalColor(for: temperature(of: .battery))
         let defaultFill: Color = isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)
-        let batteryFill: Color = isBatteryActive ? bColor.opacity(0.20) : defaultFill
-        let defaultStroke: Color = isXRay ? Color.cyan.opacity(0.6) : bColor.opacity(0.4)
+        let batteryFill: Color = isBatteryActive ? bColor.opacity(isDark ? 0.20 : 0.12) : defaultFill
+        let defaultStroke: Color = isXRay ? (isDark ? Color.cyan.opacity(0.6) : Color(hex: "#0284C7").opacity(0.6)) : bColor.opacity(isDark ? 0.4 : 0.35)
         let batteryStroke: Color = isBatteryActive ? bColor : defaultStroke
 
         Button {
@@ -457,11 +461,11 @@ struct BatteryThermalChassisCard: View {
     @ViewBuilder
     private func wirelessCoilBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, strokeAlpha: Double) -> some View {
         let isWirelessActive = (selectedZone == .wireless)
-        let wColor = flirColor(for: temperature(of: .wireless))
-        let defaultOuterColor: Color = isDark ? Color.yellow.opacity(strokeAlpha * 0.8) : Color.orange.opacity(0.5)
-        let defaultInnerColor: Color = isDark ? Color.yellow.opacity(strokeAlpha * 0.5) : Color.orange.opacity(0.35)
+        let wColor = thermalColor(for: temperature(of: .wireless))
+        let defaultOuterColor: Color = isDark ? Color.yellow.opacity(strokeAlpha * 0.8) : Color(hex: "#C25E00").opacity(0.55)
+        let defaultInnerColor: Color = isDark ? Color.yellow.opacity(strokeAlpha * 0.5) : Color(hex: "#C25E00").opacity(0.38)
         let outerColor: Color = isWirelessActive ? wColor : defaultOuterColor
-        let innerColor: Color = isWirelessActive ? wColor.opacity(0.8) : defaultInnerColor
+        let innerColor: Color = isWirelessActive ? wColor.opacity(0.85) : defaultInnerColor
 
         Button {
             selectZone(.wireless)
@@ -488,10 +492,10 @@ struct BatteryThermalChassisCard: View {
     @ViewBuilder
     private func socMotherboardBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, fillAlpha: Double, isXRay: Bool) -> some View {
         let isSocActive = (selectedZone == .soc)
-        let sColor = flirColor(for: temperature(of: .soc))
+        let sColor = thermalColor(for: temperature(of: .soc))
         let defaultFill: Color = isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)
-        let socFill: Color = isSocActive ? sColor.opacity(0.24) : defaultFill
-        let defaultStroke: Color = isXRay ? Color.orange.opacity(0.7) : sColor.opacity(0.5)
+        let socFill: Color = isSocActive ? sColor.opacity(isDark ? 0.24 : 0.14) : defaultFill
+        let defaultStroke: Color = isXRay ? (isDark ? Color.orange.opacity(0.7) : Color(hex: "#C25E00").opacity(0.65)) : sColor.opacity(isDark ? 0.5 : 0.4)
         let socStroke: Color = isSocActive ? sColor : defaultStroke
 
         Button {
@@ -508,11 +512,11 @@ struct BatteryThermalChassisCard: View {
                 VStack(spacing: 1.5) {
                     Image(systemName: "cpu")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(isSocActive ? sColor : (isDark ? Color.white.opacity(0.85) : Color.black.opacity(0.75)))
+                        .foregroundStyle(isSocActive ? sColor : (isDark ? Color.white.opacity(0.85) : Color(hex: "#1E1E24").opacity(0.75)))
 
                     Text(chipMarketingShort)
                         .font(.system(size: 8, weight: .heavy, design: .monospaced))
-                        .foregroundStyle(isDark ? Color.white.opacity(0.85) : Color.black.opacity(0.85))
+                        .foregroundStyle(isDark ? Color.white.opacity(0.85) : Color(hex: "#1E1E24").opacity(0.85))
                         .lineLimit(1)
                 }
             }
@@ -525,10 +529,10 @@ struct BatteryThermalChassisCard: View {
     @ViewBuilder
     private func pmicDockBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, fillAlpha: Double, isXRay: Bool) -> some View {
         let isPmicActive = (selectedZone == .pmic)
-        let pColor = flirColor(for: temperature(of: .pmic))
+        let pColor = thermalColor(for: temperature(of: .pmic))
         let defaultFill: Color = isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)
-        let pmicFill: Color = isPmicActive ? pColor.opacity(0.22) : defaultFill
-        let defaultStroke: Color = isXRay ? Color.cyan.opacity(0.6) : pColor.opacity(0.5)
+        let pmicFill: Color = isPmicActive ? pColor.opacity(isDark ? 0.22 : 0.14) : defaultFill
+        let defaultStroke: Color = isXRay ? (isDark ? Color.cyan.opacity(0.6) : Color(hex: "#0284C7").opacity(0.6)) : pColor.opacity(isDark ? 0.5 : 0.4)
         let pmicStroke: Color = isPmicActive ? pColor : defaultStroke
 
         Button {
@@ -545,9 +549,9 @@ struct BatteryThermalChassisCard: View {
                 HStack(spacing: 5) {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(isPmicActive ? pColor : (isDark ? Color.white.opacity(0.8) : Color.black.opacity(0.7)))
+                        .foregroundStyle(isPmicActive ? pColor : (isDark ? Color.white.opacity(0.8) : Color(hex: "#1E1E24").opacity(0.7)))
                     Capsule()
-                        .fill((isDark ? Color.white : Color.black).opacity(0.4))
+                        .fill((isDark ? Color.white : Color(hex: "#1E1E24")).opacity(0.4))
                         .frame(width: 14, height: 3)
                 }
             }
@@ -560,18 +564,19 @@ struct BatteryThermalChassisCard: View {
     // MARK: - Layer 4: Thermal Isotherms
     @ViewBuilder
     private func thermalIsothermsLayer(w: CGFloat, h: CGFloat) -> some View {
+        let isDark = (colorScheme == .dark)
         let socX = w * 0.24
         let socY = -h * 0.18
-        let sColor = flirColor(for: temperature(of: .soc))
+        let sColor = thermalColor(for: temperature(of: .soc))
 
         ZStack {
             Circle()
-                .stroke(sColor.opacity(0.35), style: StrokeStyle(lineWidth: 0.8, dash: [4, 3]))
+                .stroke(sColor.opacity(isDark ? 0.35 : 0.40), style: StrokeStyle(lineWidth: 0.8, dash: [4, 3]))
                 .frame(width: w * 0.44, height: w * 0.44)
                 .offset(x: socX, y: socY)
 
             Circle()
-                .stroke(sColor.opacity(0.20), style: StrokeStyle(lineWidth: 0.6, dash: [5, 4]))
+                .stroke(sColor.opacity(isDark ? 0.20 : 0.25), style: StrokeStyle(lineWidth: 0.6, dash: [5, 4]))
                 .frame(width: w * 0.62, height: w * 0.62)
                 .offset(x: socX, y: socY)
         }
@@ -581,9 +586,11 @@ struct BatteryThermalChassisCard: View {
     // MARK: - Layer 5: FLIR Target Tracking Reticles (Non-Colliding, Clean Positioning)
     @ViewBuilder
     private func flirTargetTrackingLayer(w: CGFloat, h: CGFloat) -> some View {
+        let isDark = (colorScheme == .dark)
+
         // MAX Hotspot Reticle
         let (maxX, maxY) = pinCoordinates(for: maxZone, w: w, h: h)
-        let maxColor = flirColor(for: maxTemperature)
+        let maxColor = thermalColor(for: maxTemperature)
 
         flirCrosshairShape(color: maxColor, label: L10n.Battery.maxSpot, isPulse: true)
             .offset(x: maxX, y: maxY - 16)
@@ -591,7 +598,7 @@ struct BatteryThermalChassisCard: View {
 
         // MIN Coldspot Reticle
         let (minX, minY) = pinCoordinates(for: minZone, w: w, h: h)
-        let minColor = flirColor(for: minTemperature)
+        let minColor = thermalColor(for: minTemperature)
 
         flirCrosshairShape(color: minColor, label: L10n.Battery.minSpot, isPulse: false)
             .offset(x: minX, y: minY + 16)
@@ -599,7 +606,8 @@ struct BatteryThermalChassisCard: View {
 
         // Active Zone Selection Pulse Ring
         let (selX, selY) = pinCoordinates(for: selectedZone, w: w, h: h)
-        let selColor = flirColor(for: temperature(of: selectedZone))
+        let selColor = thermalColor(for: temperature(of: selectedZone))
+        let centerPipColor = isDark ? Color.white : Theme.textPrimary(for: colorScheme)
 
         ZStack {
             Circle()
@@ -609,8 +617,9 @@ struct BatteryThermalChassisCard: View {
                 .animation(.easeInOut(duration: 1.3).repeatForever(autoreverses: true), value: isBreathing)
 
             Circle()
-                .fill(Color.white)
+                .fill(centerPipColor)
                 .frame(width: 4, height: 4)
+                .shadow(color: isDark ? Color.black.opacity(0.6) : Color.white.opacity(0.8), radius: 1)
         }
         .offset(x: selX, y: selY)
         .allowsHitTesting(false)
@@ -619,38 +628,49 @@ struct BatteryThermalChassisCard: View {
 
     @ViewBuilder
     private func flirCrosshairShape(color: Color, label: String, isPulse: Bool) -> some View {
-        HStack(spacing: 2) {
+        let isDark = (colorScheme == .dark)
+
+        HStack(spacing: 2.5) {
             ZStack {
-                Rectangle().fill(color).frame(width: 6, height: 1)
-                Rectangle().fill(color).frame(width: 1, height: 6)
+                Rectangle().fill(isDark ? color : Color.white).frame(width: 6, height: 1.2)
+                Rectangle().fill(isDark ? color : Color.white).frame(width: 1.2, height: 6)
             }
             .frame(width: 7, height: 7)
 
             Text(label)
-                .font(.system(size: 6.5, weight: .heavy, design: .monospaced))
-                .foregroundStyle(color)
+                .font(.system(size: 7, weight: .heavy, design: .monospaced))
+                .foregroundStyle(isDark ? color : Color.white)
         }
-        .padding(.horizontal, 3)
-        .padding(.vertical, 1.5)
-        .background(colorScheme == .dark ? Color.black.opacity(0.70) : Color.white.opacity(0.85))
-        .clipShape(RoundedRectangle(cornerRadius: 3))
-        .shadow(color: Color.black.opacity(0.15), radius: 2)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 2)
+        .background(
+            isDark
+                ? Color.black.opacity(0.82)
+                : color
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 3.5, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 3.5, style: .continuous)
+                .stroke(isDark ? color.opacity(0.40) : Color.white.opacity(0.40), lineWidth: 0.8)
+        )
+        .shadow(color: Color.black.opacity(isDark ? 0.35 : 0.18), radius: 2.5, x: 0, y: 1)
     }
 
     // MARK: - Layer 6: Engineering HUD Optics & Parameters
     @ViewBuilder
     private func chassisHudOverlay(w: CGFloat, h: CGFloat) -> some View {
-        let hudColor = colorScheme == .dark ? Color.white : Color.black
+        let isDark = (colorScheme == .dark)
+        let hudColor = isDark ? Color.white : Color(hex: "#1E1E24")
 
         VStack {
             HStack {
                 Text("● IR")
                     .font(.system(size: 6.5, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.red.opacity(0.85))
+                    .foregroundStyle(isDark ? Color.red.opacity(0.85) : Color(hex: "#DC2626"))
                 Spacer()
                 Text("ε:0.95")
                     .font(.system(size: 6.5, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(hudColor.opacity(0.45))
+                    .foregroundStyle(hudColor.opacity(isDark ? 0.45 : 0.65))
             }
             .padding(.horizontal, 7)
             .padding(.top, 5)
@@ -660,11 +680,11 @@ struct BatteryThermalChassisCard: View {
             HStack {
                 Text("FOV 54°")
                     .font(.system(size: 6.5, weight: .medium, design: .monospaced))
-                    .foregroundStyle(hudColor.opacity(0.35))
+                    .foregroundStyle(hudColor.opacity(isDark ? 0.35 : 0.55))
                 Spacer()
                 Text("LIVE")
                     .font(.system(size: 6.5, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.green.opacity(0.75))
+                    .foregroundStyle(isDark ? Color.green.opacity(0.85) : Color(hex: "#15803D"))
             }
             .padding(.horizontal, 7)
             .padding(.bottom, 5)
@@ -690,10 +710,14 @@ struct BatteryThermalChassisCard: View {
     private func zoneFullWidthRow(_ zone: ThermalZone) -> some View {
         let isSelected: Bool = (selectedZone == zone)
         let temp: Double = temperature(of: zone)
-        let color: Color = flirColor(for: temp)
-        let defaultBg: Color = (colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
-        let rowBg: Color = isSelected ? color.opacity(0.18) : defaultBg
-        let rowStroke: Color = isSelected ? color.opacity(0.7) : Color.clear
+        let color: Color = thermalColor(for: temp)
+        let isDark: Bool = (colorScheme == .dark)
+
+        let defaultBg: Color = isDark ? Color.white.opacity(0.04) : Color.black.opacity(0.03)
+        let rowBg: Color = isSelected ? color.opacity(isDark ? 0.18 : 0.12) : defaultBg
+        let rowStroke: Color = isSelected
+            ? color.opacity(isDark ? 0.75 : 0.65)
+            : (isDark ? Color.white.opacity(0.04) : Color.black.opacity(0.06))
         let iconColor: Color = isSelected ? color : Theme.textSecondary(for: colorScheme)
         let labelColor: Color = isSelected ? Theme.textPrimary(for: colorScheme) : Theme.textSecondary(for: colorScheme)
 
@@ -734,7 +758,8 @@ struct BatteryThermalChassisCard: View {
     // MARK: - Right Column: Active Zone Concise Engineering Note
     private var activeZoneNote: some View {
         let temp = temperature(of: selectedZone)
-        let color = flirColor(for: temp)
+        let color = thermalColor(for: temp)
+        let isDark = (colorScheme == .dark)
 
         return VStack(alignment: .leading, spacing: 3) {
             HStack {
@@ -747,11 +772,15 @@ struct BatteryThermalChassisCard: View {
 
                 Text(temperatureStatusLabel(for: temp))
                     .font(.system(size: 8.5, weight: .bold, design: .rounded))
-                    .padding(.horizontal, 5)
+                    .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(color.opacity(0.14))
+                    .background(color.opacity(isDark ? 0.16 : 0.12))
                     .foregroundStyle(color)
                     .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(color.opacity(isDark ? 0.35 : 0.28), lineWidth: 0.6)
+                    )
                     .lineLimit(1)
             }
 
@@ -762,8 +791,12 @@ struct BatteryThermalChassisCard: View {
                 .lineSpacing(1.5)
         }
         .padding(7.5)
-        .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+        .background(isDark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isDark ? Color.white.opacity(0.05) : Color.black.opacity(0.05), lineWidth: 0.6)
+        )
     }
 
     // MARK: - Actions & Thermal Computations
@@ -784,14 +817,18 @@ struct BatteryThermalChassisCard: View {
         case .soc:
             return system.socTemperature
         case .pmic:
-            if battery.batteryState == .charging {
+            if let p = battery.hardwarePmicTemp {
+                return p
+            } else if battery.batteryState == .charging {
                 let wattBoost = min(5.5, abs(battery.liveWattage) * 0.32)
                 return cellBase + max(1.2, wattBoost)
             } else {
                 return max(24.0, cellBase - 1.4)
             }
         case .wireless:
-            if battery.batteryState == .charging {
+            if let w = battery.hardwareWirelessTemp {
+                return w
+            } else if battery.batteryState == .charging {
                 return cellBase + 0.6
             } else {
                 return max(24.0, cellBase - 0.8)
@@ -815,26 +852,34 @@ struct BatteryThermalChassisCard: View {
         temperature(of: minZone)
     }
 
-    private func flirColor(for temp: Double) -> Color {
+    // MARK: - Adaptive Thermal Color Engine
+    /// Computes high-contrast thermal palette colors, fully adapted to Light & Dark appearance.
+    private func thermalColor(for temp: Double) -> Color {
+        let isDark = (colorScheme == .dark)
         if temp < 30.0 {
-            return Color(red: 0.0, green: 0.82, blue: 0.88)
-        } else if temp < 34.0 {
-            return Color(red: 0.15, green: 0.85, blue: 0.40)
-        } else if temp < 37.5 {
-            return Color(red: 0.98, green: 0.65, blue: 0.05)
-        } else if temp < 41.0 {
-            return Color(red: 1.00, green: 0.28, blue: 0.22)
+            // Cool (< 30°C): Electric Cyan in Dark, Ocean/Sapphire Blue in Light
+            return isDark ? Color(red: 0.00, green: 0.85, blue: 0.92) : Color(hex: "#0284C7")
+        } else if temp < 35.0 {
+            // Normal / Comfortable (30 ~ 35°C): Vivid Emerald in Dark, Forest Green in Light
+            return isDark ? Color(red: 0.15, green: 0.85, blue: 0.40) : Color(hex: "#15803D")
+        } else if temp < 39.0 {
+            // Warm (35 ~ 39°C): Titanium Gold/Amber in Dark, Rich Dark Amber in Light
+            return isDark ? Color(red: 1.00, green: 0.70, blue: 0.10) : Color(hex: "#C25E00")
+        } else if temp < 43.0 {
+            // Hot (39 ~ 43°C): Fiery Orange-Red in Dark, Vivid Crimson in Light
+            return isDark ? Color(red: 1.00, green: 0.32, blue: 0.18) : Color(hex: "#DC2626")
         } else {
-            return Color(red: 1.00, green: 0.95, blue: 0.85)
+            // Extreme (>= 43°C): High-Intensity Searing Red in Dark, Deep Burgundy Ruby in Light
+            return isDark ? Color(red: 1.00, green: 0.15, blue: 0.30) : Color(hex: "#B91C1C")
         }
     }
 
     private func temperatureStatusLabel(for temp: Double) -> String {
         if temp < 30.0 {
             return L10n.Battery.thermalStatusCool
-        } else if temp < 35.5 {
+        } else if temp < 35.0 {
             return L10n.Battery.thermalStatusNormal
-        } else if temp < 39.5 {
+        } else if temp < 39.0 {
             return L10n.Battery.thermalStatusWarm
         } else {
             return L10n.Battery.thermalStatusHot

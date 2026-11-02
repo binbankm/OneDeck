@@ -55,7 +55,18 @@ struct NetworkHeroCard: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
-                        Text(net.linkType == .cellular ? (net.carrierName.isEmpty ? L10n.Network.cellular : net.carrierName) : net.linkType.localizedName)
+                        let bannerTitle: String = {
+                            if net.linkType == .wifi {
+                                if let ssid = net.wifiSSID, !ssid.isEmpty { return ssid }
+                                return net.linkType.localizedName
+                            } else if net.linkType == .cellular {
+                                return net.carrierName.isEmpty ? L10n.Network.cellular : net.carrierName
+                            } else {
+                                return net.linkType.localizedName
+                            }
+                        }()
+
+                        Text(bannerTitle)
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
                             .lineLimit(1)
@@ -74,9 +85,24 @@ struct NetworkHeroCard: View {
                     }
 
                     HStack(spacing: 6) {
-                        Text(net.linkType == .wifi ? "en0 · \(net.wifiStandard)" : (net.linkType == .cellular ? "pdp_ip0 · CoreTelephony" : "lo0"))
+                        let subDetails: String = {
+                            if net.linkType == .wifi {
+                                var parts = ["en0", net.wifiStandard]
+                                if let rssi = net.wifiRssiDbm { parts.append("\(rssi) dBm") }
+                                if let ch = net.wifiChannel { parts.append("CH\(ch)") }
+                                if let rate = net.wifiTxRateMbps { parts.append("\(rate) Mbps") }
+                                return parts.joined(separator: " · ")
+                            } else if net.linkType == .cellular {
+                                return "pdp_ip0 · \(L10n.Network.cellularBasebandDesc)"
+                            } else {
+                                return "lo0"
+                            }
+                        }()
+
+                        Text(subDetails)
                             .font(.system(size: 11, weight: .medium, design: .monospaced))
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                            .lineLimit(1)
 
                         if net.isExpensive {
                             Text(L10n.Network.expensiveCellular)

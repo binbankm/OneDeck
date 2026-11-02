@@ -169,6 +169,28 @@ struct OverviewHardwareCard: View {
 
                 case .system:
                     specListRow(
+                        icon: "barcode",
+                        label: L10n.Overview.deviceSerial,
+                        value: system.serialNumber == "N/A" ? L10n.Overview.sandboxProtected : system.serialNumber
+                    )
+                    specListRow(
+                        icon: "number",
+                        label: L10n.Overview.modelNumberLabel,
+                        value: system.modelNumber == "N/A" ? system.machineIdentifier : system.modelNumber
+                    )
+                    if system.regulatoryModel != "N/A" {
+                        specListRow(
+                            icon: "checkmark.seal",
+                            label: L10n.Overview.regulatoryModelLabel,
+                            value: system.regulatoryModel
+                        )
+                    }
+                    specListRow(
+                        icon: "cpu",
+                        label: L10n.Overview.boardId,
+                        value: system.boardId == "N/A" ? "--" : system.boardId
+                    )
+                    specListRow(
                         icon: "clock.arrow.circlepath",
                         label: L10n.Overview.uptime,
                         value: system.uptimeFormatted

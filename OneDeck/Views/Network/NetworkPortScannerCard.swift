@@ -64,26 +64,53 @@ struct NetworkPortScannerCard: View {
                 .disabled(net.isScanningPorts)
             }
 
-            // MARK: - Target Host Sub-banner
-            HStack(spacing: 8) {
-                Text(L10n.Network.targetHost)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                    .lineLimit(1)
+            // MARK: - Target Host Sub-banner with Quick Switchers
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Text(L10n.Network.targetHost)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(1)
 
-                Text(targetHostInput.isEmpty ? ((net.gatewayIPv4 != "--") ? "\(net.gatewayIPv4) (\(L10n.Network.gatewayShort))" : "192.168.1.1") : targetHostInput)
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .lineLimit(1)
+                    let defaultHost = (net.gatewayIPv4 != "--") ? net.gatewayIPv4 : "192.168.1.1"
+                    TextField(defaultHost, text: $targetHostInput)
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .keyboardType(.numbersAndPunctuation)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
 
-                Spacer()
+                    if !targetHostInput.isEmpty {
+                        Button {
+                            targetHostInput = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                        }
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                )
+
+                // Quick Presets
+                HStack(spacing: 6) {
+                    let gw = (net.gatewayIPv4 != "--") ? net.gatewayIPv4 : "192.168.1.1"
+                    quickPresetButton(label: L10n.Network.targetGateway(ip: gw), host: gw)
+                    quickPresetButton(label: L10n.Network.targetLocalhost, host: "127.0.0.1")
+                    if net.localIPv4 != "--" && net.localIPv4 != gw {
+                        quickPresetButton(label: L10n.Network.targetSubnet, host: net.localIPv4)
+                    }
+                }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.4))
-            )
 
             // MARK: - Port Status Grid
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
@@ -134,5 +161,22 @@ struct NetworkPortScannerCard: View {
             }
         }
         .bentoCard(accent: appState.accentColor)
+    }
+
+    @ViewBuilder
+    private func quickPresetButton(label: String, host: String) -> some View {
+        Button {
+            targetHostInput = host
+            Haptics.tick()
+        } label: {
+            Text(label)
+                .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                .foregroundStyle(targetHostInput == host ? appState.accentColor : Theme.textSecondary(for: colorScheme))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background((targetHostInput == host ? appState.accentColor : Theme.cardBackground(for: colorScheme)).opacity(0.12))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }

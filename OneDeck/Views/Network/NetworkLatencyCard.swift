@@ -211,41 +211,32 @@ struct NetworkLatencyCard: View {
                                 x: .value("Time", pt.timestamp),
                                 y: .value("Latency", pt.value)
                             )
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [
-                                        appState.accentColor.opacity(0.28),
-                                        appState.accentColor.opacity(0.02)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .interpolationMethod(.catmullRom)
+                            .foregroundStyle(ChartTheme.areaGradient(for: appState.accentColor))
+                            .interpolationMethod(.monotone)
 
                             LineMark(
                                 x: .value("Time", pt.timestamp),
                                 y: .value("Latency", pt.value)
                             )
                             .foregroundStyle(appState.accentColor)
-                            .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                            .interpolationMethod(.catmullRom)
+                            .lineStyle(StrokeStyle(lineWidth: ChartTheme.lineWidth, lineCap: .round, lineJoin: .round))
+                            .interpolationMethod(.monotone)
                         }
 
                         RuleMark(y: .value("Baseline", 50))
-                            .lineStyle(StrokeStyle(lineWidth: 0.8, dash: [4, 4]))
-                            .foregroundStyle(Color.secondary.opacity(0.35))
+                            .lineStyle(StrokeStyle(lineWidth: 0.8, dash: [3, 2]))
+                            .foregroundStyle(Color.orange.opacity(0.6))
                     }
                     .chartXAxis(.hidden)
                     .chartYAxis {
                         AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { val in
-                            AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
-                                .foregroundStyle(Color.secondary.opacity(0.2))
+                            AxisGridLine(stroke: ChartTheme.gridStroke)
+                                .foregroundStyle(ChartTheme.gridColor(for: colorScheme))
                             AxisValueLabel {
                                 if let intVal = val.as(Int.self) {
                                     Text("\(intVal)ms")
-                                        .font(.system(size: 9, weight: .medium, design: .monospaced))
-                                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                                        .font(ChartTheme.axisLabelFont)
+                                        .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
                                 }
                             }
                         }
@@ -341,15 +332,21 @@ private struct DnsBenchmarkNodeRow: View {
             Spacer()
 
             // Latency Readout
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(node.latencyMs > 900 ? "--" : String(format: "%.0f", node.latencyMs))
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(node.isFastest ? Color.green : (node.latencyMs < 50 ? accentColor : Color.orange))
+            if node.latencyMs == 0.0 {
+                Text(L10n.Network.pendingBenchmark)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(Theme.textTertiary(for: colorScheme))
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(node.latencyMs > 900 ? "--" : String(format: "%.0f", node.latencyMs))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(node.isFastest ? Color.green : (node.latencyMs < 50 ? accentColor : Color.orange))
 
-                Text("ms")
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    Text("ms")
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                }
             }
         }
         .padding(.horizontal, 10)

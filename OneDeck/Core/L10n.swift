@@ -148,14 +148,33 @@ public enum L10n {
         public static var title: String { tr(zh: "看板", en: "Dashboard", hant: "看板") }
         public static var deviceIdentity: String { tr(zh: "设备信息", en: "Device Info", hant: "裝置資訊") }
         public static var model: String { tr(zh: "设备型号", en: "Model", hant: "裝置型號") }
+        public static var modelNumberLabel: String { tr(zh: "产品型号", en: "Model Number", hant: "產品型號") }
+        public static var regulatoryModelLabel: String { tr(zh: "监管型号", en: "Regulatory Model", hant: "監管型號") }
+        public static var deviceSerial: String { tr(zh: "设备序列号", en: "Serial Number", hant: "裝置序號") }
+        public static var sandboxProtected: String { tr(zh: "受系统沙盒保护", en: "Protected by Sandbox", hant: "受系統沙盒保護") }
         public static var chip: String { tr(zh: "处理器", en: "Processor", hant: "處理器") }
-        public static var boardId: String { tr(zh: "主板", en: "Board ID", hant: "主機板") }
+        public static var boardId: String { tr(zh: "主板代号", en: "Board ID", hant: "主機板代號") }
         public static var retailType: String { tr(zh: "销售类型", en: "Sales Type", hant: "銷售類型") }
         public static var retailOriginal: String { tr(zh: "零售机 (M)", en: "Retail (M)", hant: "零售機 (M)") }
         public static var retailReplacement: String { tr(zh: "官换机 (N)", en: "Replacement (N)", hant: "官換機 (N)") }
         public static var retailRefurbished: String { tr(zh: "官翻机 (F)", en: "Refurbished (F)", hant: "官翻機 (F)") }
         public static var retailDemo: String { tr(zh: "展示机 (3)", en: "Demo (3)", hant: "展示機 (3)") }
         public static var region: String { tr(zh: "销售地区", en: "Region", hant: "銷售地區") }
+        public static func regionText(code: String) -> String {
+            switch code {
+            case "CH": return tr(zh: "中国大陆 (国行)", en: "China Mainland", hant: "中國大陸 (國行)")
+            case "LL": return tr(zh: "美国 (美版)", en: "United States", hant: "美國 (美版)")
+            case "ZP": return tr(zh: "港澳 / 新加坡", en: "Hong Kong / Singapore", hant: "港澳 / 新加坡")
+            case "J": return tr(zh: "日本 (日版)", en: "Japan", hant: "日本 (日版)")
+            case "KH": return tr(zh: "韩国 (韩版)", en: "Korea", hant: "韓國 (韓版)")
+            case "B": return tr(zh: "英国 / 爱尔兰", en: "UK & Ireland", hant: "英國 / 愛爾蘭")
+            case "ZD", "DN", "FD": return tr(zh: "欧洲版", en: "Europe", hant: "歐洲版")
+            case "TA": return tr(zh: "中国台湾", en: "Taiwan", hant: "台灣")
+            case "C": return tr(zh: "加拿大", en: "Canada", hant: "加拿大")
+            case "X": return tr(zh: "澳大利亚", en: "Australia", hant: "澳洲")
+            default: return tr(zh: "全球版", en: "Global", hant: "全球版")
+            }
+        }
 
         // HUD & Status
         public static var hudStorageAvailable: String { tr(zh: "存储", en: "Disk", hant: "儲存") }
@@ -173,12 +192,12 @@ public enum L10n {
         public static var socTemp: String { tr(zh: "芯片结温", en: "SoC Core", hant: "晶片溫度") }
         public static var batteryTemp: String { tr(zh: "电芯温度", en: "Battery Cell", hant: "電芯溫度") }
         public static var thermalPressure: String { tr(zh: "温控状态", en: "Thermal State", hant: "溫控狀態") }
-        public static var thermalOptimal: String { tr(zh: "正常 (未降频)", en: "Nominal", hant: "正常 (未降頻)") }
+        public static var thermalOptimal: String { tr(zh: "正常", en: "Nominal", hant: "正常") }
 
         // CPU & Charts
         public static var cpuMonitor: String { tr(zh: "CPU 监视器", en: "CPU Monitor", hant: "CPU 監視器") }
-        public static var cpuHistoryChart: String { tr(zh: "实时利用率", en: "Usage Trend", hant: "即時利用率") }
-        public static var cpuTotalUsage: String { tr(zh: "总利用率", en: "Total Usage", hant: "總利用率") }
+        public static var cpuHistoryChart: String { tr(zh: "实时负载", en: "Usage", hant: "即時負載") }
+        public static var cpuTotalUsage: String { tr(zh: "总体负载", en: "Total Usage", hant: "總體負載") }
 
         // Real-Time Network Bandwidth
         public static var networkTraffic: String { tr(zh: "实时网络", en: "Network Speed", hant: "即時網絡") }
@@ -188,7 +207,7 @@ public enum L10n {
         public static var cellularRadio: String { tr(zh: "蜂窝网络", en: "Cellular", hant: "行動網絡") }
 
         // Memory & Storage
-        public static var memory: String { tr(zh: "运行内存 (RAM)", en: "Memory (RAM)", hant: "記憶體 (RAM)") }
+        public static var memory: String { tr(zh: "运行内存", en: "RAM", hant: "記憶體") }
         public static var memoryActive: String { tr(zh: "活跃", en: "Active", hant: "活躍") }
         public static var memoryWired: String { tr(zh: "联动", en: "Wired", hant: "聯動") }
         public static var memoryCompressed: String { tr(zh: "压缩", en: "Compressed", hant: "壓縮") }
@@ -342,6 +361,26 @@ public enum L10n {
         public static var protocolLowPower: String { tr(zh: "低电量模式", en: "Low Power Mode", hant: "低耗電模式") }
         public static var protocolDischarge: String { tr(zh: "电池供电", en: "On Battery", hant: "電池供電") }
 
+        public static var hardwareDirectTag: String { tr(zh: "硬件直读", en: "Direct Hardware", hant: "硬體直讀") }
+        public static var modelEstimatedTag: String { tr(zh: "智能估算", en: "Estimated", hant: "智慧估算") }
+        public static var chargerRatedPower: String { tr(zh: "适配器标称", en: "Charger Rated", hant: "配接器標稱") }
+        public static var cellInputPower: String { tr(zh: "电芯入电", en: "Cell Input", hant: "電芯入電") }
+        public static var pathLoss: String { tr(zh: "热损耗", en: "Path Loss", hant: "熱損耗") }
+        public static var batterySerial: String { tr(zh: "出厂序列号", en: "Battery S/N", hant: "出廠序號") }
+        public static var manufactureDate: String { tr(zh: "电芯生产日期", en: "Manufacture Date", hant: "電芯生產日期") }
+        public static var batteryChemistry: String { tr(zh: "电芯材质", en: "Chemistry", hant: "電芯材質") }
+        public static var cellVoltageList: String { tr(zh: "分体电芯电压", en: "Cell Voltages", hant: "分體電芯電壓") }
+        public static var cellVoltagesLabel: String { cellVoltageList }
+        public static var adapterTypePD: String { tr(zh: "USB-PD 快充", en: "USB-PD Fast", hant: "USB-PD 快充") }
+        public static var adapterTypeSlow: String { tr(zh: "标充适配器", en: "Standard Adapter", hant: "標充配接器") }
+        public static var adapterTypeUsbHost: String { tr(zh: "电脑 USB 供电", en: "USB Host Port", hant: "電腦 USB 供電") }
+        public static var adapterTypeWireless: String { tr(zh: "无线充电 / MagSafe", en: "Wireless / MagSafe", hant: "無線充電 / MagSafe") }
+        public static func protocolWithNegotiation(name: String, volts: Double, amps: Double) -> String {
+            tr(zh: "\(name) (协商 \(String(format: "%.1f", volts))V/\(String(format: "%.1f", amps))A)",
+               en: "\(name) (\(String(format: "%.1f", volts))V/\(String(format: "%.1f", amps))A)",
+               hant: "\(name) (協商 \(String(format: "%.1f", volts))V/\(String(format: "%.1f", amps))A)")
+        }
+
         public static func etaToFull(mins: Int) -> String {
             tr(zh: "预计约 \(mins) 分钟充满", en: "Est. \(mins)m to Full", hant: "預計約 \(mins) 分鐘充滿")
         }
@@ -465,6 +504,9 @@ public enum L10n {
         public static var bmsRaw: String { tr(zh: "BMS 原厂真值", en: "BMS Raw", hant: "BMS 原廠真值") }
         public static var estimated: String { tr(zh: "基准估算", en: "Estimated", hant: "基準估算") }
         public static var pendingImport: String { tr(zh: "需导入日志", en: "Import Required", hant: "需匯入日誌") }
+        public static var baselineEstimated: String { tr(zh: "基准预估", en: "Estimated", hant: "基準預估") }
+        public static var calibrateViaLogPrompt: String { tr(zh: "点击导入日志校准", en: "Import Log to Calibrate", hant: "點選匯入日誌校準") }
+        public static var baselineNotice: String { tr(zh: "基于机型出厂基准预估，导入官方日志可校准 100% 真实数据", en: "Estimated baseline. Import Analytics Log to calibrate exact BMS values", hant: "基於機型出廠基準預估，匯入官方日誌可校準 100% 原始資料") }
         public static var pendingImportNotice: String { tr(zh: "未导入官方分析文件，需导入以解锁原厂真值", en: "Official log not imported. Import to reveal BMS raw values", hant: "未匯入官方分析檔案，需匯入以解鎖原廠真值") }
         public static var flirMode: String { tr(zh: "红外热像", en: "FLIR IR", hant: "紅外熱像") }
         public static var xrayMode: String { tr(zh: "透视蓝图", en: "X-Ray", hant: "透視藍圖") }
@@ -482,6 +524,10 @@ public enum L10n {
         public static var clearRecord: String { tr(zh: "清除记录", en: "Reset Data", hant: "清除記錄") }
         public static var errLogDecoding: String { tr(zh: "无法解码日志文件编码", en: "Unable to decode log file", hant: "無法解碼日誌檔案編碼") }
         public static var errCycleNotFound: String { tr(zh: "未在日志中找到电池循环次数 (last_value_CycleCount)", en: "Cycle count (last_value_CycleCount) not found in log", hant: "未在日誌中找到電池循環次數 (last_value_CycleCount)") }
+        public static var singleCell: String { tr(zh: "单串电芯 (1S)", en: "Single Cell (1S)", hant: "單串電芯 (1S)") }
+        public static var sourceBmsLog: String { tr(zh: "BMS 官方日志 (.ips)", en: "BMS Raw Log (.ips)", hant: "BMS 官方日誌 (.ips)") }
+        public static var sourceHardwareDirect: String { tr(zh: "IOKit 硬件直读", en: "IOKit Direct", hant: "IOKit 硬體直讀") }
+        public static var sourceModelEstimate: String { tr(zh: "硬件模型估算", en: "Hardware Estimate", hant: "硬體模型估算") }
     }
 
     // MARK: - Network
@@ -566,6 +612,7 @@ public enum L10n {
         public static var dnsBenchmarkTitle: String { tr(zh: "DNS 延迟基准", en: "DNS Benchmark", hant: "DNS 延遲基準") }
         public static var dnsBenchmarkDesc: String { tr(zh: "并发探测主流公共 DNS 解析延迟", en: "Benchmark public DNS latency", hant: "並發探測主流公共 DNS 解析延遲") }
         public static var runBenchmark: String { tr(zh: "并发测速", en: "Benchmark", hant: "並發測速") }
+        public static var pendingBenchmark: String { tr(zh: "待测速", en: "Pending", hant: "待測速") }
         public static var fastestNode: String { tr(zh: "最优线路", en: "Fastest", hant: "最優線路") }
 
         // Port Scanner
@@ -627,6 +674,28 @@ public enum L10n {
         public static var speedTestHistory: String { tr(zh: "测速历史", en: "Test History", hant: "測速歷史") }
         public static var clearHistory: String { tr(zh: "清空", en: "Clear", hant: "清空") }
         public static var noSpeedTestHistory: String { tr(zh: "暂无测速记录", en: "No Records", hant: "暫無測速記錄") }
+        public static func targetGateway(ip: String) -> String {
+            tr(zh: "网关 (\(ip))", en: "Gateway (\(ip))", hant: "閘道 (\(ip))")
+        }
+        public static var targetLocalhost: String { tr(zh: "本机 (127.0.0.1)", en: "Localhost (127.0.0.1)", hant: "本機 (127.0.0.1)") }
+        public static var targetSubnet: String { tr(zh: "本机内网", en: "Subnet Host", hant: "本機內網") }
+        public static var cellularBasebandDesc: String { tr(zh: "蜂窝移动基带", en: "Cellular Baseband", hant: "行動網絡基頻") }
+        public static var deviceGateway: String { tr(zh: "局域网网关", en: "Default Gateway", hant: "區域網絡閘道") }
+        public static var deviceBonjour: String { tr(zh: "Bonjour 广播设备", en: "Bonjour Service", hant: "Bonjour 廣播設備") }
+        public static func vendorText(key: String) -> String {
+            switch key {
+            case "apple": return tr(zh: "Apple 设备", en: "Apple Device", hant: "Apple 設備")
+            case "xiaomi": return tr(zh: "小米 / 路由器", en: "Xiaomi / Router", hant: "小米 / 路由器")
+            case "huawei": return tr(zh: "华为 / 荣耀", en: "Huawei / Honor", hant: "華為 / 榮耀")
+            case "tplink": return tr(zh: "TP-Link 路由", en: "TP-Link Router", hant: "TP-Link 路由")
+            case "raspberry": return tr(zh: "树莓派", en: "Raspberry Pi", hant: "樹莓派")
+            case "nas": return tr(zh: "NAS 存储设备", en: "NAS Storage", hant: "NAS 儲存設備")
+            case "iot": return tr(zh: "IoT 智能家居", en: "IoT Smart Home", hant: "IoT 智慧家居")
+            case "pc": return tr(zh: "PC 计算机", en: "PC Workstation", hant: "PC 電腦")
+            case "random": return tr(zh: "局域网终端 (随机MAC)", en: "LAN Host (Private MAC)", hant: "區域網絡終端 (隨機MAC)")
+            default: return tr(zh: "局域网终端", en: "LAN Device", hant: "區域網絡終端")
+            }
+        }
     }
 
     // MARK: - Tools

@@ -73,7 +73,7 @@ struct OverviewHeroCard: View {
                 )
 
                 badge(
-                    text: system.osVersion,
+                    text: system.osVersionWithBuild,
                     textColor: Theme.textSecondary(for: colorScheme),
                     bgColor: colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05),
                     isMonospaced: true

@@ -168,7 +168,7 @@ public struct DetailedHardwareSpecs {
     }
 
     public var processNode: String {
-        L10n.tr(zh: processNodeZh, en: processNodeEn, hant: processNodeZh)
+        L10n.tr(zh: processNodeZh, en: processNodeEn, hant: processNodeZh.replacingOccurrences(of: "台积电", with: "台積電").replacingOccurrences(of: "高性能工艺", with: "高效能工藝"))
     }
 
     public var isaArchitecture: String {
@@ -322,6 +322,14 @@ public final class SystemService {
         chipName.replacingOccurrences(of: "Apple ", with: "")
     }
     public var boardId: String = "N/A"
+    public var serialNumber: String = "N/A"
+    public var modelNumber: String = "N/A"
+    public var regulatoryModel: String = "N/A"
+    public var regionCode: String = "N/A"
+    public var osBuildNumber: String = ""
+    public var salesTypeZh: String = ""
+    public var salesTypeEn: String = ""
+    public var salesTypeHant: String = ""
     public var uptimeFormatted: String = "0h 0m"
     public var bootDate: Date? = nil
 
@@ -371,8 +379,18 @@ public final class SystemService {
         #endif
     }
 
+    public var osVersionWithBuild: String {
+        if !osBuildNumber.isEmpty {
+            return "\(osVersion) (\(osBuildNumber))"
+        }
+        return osVersion
+    }
+
     public var salesTypeDescription: String {
-        L10n.Overview.retailOriginal
+        if !salesTypeZh.isEmpty {
+            return L10n.tr(zh: salesTypeZh, en: salesTypeEn.isEmpty ? salesTypeZh : salesTypeEn, hant: salesTypeHant.isEmpty ? salesTypeZh : salesTypeHant)
+        }
+        return L10n.Overview.retailOriginal
     }
 
     // MARK: - Private State
@@ -682,6 +700,36 @@ public final class SystemService {
         let (marketing, chip) = Self.lookupDevice(identifier: identifier)
         self.marketingName = marketing
         self.chipName = chip
+
+        // Deep Hardware Telemetry Probe (IOPlatformExpertDevice, MobileGestalt, Sysctl)
+        let probe = DeviceHardwareProbe.sample()
+        if let sn = probe.serialNumber, !sn.isEmpty {
+            self.serialNumber = sn
+        }
+        if let bid = probe.boardId, !bid.isEmpty {
+            self.boardId = bid
+        }
+        if let mn = probe.modelNumber, !mn.isEmpty {
+            self.modelNumber = mn
+        }
+        if let rm = probe.regulatoryModel, !rm.isEmpty {
+            self.regulatoryModel = rm
+        }
+        if let rc = probe.regionCode, !rc.isEmpty {
+            self.regionCode = rc
+        }
+        if let b = probe.osBuildNumber, !b.isEmpty {
+            self.osBuildNumber = b
+        }
+        if let sz = probe.salesTypeZh {
+            self.salesTypeZh = sz
+        }
+        if let se = probe.salesTypeEn {
+            self.salesTypeEn = se
+        }
+        if let sh = probe.salesTypeHant {
+            self.salesTypeHant = sh
+        }
     }
 
     private func resolveHardwareInventory() {
@@ -723,10 +771,22 @@ public final class SystemService {
         }
         #endif
 
-        // 2. SoC Microarchitecture & Neural Engine
+        // 2. SoC Microarchitecture & Neural Engine (Direct Sysctl Telemetry)
+        let probe = DeviceHardwareProbe.sample()
         specs.coreCount = coreCount
-        specs.pCores = 2
-        specs.eCores = max(1, coreCount - 2)
+        if let p = probe.pCores, let e = probe.eCores, p > 0 && e > 0 {
+            specs.pCores = p
+            specs.eCores = e
+        } else {
+            specs.pCores = 2
+            specs.eCores = max(1, coreCount - 2)
+        }
+        if let l1 = probe.l1dKb, l1 > 0 {
+            specs.l1dKb = l1
+        }
+        if let l2 = probe.l2Mb, l2 > 0 {
+            specs.l2Mb = l2
+        }
 
         if chipName.contains("A11") {
             specs.processNodeZh = "10nm (台积电 FinFET)"
@@ -899,8 +959,8 @@ public final class SystemService {
         let state = ProcessInfo.processInfo.thermalState
         self.thermalState = state
 
-        // 1. Attempt reading physical battery temperature from IOKit
-        let physicalBatteryTemp = Self.readPhysicalBatteryTemperature()
+        // 1. Query real hardware temperature sensors via HardwareBatteryProbe (IOHIDEventSystemClient & AppleSmartBattery)
+        let hw = HardwareBatteryProbe.sample()
 
         // 2. Base temperature & throttling load baseline
         let baseTemp: Double
@@ -924,16 +984,23 @@ public final class SystemService {
         }
 
         // Apply physical reading or realistic smooth thermal model
-        if let bTemp = physicalBatteryTemp {
+        if let bTemp = hw.temperatureCelsius {
             self.batteryTemperature = bTemp
+        } else if let physicalBatteryTemp = Self.readPhysicalBatteryTemperature() {
+            self.batteryTemperature = physicalBatteryTemp
         } else {
             let target = baseTemp + (Double(totalCpuUsage) / 100.0) * 2.5
             self.batteryTemperature = self.batteryTemperature * 0.85 + target * 0.15
         }
 
-        // SoC junction thermal model reacts dynamically to multi-core load
-        let socTarget = self.batteryTemperature + 2.0 + (Double(totalCpuUsage) / 100.0) * 8.5
-        self.socTemperature = self.socTemperature * 0.8 + socTarget * 0.2
+        // Apply physical SoC temperature reading from IOHIDEventSystemClient
+        if let sTemp = hw.socTemperatureCelsius {
+            self.socTemperature = sTemp
+        } else {
+            let socTarget = self.batteryTemperature + 2.0 + (Double(totalCpuUsage) / 100.0) * 8.5
+            self.socTemperature = self.socTemperature * 0.8 + socTarget * 0.2
+        }
+
         self.thermalPressurePercent = min(100, max(5, pressure + Int(totalCpuUsage * 0.2)))
     }
 
