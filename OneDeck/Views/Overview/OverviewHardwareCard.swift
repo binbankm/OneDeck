@@ -14,33 +14,6 @@ struct OverviewHardwareCard: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var selectedCategory: HardwareCategory = .display
 
-    enum HardwareCategory: Int, CaseIterable, Identifiable {
-        case display = 0
-        case soc = 1
-        case gpu = 2
-        case system = 3
-
-        var id: Int { rawValue }
-
-        var title: String {
-            switch self {
-            case .display: return L10n.Overview.catDisplay
-            case .soc: return L10n.Overview.catSoC
-            case .gpu: return L10n.Overview.catGPU
-            case .system: return L10n.Overview.catSystem
-            }
-        }
-
-        var icon: String {
-            switch self {
-            case .display: return "display"
-            case .soc: return "cpu"
-            case .gpu: return "gamecontroller.fill"
-            case .system: return "gearshape.2.fill"
-            }
-        }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // Header Row

@@ -9,20 +9,6 @@
 import SwiftUI
 import Charts
 
-enum LatencyCardMode: Int, CaseIterable, Identifiable {
-    case live
-    case benchmark
-
-    var id: Int { rawValue }
-
-    var title: String {
-        switch self {
-        case .live: return L10n.Network.latencyLive
-        case .benchmark: return L10n.Network.latencyBenchmark
-        }
-    }
-}
-
 struct NetworkLatencyCard: View {
     @Bindable var appState = AppState.shared
     @Bindable var net = NetworkService.shared

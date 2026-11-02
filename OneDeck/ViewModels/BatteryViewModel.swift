@@ -1,9 +1,9 @@
 //
-//  BatteryService.swift
+//  BatteryViewModel.swift
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Authoritative Battery Intelligence Engine:
+//  Authoritative Battery Intelligence ViewModel:
 //  - Real-time Darwin/UIKit telemetry (Battery Level, Charging States, Low Power Mode).
 //  - Full-lineup Apple Hardware Design Capacity Database (iPhone 6s to iPhone 18 & iPads).
 //  - Apple Analytics Diagnostic Log Parser (last_value_CycleCount, NominalChargeCapacity, MaximumFCC).
@@ -15,36 +15,10 @@ import SwiftUI
 import Observation
 import UIKit
 
-// MARK: - Battery Analytics Record
-public struct BatteryAnalyticsRecord: Codable, Sendable {
-    public let cycleCount: Int
-    public let nominalChargeCapacityMah: Int
-    public let maximumFccMah: Int
-    public let healthPercent: Double
-    public let logDate: Date
-    public let sourceFileName: String
-
-    public init(
-        cycleCount: Int,
-        nominalChargeCapacityMah: Int,
-        maximumFccMah: Int,
-        healthPercent: Double,
-        logDate: Date = Date(),
-        sourceFileName: String = "Analytics.ips"
-    ) {
-        self.cycleCount = cycleCount
-        self.nominalChargeCapacityMah = nominalChargeCapacityMah
-        self.maximumFccMah = maximumFccMah
-        self.healthPercent = healthPercent
-        self.logDate = logDate
-        self.sourceFileName = sourceFileName
-    }
-}
-
-// MARK: - Battery Service Hub
+// MARK: - Battery ViewModel Hub
 @Observable
-public final class BatteryService {
-    @MainActor public static let shared = BatteryService()
+public final class BatteryViewModel {
+    @MainActor public static let shared = BatteryViewModel()
 
     // MARK: - Real-time Telemetry
     public var batteryLevel: Double = 1.0 // 0.0 - 1.0
@@ -702,3 +676,7 @@ public final class BatteryService {
         }
     }
 }
+
+// MARK: - Compatibility Typealias
+public typealias BatteryService = BatteryViewModel
+

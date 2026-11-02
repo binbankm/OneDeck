@@ -15,13 +15,6 @@ import SwiftUI
 import UIKit
 import Charts
 
-// MARK: - Degradation Curve Data Point (Deterministic Stable Identifier)
-private struct DegradationPoint: Identifiable, Sendable {
-    let id: String
-    let cycle: Double
-    let health: Double
-}
-
 struct BatteryLongevityCard: View {
     @Bindable var appState = AppState.shared
     @Bindable var battery = BatteryService.shared
