@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Open Source Licenses & Architecture Stack Card.
+//  Open Source Licenses & Architecture Stack Card (Obsidian Bento Platter Design System).
 //
 
 import SwiftUI
@@ -17,52 +17,71 @@ struct SettingsLicensesCard: View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             BentoSectionHeader(title: L10n.Settings.licensesSection, icon: "doc.text.fill")
 
-            // 1. MIT License Row
-            Button {
-                Haptics.selection()
-                showLicenseSheet = true
-            } label: {
-                HStack(spacing: SpacingTheme.rowStandard) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(IconTheme.tileLeading)
-                        .frame(width: 20, height: 20)
-                        .foregroundStyle(appState.accentColor)
+            VStack(spacing: SpacingTheme.standard) {
+                // 1. MIT License Platter Button
+                Button {
+                    Haptics.selection()
+                    showLicenseSheet = true
+                } label: {
+                    HStack(spacing: SpacingTheme.standard) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(IconTheme.tileLeading)
+                            .foregroundStyle(appState.accentColor)
+                            .frame(width: 20, height: 20, alignment: .center)
 
-                    VStack(alignment: .leading, spacing: SpacingTheme.tight) {
-                        Text(L10n.Settings.licenseTitle)
-                            .font(Typography.calloutLabel)
+                        VStack(alignment: .leading, spacing: SpacingTheme.micro) {
+                            Text(L10n.Settings.licenseTitle)
+                                .font(Typography.bodyValue.weight(.medium))
+                                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+
+                            Text(L10n.Settings.licenseDesc)
+                                .font(Typography.caption)
+                                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                                .lineLimit(1)
+                        }
+
+                        Spacer(minLength: SpacingTheme.standard)
+
+                        Image(systemName: "chevron.right")
+                            .font(IconTheme.copyIndicator)
+                            .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                    }
+                    .padding(.horizontal, SpacingTheme.row)
+                    .padding(.vertical, SpacingTheme.standard)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                    )
+                }
+                .buttonStyle(.plain)
+
+                // 2. Native Apple Frameworks Platter Tile
+                HStack(spacing: SpacingTheme.standard) {
+                    Image(systemName: "apple.logo")
+                        .font(IconTheme.tileLeading)
+                        .foregroundStyle(appState.accentColor)
+                        .frame(width: 20, height: 20, alignment: .center)
+
+                    VStack(alignment: .leading, spacing: SpacingTheme.micro) {
+                        Text(L10n.Settings.thirdPartyLicenses)
+                            .font(Typography.bodyValue.weight(.medium))
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
-                        Text(L10n.Settings.licenseDesc)
-                            .font(Typography.caption)
-                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                            .fixedSize(horizontal: false, vertical: true)
+                        Text(L10n.Settings.frameworksList)
+                            .font(Typography.captionMono)
+                            .foregroundStyle(appState.accentColor)
+                            .lineLimit(1)
                     }
 
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(IconTheme.copyIndicator)
-                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                    Spacer(minLength: SpacingTheme.standard)
                 }
-                .padding(.vertical, SpacingTheme.tight)
+                .padding(.horizontal, SpacingTheme.row)
+                .padding(.vertical, SpacingTheme.standard)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                )
             }
-            .buttonStyle(.plain)
-
-            Divider().opacity(0.3)
-
-            // 2. Native Apple Frameworks & Tech Stack
-            VStack(alignment: .leading, spacing: SpacingTheme.tight) {
-                Text(L10n.Settings.thirdPartyLicenses)
-                    .font(Typography.calloutLabel)
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-
-                Text(L10n.Settings.frameworksList)
-                    .font(Typography.captionMono)
-                    .foregroundStyle(appState.accentColor)
-                    .padding(.vertical, 2)
-            }
-            .padding(.vertical, SpacingTheme.tight)
         }
         .bentoCard(accent: appState.accentColor)
         .sheet(isPresented: $showLicenseSheet) {
@@ -96,15 +115,14 @@ struct SettingsLicensesCard: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("完成") {
+                        Button(L10n.Common.done) {
                             showLicenseSheet = false
                         }
-                        .tint(appState.accentColor)
+                        .font(Typography.calloutBold)
+                        .foregroundStyle(appState.accentColor)
                     }
                 }
             }
-            .presentationDetents([.medium, .large])
         }
     }
 }
-

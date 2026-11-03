@@ -1050,16 +1050,48 @@ public enum L10n {
             tr(zh: "\(days) 天 \(hours) 小时", en: "\(days)d \(hours)h Left", hant: "\(days) 天 \(hours) 小時")
         }
         public static var certType: String { tr(zh: "签名类型", en: "Signing Type", hant: "簽名類型") }
-        public static var certTeam: String { tr(zh: "团队名称", en: "Team Name", hant: "團隊名稱") }
-        public static var certTeamId: String { tr(zh: "团队 ID", en: "Team ID", hant: "團隊 ID") }
         public static var certExpiryDate: String { tr(zh: "到期日期", en: "Expiration Date", hant: "到期日期") }
-        public static var certBundleId: String { tr(zh: "Bundle ID", en: "Bundle ID", hant: "Bundle ID") }
-        public static var certStatus: String { tr(zh: "状态", en: "Status", hant: "狀態") }
+        public static var certStatus: String { tr(zh: "证书状态", en: "Status", hant: "狀態") }
         public static var certActive: String { tr(zh: "已签名生效中", en: "Signed & Active", hant: "已簽名生效中") }
+        public static var certExpiringSoon: String { tr(zh: "即将到期 · 请及时续签", en: "Expiring Soon · Renewal Required", hant: "即將到期 · 請及時續簽") }
+        public static var certExpired: String { tr(zh: "证书已过期", en: "Certificate Expired", hant: "憑證已過期") }
+        public static var certPermanent: String { tr(zh: "长期有效 · 运行稳定", en: "Permanent · Active", hant: "長期有效 · 運行穩定") }
+        public static var certPermanentDetail: String { tr(zh: "长期有效 · 无需证书刷新", en: "Permanent · No Refresh Required", hant: "長期有效 · 無需憑證重新整理") }
         public static var certFreePersonal: String { tr(zh: "个人免费自签 (7天)", en: "Free Personal (7-Day)", hant: "個人免費自簽 (7天)") }
         public static var certEnterprise: String { tr(zh: "企业证书 (365天)", en: "Enterprise (365-Day)", hant: "企業憑證 (365天)") }
         public static var certDeveloper: String { tr(zh: "Apple Developer (1年)", en: "Apple Developer (1-Year)", hant: "Apple Developer (1年)") }
-        public static var certAppStore: String { tr(zh: "TestFlight / App Store", en: "TestFlight / App Store", hant: "TestFlight / App Store") }
+        public static var certTrollStore: String { tr(zh: "巨魔安装 (TrollStore 永久免签)", en: "TrollStore (Permanent Bypass)", hant: "巨魔安裝 (TrollStore 永久免簽)") }
+        public static var certTestFlight: String { tr(zh: "TestFlight 官方测试", en: "TestFlight Beta", hant: "TestFlight 官方測試") }
+        public static var certAppStore: String { tr(zh: "App Store 官方正版", en: "App Store Official", hant: "App Store 官方正版") }
+        public static var certSimulator: String { tr(zh: "iOS 模拟器调试沙盒", en: "iOS Simulator Sandbox", hant: "iOS 模擬器除錯沙盒") }
+        public static var certValidationMethod: String { tr(zh: "校验机制", en: "Verification", hant: "校驗機制") }
+        public static var certValidationLocal: String { tr(zh: "本地离线沙盒解析", en: "Local Offline Sandbox", hant: "本地離線沙盒解析") }
+        public static var certPrivacyGuarantee: String { tr(zh: "隐私防护", en: "Privacy Guard", hant: "隱私防護") }
+        public static var certPrivacyLocalOnly: String { tr(zh: "零隐私上传 · 匿名本地校验", en: "Zero Telemetry · 100% Offline", hant: "零隱私上傳 · 匿名本地校驗") }
+        public static var certNoticeDesc: String {
+            tr(
+                zh: "提示：免费个人 Apple ID 自签有效期为 7 天。请在到期前使用签名工具续签，避免证书失效闪退。所有证书校验均在本地完成，无隐私上传。",
+                en: "Note: Free personal Apple ID certificates are valid for 7 days. Please renew via your sideload tool before expiration. All checks run locally offline without privacy upload.",
+                hant: "提示：免費個人 Apple ID 自簽有效期為 7 天。請在到期前使用簽名工具續簽，避免憑證失效閃退。所有憑證校驗均在本地完成，無隱私上傳。"
+            )
+        }
+        public static var certViewDetails: String { tr(zh: "查看完整证书与签名详情", en: "View Detailed Certificate Telemetry", hant: "查看完整憑證與簽名詳情") }
+        public static var certSheetTitle: String { tr(zh: "证书与签名完整诊断", en: "Certificate & Provisioning Telemetry", hant: "憑證與簽名完整診斷") }
+        public static var certSectionOverview: String { tr(zh: "生命周期概览", en: "Lifecycle Overview", hant: "生命週期概覽") }
+        public static var certSectionCrypto: String { tr(zh: "证书加密凭证", en: "Cryptographic Credentials", hant: "憑證加密憑證") }
+        public static var certSectionProfile: String { tr(zh: "描述文件参数", en: "Provisioning Profile", hant: "描述檔參數") }
+        public static var certSectionEntitlements: String { tr(zh: "特权与权限声明 (Entitlements)", en: "App Entitlements", hant: "特權與權限聲明 (Entitlements)") }
+        public static var certSectionGuide: String { tr(zh: "签名生态与防闪退指南", en: "Signing Guide & Stability Tips", hant: "簽名生態與防閃退指南") }
+        public static var certSha1Fingerprint: String { tr(zh: "SHA-1 指纹", en: "SHA-1 Fingerprint", hant: "SHA-1 指紋") }
+        public static var certSha256Fingerprint: String { tr(zh: "SHA-256 指纹", en: "SHA-256 Fingerprint", hant: "SHA-256 指紋") }
+        public static var certSubject: String { tr(zh: "证书颁发主体", en: "Certificate Subject", hant: "憑證頒發主體") }
+        public static var certValiditySpan: String { tr(zh: "证书有效周期", en: "Validity Span", hant: "憑證有效週期") }
+        public static var certProfileUUID: String { tr(zh: "描述文件 UUID", en: "Profile UUID", hant: "描述檔 UUID") }
+        public static var certProfileName: String { tr(zh: "描述文件名称", en: "Profile Name", hant: "描述檔名稱") }
+        public static var certDeviceCount: String { tr(zh: "授权设备范围", en: "Device Scope", hant: "授權裝置範圍") }
+        public static var certDebuggable: String { tr(zh: "调试特权 (get-task-allow)", en: "Debuggable Privileges", hant: "除錯特權 (get-task-allow)") }
+        public static var certSandboxMode: String { tr(zh: "沙盒安全模式", en: "Sandbox Mode", hant: "沙盒安全模式") }
+        public static var certAppId: String { tr(zh: "应用标识符 (App ID)", en: "Application Identifier", hant: "應用程式識別碼 (App ID)") }
 
         // MARK: - 5. 开源协议
         public static var licensesSection: String { tr(zh: "开源协议", en: "Open Source Licenses", hant: "開原始碼協議") }
@@ -1077,7 +1109,10 @@ public enum L10n {
         public static var version: String { tr(zh: "版本号", en: "Version", hant: "版本號") }
         public static var build: String { tr(zh: "内部构建", en: "Build", hant: "內部構建") }
         public static var architecture: String { tr(zh: "运行架构", en: "Architecture", hant: "運行架構") }
+        public static var aboutDevice: String { tr(zh: "当前设备", en: "Device Model", hant: "當前裝置") }
+        public static var aboutChip: String { tr(zh: "处理器芯片", en: "Processor", hant: "處理器晶片") }
+        public static var aboutSystem: String { tr(zh: "操作系统", en: "OS Version", hant: "作業系統") }
         public static var openSourceRepo: String { tr(zh: "开源仓库", en: "Repository", hant: "開原始碼倉庫") }
-        public static var repoLink: String { tr(zh: "GitHub / OneDeck", en: "GitHub / OneDeck", hant: "GitHub / OneDeck") }
+        public static var repoLink: String { tr(zh: "GitHub", en: "GitHub", hant: "GitHub") }
     }
 }

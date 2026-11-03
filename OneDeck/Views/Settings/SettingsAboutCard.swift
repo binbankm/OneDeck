@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  About & Application Build Information Card.
+//  About & Application Build Information Card (Obsidian Bento Platter Design System).
 //
 
 import SwiftUI
@@ -11,6 +11,7 @@ import SwiftUI
 struct SettingsAboutCard: View {
     @Environment(\.colorScheme) private var colorScheme
     @Bindable private var appState = AppState.shared
+    private var system = SystemViewModel.shared
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
@@ -24,65 +25,82 @@ struct SettingsAboutCard: View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             BentoSectionHeader(title: L10n.Settings.aboutSection, icon: "info.circle.fill")
 
-            // 1. App Identity Header
-            HStack(spacing: SpacingTheme.rowStandard) {
-                // Official Option 1 App Icon Thumbnail
-                Image("AppIcon-1024", bundle: .main)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 48, height: 48)
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 1)
-                    )
-
-                VStack(alignment: .leading, spacing: SpacingTheme.tight) {
-                    Text(L10n.Settings.appName)
-                        .font(Typography.headlineValue)
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
-
-                    Text(L10n.Settings.appSubtitle)
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                        .lineLimit(1)
-                }
-
-                Spacer()
-            }
-            .padding(.vertical, SpacingTheme.tight)
-
-            Divider().opacity(0.3)
-
-            // 2. Telemetry Rows
             VStack(spacing: SpacingTheme.standard) {
-                row(title: L10n.Settings.version, value: "\(appVersion) (Build \(buildNumber))")
-                row(title: L10n.Settings.architecture, value: "arm64 · Metal 3")
+                // 1. Clean App Identity Platter Tile
+                HStack(spacing: SpacingTheme.rowStandard) {
+                    appIconView
 
-                // Open Source Repository Button
+                    HStack(spacing: SpacingTheme.compact) {
+                        Text(L10n.Settings.appName)
+                            .font(Typography.title1)
+                            .foregroundStyle(Theme.textPrimary(for: colorScheme))
+
+                        Text("v\(appVersion)")
+                            .font(Typography.badgeTagMono)
+                            .foregroundStyle(appState.accentColor)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(appState.accentColor.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal, SpacingTheme.row)
+                .padding(.vertical, SpacingTheme.standard)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                )
+
+                // 2. Hardware Environment & Telemetry Specs (specListRow style)
+                specTile(icon: "iphone", label: L10n.Settings.aboutDevice, value: system.marketingName)
+                specTile(icon: "cpu.fill", label: L10n.Settings.aboutChip, value: system.chipName)
+                specTile(
+                    icon: "apple.terminal.fill",
+                    label: L10n.Settings.aboutSystem,
+                    value: "iOS \(UIDevice.current.systemVersion)\(system.osBuildNumber.isEmpty ? "" : " (\(system.osBuildNumber))")"
+                )
+                specTile(icon: "memorychip.fill", label: L10n.Settings.architecture, value: "arm64e · Metal 3")
+                specTile(icon: "hammer.fill", label: L10n.Settings.build, value: "Build \(buildNumber)")
+
+                // 3. Official Repository Link Platter Tile
                 Button {
                     Haptics.tick()
-                    if let url = URL(string: "https://github.com/lbyan/OneDeck") {
+                    if let url = URL(string: "https://github.com/binbankm/OneDeck") {
                         UIApplication.shared.open(url)
                     }
                 } label: {
-                    HStack {
+                    HStack(alignment: .center, spacing: SpacingTheme.standard) {
+                        Image(systemName: "arrow.up.forward.app.fill")
+                            .font(IconTheme.tileLeading)
+                            .foregroundStyle(appState.accentColor)
+                            .frame(width: 20, height: 20, alignment: .center)
+
                         Text(L10n.Settings.openSourceRepo)
-                            .font(Typography.calloutLabel)
+                            .font(Typography.bodyValue.weight(.medium))
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
 
-                        Spacer()
+                        Spacer(minLength: SpacingTheme.standard)
 
-                        HStack(spacing: 4) {
+                        HStack(spacing: SpacingTheme.tight) {
                             Text(L10n.Settings.repoLink)
-                                .font(Typography.captionMono)
+                                .font(Typography.bodyValue)
                                 .foregroundStyle(appState.accentColor)
 
-                            Image(systemName: "arrow.up.forward.app.fill")
+                            Image(systemName: "arrow.up.forward")
                                 .font(IconTheme.copyIndicator)
                                 .foregroundStyle(appState.accentColor)
                         }
                     }
+                    .padding(.horizontal, SpacingTheme.row)
+                    .padding(.vertical, SpacingTheme.standard)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                    )
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -91,19 +109,67 @@ struct SettingsAboutCard: View {
         .bentoCard(accent: appState.accentColor)
     }
 
-    // MARK: - Helper Views
+    // MARK: - App Icon View (Protected against missing image asset warnings)
     @ViewBuilder
-    private func row(title: String, value: String) -> some View {
-        HStack {
-            Text(title)
-                .font(Typography.calloutLabel)
-                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+    private var appIconView: some View {
+        if let uiImage = UIImage(named: "AppIcon-Display") {
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                        .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                )
+        } else {
+            // High-fidelity fallback squircle with accent gradient
+            ZStack {
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .fill(appState.accentColor.opacity(0.15))
+                    .frame(width: 44, height: 44)
 
-            Spacer()
+                Image(systemName: "circle.circle.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(appState.accentColor)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+            )
+        }
+    }
+
+    // MARK: - Spec Tile Helper
+    @ViewBuilder
+    private func specTile(icon: String, label: String, value: String) -> some View {
+        HStack(alignment: .center, spacing: SpacingTheme.standard) {
+            Image(systemName: icon)
+                .font(IconTheme.tileLeading)
+                .foregroundStyle(appState.accentColor)
+                .frame(width: 20, height: 20, alignment: .center)
+
+            Text(label)
+                .font(Typography.bodyValue.weight(.medium))
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+
+            Spacer(minLength: SpacingTheme.standard)
 
             Text(value)
-                .font(Typography.captionMono)
+                .font(Typography.bodyValue)
+                .monospacedDigit()
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .multilineTextAlignment(.trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
+        .padding(.horizontal, SpacingTheme.row)
+        .padding(.vertical, SpacingTheme.standard)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+        )
     }
 }
