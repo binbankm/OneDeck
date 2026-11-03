@@ -2,7 +2,8 @@
 //  OneDeckApp.swift
 //  OneDeck
 //
-//  Created by lbyan on 2026/11/1.
+//  Created for OneDeck - iOS 17.0+
+//  Application entry point configuring the main window scene and global state.
 //
 
 import SwiftUI

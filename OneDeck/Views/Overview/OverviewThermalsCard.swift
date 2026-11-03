@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Thermals Bento Card: Dual-Zone Junction & Cell Telemetry, Thermal Throttling Pressure Bar.
+//  Real-time thermal pressure, SoC, and battery temperature card.
 //
 
 import SwiftUI

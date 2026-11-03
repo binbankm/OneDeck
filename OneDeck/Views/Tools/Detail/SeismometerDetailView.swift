@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Micro-Seismic Vibration & Seismic Intensity Fullscreen Workspace.
+//  Tri-axial micro-seismic vibration and waveform workspace.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct SeismometerDetailView: View {
     // MARK: - Dependencies & Environment
@@ -38,12 +38,12 @@ struct SeismometerDetailView: View {
         .navigationTitle(L10n.Tools.seismometer)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .seismometer)
             tools.startSeismometer()
         }
         .onDisappear {
-            tools.leaveDetailView()
             tools.stopSeismometer()
+            tools.leaveDetailView()
         }
     }
 
@@ -166,7 +166,7 @@ struct SeismometerDetailView: View {
                     }
                 }
                 .chartXAxis(.hidden)
-                .chartYScale(domain: 0...maxVal)
+                .chartYScale(domain: 0 ... maxVal)
                 .chartYAxis {
                     AxisMarks(position: .trailing, values: [0, maxVal / 2.0, maxVal]) { val in
                         AxisGridLine(stroke: ChartTheme.gridStroke)
@@ -265,4 +265,3 @@ struct SeismometerDetailView: View {
         SeismometerDetailView()
     }
 }
-

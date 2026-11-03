@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Tools Tab: Hardware Diagnostic Instruments & Dedicated Professional Workspaces.
+//  Hardware diagnostic instruments grid and toolkit view.
 //
 
 import SwiftUI

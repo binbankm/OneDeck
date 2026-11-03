@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Ambient Illuminance & Foot-Candles Fullscreen Workspace.
+//  Optical illuminance and ambient lux meter workspace.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct LuxMeterDetailView: View {
     // MARK: - Dependencies & Environment
@@ -35,7 +35,7 @@ struct LuxMeterDetailView: View {
         .navigationTitle(L10n.Tools.luxMeter)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .luxMeter)
             tools.startLuxMeter()
         }
         .onDisappear {
@@ -141,7 +141,7 @@ struct LuxMeterDetailView: View {
                     .frame(height: 160)
             } else {
                 Chart {
-                    ForEach(Array(history.enumerated()), id: \.offset) { idx, pt in
+                    ForEach(Array(history.enumerated()), id: \.offset) { _, pt in
                         LineMark(
                             x: .value("Time", pt.timestamp),
                             y: .value("Lux", pt.value)
@@ -165,7 +165,7 @@ struct LuxMeterDetailView: View {
                     }
                 }
                 .chartXAxis(.hidden)
-                .chartYScale(domain: 0...maxVal)
+                .chartYScale(domain: 0 ... maxVal)
                 .chartYAxis {
                     AxisMarks(position: .trailing, values: [0, maxVal / 2.0, maxVal]) { val in
                         AxisGridLine(stroke: ChartTheme.gridStroke)
@@ -247,4 +247,3 @@ struct LuxMeterDetailView: View {
         LuxMeterDetailView()
     }
 }
-

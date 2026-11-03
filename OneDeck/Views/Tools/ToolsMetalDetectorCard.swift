@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Magnetic Flux & Metal Detector Bento Launcher Card.
+//  Magnetic flux density and metal detector launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsMetalDetectorCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: MetalDetectorDetailView()) {
+        NavigationLink(destination: LazyView(MetalDetectorDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleGaugeRow
@@ -90,6 +90,7 @@ struct ToolsMetalDetectorCard: View {
                 Text(String(format: "%.0f µT", tools.metalDetector.totalMicroTesla))
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .lineLimit(1)
             }
         }
     }
@@ -100,4 +101,3 @@ struct ToolsMetalDetectorCard: View {
     ToolsMetalDetectorCard()
         .padding()
 }
-

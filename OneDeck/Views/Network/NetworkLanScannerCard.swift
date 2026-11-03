@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network LAN Scanner Card: Real NWBrowser Bonjour mDNS Subnet Device Discovery.
+//  Local subnet ARP scanner and connected device discovery card.
 //
 
 import SwiftUI

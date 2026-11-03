@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network Bandwidth Speed Test Sheet: Live Speedometer, Gauge, 4-Quadrant Scorecard & Ratings.
+//  Multi-stream download and upload network speed benchmarking sheet.
 //
 
 import SwiftUI

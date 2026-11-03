@@ -9,6 +9,7 @@ IDEFindNavigatorScopes.plist
 
 ## Build generated
 build/
+dist/
 DerivedData/
 *.hmap
 *.ipa

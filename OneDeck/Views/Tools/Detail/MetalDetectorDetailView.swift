@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Magnetic Flux & Ferromagnetic Stud / Wire Detector Fullscreen Workspace.
+//  Magnetic flux density and metal detector workspace.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct MetalDetectorDetailView: View {
     // MARK: - Dependencies & Environment
@@ -43,7 +43,7 @@ struct MetalDetectorDetailView: View {
         .navigationTitle(L10n.Tools.metalDetector)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .metalDetector)
             tools.startMagnetometer(interval: 1.0 / 30.0)
         }
         .onDisappear {
@@ -249,4 +249,3 @@ struct MetalDetectorDetailView: View {
         MetalDetectorDetailView()
     }
 }
-

@@ -3,13 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Industrial FLIR Thermal Instrument & Hardware X-Ray Blueprint:
-//  - System-Adaptive Chassis: Adapts to real device chip (A12~A18), camera layout, and Notch / Dynamic Island.
-//  - Full System Light / Dark Mode Adaptation: Intelligent palette for dark and light themes.
-//  - Authentic FLIR False-Color Thermal Diffusion with Ironbow spectrum & thermal isotherms.
-//  - Automatic MAX / MIN Hotspot Tracking Reticles (Real-time extreme temperature pins).
-//  - Complete Multilingual Localization across zh-Hans, zh-Hant, and en.
-//  - Rock-Solid Full-Width Zone Rows: Zero truncation guaranteed.
+//  Hardware thermal heatmap model and chassis blueprint card.
 //
 
 import SwiftUI
@@ -849,7 +843,7 @@ struct BatteryThermalChassisCard: View {
         let id = system.machineIdentifier
         if id.hasPrefix("iPhone15,2") || id.hasPrefix("iPhone15,3") { return true } // 14 Pro
         if id.hasPrefix("iPhone15,4") || id.hasPrefix("iPhone15,5") { return true } // 15
-        if id.hasPrefix("iPhone16") || id.hasPrefix("iPhone17") { return true }     // 15 Pro, 16 series
+        if id.hasPrefix("iPhone16") || id.hasPrefix("iPhone17") { return true } // 15 Pro, 16 series
         return false
     }
 
@@ -906,4 +900,3 @@ struct LShapedBatteryShape: Shape {
     BatteryThermalChassisCard()
         .padding()
 }
-

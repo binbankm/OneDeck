@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Micro-Seismic Vibration & Seismic Intensity Bento Card Launcher.
+//  Tri-axial micro-seismic vibration intensity launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsSeismometerCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: SeismometerDetailView()) {
+        NavigationLink(destination: LazyView(SeismometerDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -62,6 +62,7 @@ struct ToolsSeismometerCard: View {
                 Text(tools.seismometer.intensity.title)
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -69,6 +70,7 @@ struct ToolsSeismometerCard: View {
             Text(String(format: "%@: %.1f Hz", L10n.Tools.vibrationFrequency, tools.seismometer.dominantFrequencyHz))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }
@@ -78,4 +80,3 @@ struct ToolsSeismometerCard: View {
     ToolsSeismometerCard()
         .padding()
 }
-

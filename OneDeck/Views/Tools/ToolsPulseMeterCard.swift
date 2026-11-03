@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Camera Optical PPG Pulse & Heart Rate Bento Launcher Card.
+//  Camera optical PPG heart rate and pulse launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsPulseMeterCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: PulseMeterDetailView()) {
+        NavigationLink(destination: LazyView(PulseMeterDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -69,6 +69,7 @@ struct ToolsPulseMeterCard: View {
             Text(tools.pulseMeter.hrvMs > 0 ? String(format: "HRV: %.0f ms", tools.pulseMeter.hrvMs) : L10n.Tools.pulseWaveform)
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network Wake-on-LAN (WoL) Magic Packet Transmitter Card.
+//  Wake-on-LAN magic packet transmitter and host wake card.
 //
 
 import SwiftUI

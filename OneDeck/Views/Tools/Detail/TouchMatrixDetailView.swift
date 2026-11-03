@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Factory QC Fullscreen Capacitive Touch Matrix & Dead-Zone Grid Inspection Workspace.
+//  Capacitive touch digitizer and multi-touch inspection workspace.
 //
 
 import SwiftUI
@@ -100,9 +100,9 @@ struct TouchMatrixDetailView: View {
 
         ZStack {
             VStack(spacing: SpacingTheme.micro) {
-                ForEach(0..<rows, id: \.self) { r in
+                ForEach(0 ..< rows, id: \.self) { r in
                     HStack(spacing: SpacingTheme.micro) {
-                        ForEach(0..<columns, id: \.self) { c in
+                        ForEach(0 ..< columns, id: \.self) { c in
                             let index = r * columns + c
                             let isPassed = index < tools.touchMatrixCells.count && tools.touchMatrixCells[index]
 
@@ -140,4 +140,3 @@ struct TouchMatrixDetailView: View {
         TouchMatrixDetailView()
     }
 }
-

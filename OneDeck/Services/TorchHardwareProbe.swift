@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Hardware torch control probe: linear micro-brightness, strobe tachometer timer, and Morse code transmitter.
+//  Hardware torch control probe with micro-brightness and strobe timer.
 //
 
-import Foundation
 import AVFoundation
+import Foundation
 
 @MainActor
 public final class TorchHardwareProbe {
@@ -29,7 +29,7 @@ public final class TorchHardwareProbe {
     // MARK: - 1. Continuous Linear Micro-Brightness
     public func setTorch(level: Float) {
         stopSpecialModes()
-        guard let device = device, device.hasTorch else { return }
+        guard let device, device.hasTorch else { return }
 
         let clamped = max(0.0, min(1.0, level))
 
@@ -48,7 +48,7 @@ public final class TorchHardwareProbe {
 
     public func turnOff() {
         stopSpecialModes()
-        guard let device = device, device.hasTorch else { return }
+        guard let device, device.hasTorch else { return }
 
         do {
             try device.lockForConfiguration()
@@ -62,7 +62,7 @@ public final class TorchHardwareProbe {
     // MARK: - 2. High-Frequency Strobe Tachometer
     public func startStrobe(frequencyHz: Double) {
         stopSpecialModes()
-        guard let device = device, device.hasTorch else { return }
+        guard let device, device.hasTorch else { return }
 
         let clampedHz = max(0.5, min(30.0, frequencyHz))
         let halfPeriodMs = UInt64((1000.0 / clampedHz) / 2.0)
@@ -100,7 +100,7 @@ public final class TorchHardwareProbe {
     // MARK: - 3. SOS & Morse Code Flasher
     public func startMorseCode(text: String, completion: (@Sendable () -> Void)? = nil) {
         stopSpecialModes()
-        guard let device = device, device.hasTorch else { return }
+        guard let device, device.hasTorch else { return }
 
         let morsePattern = convertToMorse(text)
         let dotDurationNanos: UInt64 = 180_000_000 // 180ms per dot
@@ -173,4 +173,3 @@ public final class TorchHardwareProbe {
         return text.uppercased().compactMap { morseDict[$0] }.joined(separator: " ")
     }
 }
-

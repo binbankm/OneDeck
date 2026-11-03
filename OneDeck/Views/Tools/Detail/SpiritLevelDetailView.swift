@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Precision 360-Degree Dual-Axis Spirit Level & Inclinometer Fullscreen Workspace.
+//  Dual-axis digital spirit level and surface angle inclinometer workspace.
 //
 
 import SwiftUI
@@ -40,7 +40,7 @@ struct SpiritLevelDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             tools.isSpiritLevelDetailActive = true
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .spiritLevel)
             tools.startMotionSensors(interval: 1.0 / 60.0)
         }
         .onDisappear {
@@ -271,4 +271,3 @@ struct SpiritLevelDetailView: View {
         SpiritLevelDetailView()
     }
 }
-

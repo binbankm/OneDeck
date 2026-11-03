@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  165Hz Acoustic Membrane Water & Dust Ejector Fullscreen Workspace.
+//  Acoustic diaphragm water and dust ejection workspace.
 //
 
 import SwiftUI
@@ -188,4 +188,3 @@ struct WaterEjectorDetailView: View {
         WaterEjectorDetailView()
     }
 }
-

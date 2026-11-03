@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Screen Caliper Bento Launcher Card - Clean 2-row Bento standard.
+//  Screen digital vernier caliper launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsScreenRulerCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: ScreenRulerDetailView()) {
+        NavigationLink(destination: LazyView(ScreenRulerDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -63,6 +63,7 @@ struct ToolsScreenRulerCard: View {
             Text("1:1 · \(tools.caliperUnit.title)")
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

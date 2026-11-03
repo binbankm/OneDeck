@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  20Hz-20kHz Pure Tone Generator Bento Launcher Card.
+//  Audio frequency tone generator and hearing test launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsToneGeneratorCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: ToneGeneratorDetailView()) {
+        NavigationLink(destination: LazyView(ToneGeneratorDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -69,6 +69,7 @@ struct ToolsToneGeneratorCard: View {
             Text(tools.toneGenerator.isPlaying ? L10n.Tools.soundPlaying : L10n.Tools.frequencyBandTitle(tools.toneGenerator.frequencyHz))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

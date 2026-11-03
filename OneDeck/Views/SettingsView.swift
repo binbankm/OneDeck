@@ -3,15 +3,18 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Settings & Control Hub: Appearance, Language, Preferences, Provisioning, Licenses & About.
+//  Application settings view managing appearance, language, and signing.
 //
 
 import SwiftUI
 
+// MARK: - SettingsView
 struct SettingsView: View {
+    // MARK: - Properties & State
     @Environment(\.colorScheme) private var colorScheme
     @Bindable private var appState = AppState.shared
 
+    // MARK: - Body
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
@@ -28,31 +31,32 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - 6 Core Modular Cards in Requested Order
+    // MARK: - Subviews
     @ViewBuilder
     private var cardStack: some View {
         VStack(spacing: SpacingTheme.cardStack) {
-            // 1. 外观 (Appearance: 跟随系统/浅色/深色, 调色板, 全部下拉)
+            // 1. Appearance settings
             SettingsAppearanceCard()
 
-            // 2. 语言 (Language: 下拉选择)
+            // 2. Language selection
             SettingsLanguageCard()
 
-            // 3. 偏好设置 (Preferences: 触感, 音效, 屏幕常亮, 传感器节能, 校准归零)
+            // 3. User preferences
             SettingsPreferencesCard()
 
-            // 4. 签名功能 (Signing & Provisioning: 证书有效期倒计时, 去除系统跳转)
+            // 4. Signing & provisioning
             SettingsSigningCard()
 
-            // 5. 开源协议 (Open Source Licenses: MIT 协议查看器, 原生技术栈)
+            // 5. Open source licenses
             SettingsLicensesCard()
 
-            // 6. 关于 (About: 官方三色环图标, 动态版本构建, 架构, GitHub 仓库)
+            // 6. About information
             SettingsAboutCard()
         }
     }
 }
 
+// MARK: - Preview
 #Preview {
     SettingsView()
 }

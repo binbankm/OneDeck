@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Spirit Level Bento Launcher Card - Clean 2-row Bento standard.
+//  Dual-axis digital spirit level and inclinometer launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsSpiritLevelCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: SpiritLevelDetailView()) {
+        NavigationLink(destination: LazyView(SpiritLevelDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -70,6 +70,7 @@ struct ToolsSpiritLevelCard: View {
             Text(String(format: "%@ %+.1f° · %@ %.1f%%", L10n.Tools.pitchAxis, tools.spiritLevel.pitchDegrees, L10n.Tools.slope, tools.spiritLevel.slopePercent))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

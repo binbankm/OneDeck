@@ -3,15 +3,32 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Domain Data Models for Hardware Diagnostic & Precision Instruments Toolkit.
+//  Domain data models for hardware diagnostic instruments.
 //
 
 import SwiftUI
 
+// MARK: - Active Detail Tool Identifier
+public enum ActiveDetailTool: String, Sendable {
+    case none
+    case barometer
+    case seismometer
+    case luxMeter
+    case decibelMeter
+    case compass
+    case gnss
+    case bleRadar
+    case microscope
+    case pulseMeter
+    case spiritLevel
+    case metalDetector
+    case other
+}
+
 // MARK: - 1. Spirit Level & Inclinometer Models
 public enum SpiritLevelOrientation: String, Sendable {
-    case flat       // Lying flat on table (2D circular bubble reticle)
-    case vertical   // Standing upright on edge (1D builder's angle meter)
+    case flat // Lying flat on table (2D circular bubble reticle)
+    case vertical // Standing upright on edge (1D builder's angle meter)
 }
 
 public struct SpiritLevelData: Sendable {
@@ -88,7 +105,7 @@ public struct CaliperRecord: Identifiable, Codable, Sendable {
 
 // MARK: - 3. Sonic Water Ejector Models
 public enum WaterEjectorMode: String, CaseIterable, Identifiable, Sendable {
-    case deep165Hz      // 165Hz Apple Watch resonant sine wave
+    case deep165Hz // 165Hz Apple Watch resonant sine wave
     case dustClear440Hz // 440Hz / 800Hz high-frequency dust impulse
 
     public var id: String { rawValue }
@@ -254,7 +271,7 @@ public struct ToneGeneratorData: Sendable {
     public var volume: Float = 0.5
     public var isHearingTestActive: Bool = false
     public var hearingTestCurrentFreq: Double = 8000.0
-    public var hearingCutoffFreq: Double? = nil
+    public var hearingCutoffFreq: Double?
 
     public init(
         frequencyHz: Double = 440.0,
@@ -442,9 +459,9 @@ public struct PulseMeterData: Sendable {
 // MARK: - 14. Seismometer & Vibration Spectrum Models
 public enum SeismicIntensity: String, CaseIterable, Identifiable, Sendable {
     case instrumental // 0 ~ I (微震无感)
-    case weak         // II ~ III (轻微震颤)
-    case moderate     // IV (有感震动)
-    case strong       // V+ (较强震动)
+    case weak // II ~ III (轻微震颤)
+    case moderate // IV (有感震动)
+    case strong // V+ (较强震动)
 
     public var id: String { rawValue }
 
@@ -697,4 +714,3 @@ public struct MicroscopeData: Sendable {
         self.filterMode = filterMode
     }
 }
-

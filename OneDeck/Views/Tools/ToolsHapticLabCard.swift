@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Bento Card launcher for Apple Taptic Engine & Haptic Motor Diagnostics.
+//  Taptic Engine waveforms and haptic feedback launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsHapticLabCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: HapticLabDetailView()) {
+        NavigationLink(destination: LazyView(HapticLabDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -63,6 +63,7 @@ struct ToolsHapticLabCard: View {
             Text(L10n.Tools.notificationFeedback)
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

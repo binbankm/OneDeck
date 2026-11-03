@@ -2,8 +2,8 @@
 //  ContentView.swift
 //  OneDeck
 //
-//  Created by lbyan on 2026/11/1.
-//  Root 5-Tab View hosting Overview, Battery, Network, Tools & Settings.
+//  Created for OneDeck - iOS 17.0+
+//  Root tab view coordinating the 5 primary application tabs.
 //
 
 import SwiftUI
@@ -36,12 +36,16 @@ struct ContentView: View {
 
     private func handleScenePhaseChange(_ phase: ScenePhase) {
         switch phase {
-        case .background, .inactive:
-            // High-priority power saving: suspend all background timers, sensors, GPS & pings
+        case .background:
+            // High-priority power saving: suspend all background timers, sensors, GPS & pings when app is sent to background
             tools.onAppBackground()
             system.stopMonitoring()
             battery.stopMonitoring()
             net.stopMonitoring()
+        case .inactive:
+            // Transient interruption (permission dialogues, control center, notifications)
+            // Maintain active sensors and views in standby so they resume smoothly
+            break
         case .active:
             // Resume only the currently active tab
             switch appState.activeTab {

@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network Hero Card: Hardware Link State, Local IP, Gateway, Subnet & DNS.
+//  Active network interface, link speed, and connectivity status hero card.
 //
 
 import SwiftUI

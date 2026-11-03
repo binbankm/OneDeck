@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Domain entities and data models for Network telemetry, LAN scanning, DNS & Speed test.
+//  Domain entities and data models for network telemetry and scanning.
 //
 
 import Foundation
@@ -245,4 +245,3 @@ public enum LatencyCardMode: Int, CaseIterable, Identifiable, Sendable {
         }
     }
 }
-

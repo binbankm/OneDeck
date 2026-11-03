@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Screen Quality & Touch Digitizer Bento Launcher Card.
+//  OLED screen uniformity and display quality launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsScreenQualityCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: ScreenQualityDetailView()) {
+        NavigationLink(destination: LazyView(ScreenQualityDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 colorPalettePreviewRow
@@ -68,6 +68,7 @@ struct ToolsScreenQualityCard: View {
             Text(L10n.Tools.deadPixelCheck)
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

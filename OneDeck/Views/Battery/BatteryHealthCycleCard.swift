@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Battery Health & Cycle Count: 2x2 Bento Matrix & Apple Diagnostics Importer.
+//  Battery health retention, cycle count, and capacity matrix card.
 //
 
 import SwiftUI

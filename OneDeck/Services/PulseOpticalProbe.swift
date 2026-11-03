@@ -3,12 +3,12 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Camera Optical Photoplethysmography (PPG) Heart Rate & Pulse Waveform Hardware Probe.
+//  Optical camera photoplethysmography (PPG) pulse rate probe.
 //
 
-import Foundation
 import AVFoundation
 import CoreMedia
+import Foundation
 
 public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
     public static let shared = PulseOpticalProbe()
@@ -34,7 +34,7 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
     private var lastValidHrv: Double = 0.0
     private var consecutiveNonFingerFrames: Int = 0
 
-    private override init() {
+    override private init() {
         super.init()
     }
 
@@ -57,18 +57,27 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
         startSimulatorMockLoop()
         #else
         let auth = AVCaptureDevice.authorizationStatus(for: .video)
-        if auth == .authorized {
+        switch auth {
+        case .authorized:
             sessionQueue.async { [weak self] in
                 self?.configureAndStartSession()
             }
-        } else if auth == .notDetermined {
+        case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
                 if granted {
                     self?.sessionQueue.async {
                         self?.configureAndStartSession()
                     }
+                } else {
+                    self?.isRunning = false
                 }
             }
+        case .denied, .restricted:
+            self.isRunning = false
+            return
+        @unknown default:
+            self.isRunning = false
+            return
         }
         #endif
     }
@@ -83,7 +92,7 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
         simTimer = nil
         #else
         sessionQueue.async { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             if let device = self.videoDevice {
                 self.enableTorchHardware(device: device, on: false)
             }
@@ -171,7 +180,7 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
 
     public func toggleTorch() {
         sessionQueue.async { [weak self] in
-            guard let self = self, let device = self.videoDevice else { return }
+            guard let self, let device = self.videoDevice else { return }
             self.enableTorchHardware(device: device, on: !self.isTorchOn)
         }
     }
@@ -199,15 +208,15 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
         // Center 40x40 sampling window
         let startX = max(0, (width - 40) / 2)
         let startY = max(0, (height - 40) / 2)
-        var totalRed: Double = 0.0
-        var totalGreen: Double = 0.0
-        var totalBlue: Double = 0.0
-        var sampleCount: Double = 0.0
+        var totalRed = 0.0
+        var totalGreen = 0.0
+        var totalBlue = 0.0
+        var sampleCount = 0.0
 
         let buffer = baseAddress.assumingMemoryBound(to: UInt8.self)
-        for y in startY..<(startY + 40) {
+        for y in startY ..< (startY + 40) {
             let rowOffset = y * bytesPerRow
-            for x in startX..<(startX + 40) {
+            for x in startX ..< (startX + 40) {
                 let pixelOffset = rowOffset + x * 4
                 let b = Double(buffer[pixelOffset + 0])
                 let g = Double(buffer[pixelOffset + 1])
@@ -245,7 +254,7 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
                 rrIntervalsMs.removeAll()
             }
             Task { @MainActor [weak self] in
-                guard let self = self, self.isRunning else { return }
+                guard let self, self.isRunning else { return }
                 self.onFrameCallback?(self.lastValidBpm, self.lastValidHrv, 0.0, false)
             }
             return
@@ -290,8 +299,8 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
 
                     // RMSSD (Root Mean Square of Successive Differences for HRV)
                     if rrIntervalsMs.count >= 2 {
-                        var sumSqDiff: Double = 0.0
-                        for i in 1..<rrIntervalsMs.count {
+                        var sumSqDiff = 0.0
+                        for i in 1 ..< rrIntervalsMs.count {
                             let diff = rrIntervalsMs[i] - rrIntervalsMs[i - 1]
                             sumSqDiff += diff * diff
                         }
@@ -316,7 +325,7 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
         let finalPulse = acPulse
 
         Task { @MainActor [weak self] in
-            guard let self = self, self.isRunning else { return }
+            guard let self, self.isRunning else { return }
             self.onFrameCallback?(finalBpm, finalHrv, finalPulse, true)
         }
     }
@@ -329,16 +338,16 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
         let timer = DispatchSource.makeTimerSource(queue: sampleQueue)
         timer.schedule(deadline: .now(), repeating: .milliseconds(33)) // 30Hz
 
-        var step: Double = 0.0
+        var step = 0.0
         timer.setEventHandler { [weak self] in
-            guard let self = self, self.isRunning else { return }
+            guard let self, self.isRunning else { return }
             step += 0.12
             let pulse = sin(step) * 1.5 + sin(step * 2.0) * 0.4
             let bpm = 72 + Int(sin(step * 0.1) * 3.0)
             let hrv = 45.0 + cos(step * 0.1) * 4.0
 
             Task { @MainActor [weak self] in
-                guard let self = self, self.isRunning else { return }
+                guard let self, self.isRunning else { return }
                 self.onFrameCallback?(bpm, hrv, pulse, true)
             }
         }

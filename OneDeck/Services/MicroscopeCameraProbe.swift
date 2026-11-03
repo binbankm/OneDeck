@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Hardware Macro Optical Magnifier Probe with real AVFoundation Video Session & Zoom Pipeline.
+//  Macro optical camera magnifier and digital zoom probe.
 //
 
-import Foundation
 import AVFoundation
+import Foundation
 import SwiftUI
 import UIKit
 
@@ -21,7 +21,7 @@ public final class MicroscopeCameraProbe: NSObject {
     private var isSessionConfigured: Bool = false
     private(set) var isRunning: Bool = false
 
-    private override init() {
+    override private init() {
         super.init()
     }
 
@@ -53,6 +53,25 @@ public final class MicroscopeCameraProbe: NSObject {
     }
 
     public func startSession() {
+        let auth = AVCaptureDevice.authorizationStatus(for: .video)
+        switch auth {
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                if granted {
+                    Task { @MainActor in
+                        MicroscopeCameraProbe.shared.startSession()
+                    }
+                }
+            }
+            return
+        case .denied, .restricted:
+            return
+        case .authorized:
+            break
+        @unknown default:
+            break
+        }
+
         configureSession()
         guard !captureSession.isRunning else {
             isRunning = true
@@ -145,15 +164,11 @@ public struct CameraPreviewRepresentable: UIViewRepresentable {
 }
 
 public final class CameraPreviewUIView: UIView {
-    public override class var layerClass: AnyClass {
+    override public class var layerClass: AnyClass {
         AVCaptureVideoPreviewLayer.self
     }
 
     public var videoPreviewLayer: AVCaptureVideoPreviewLayer {
-        guard let layer = layer as? AVCaptureVideoPreviewLayer else {
-            fatalError("Layer must be AVCaptureVideoPreviewLayer")
-        }
-        return layer
+        (layer as? AVCaptureVideoPreviewLayer) ?? AVCaptureVideoPreviewLayer()
     }
 }
-

@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network Port Scanner Card: Real Non-Blocking POSIX TCP Service & Port Probing.
+//  TCP socket port accessibility and open service inspection card.
 //
 
 import SwiftUI

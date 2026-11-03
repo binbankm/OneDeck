@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Industrial High-Precision Digital Vernier Caliper Workspace.
+//  Screen digital vernier caliper and physical millimeter measurement workspace.
 //
 
 import SwiftUI
@@ -71,7 +71,7 @@ struct ScreenRulerDetailView: View {
 
     // MARK: - Body
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: SpacingTheme.none) {
             // Top Digital Caliper LCD Console
             digitalLcdConsole
                 .padding(.horizontal, SpacingTheme.cardStack)
@@ -270,7 +270,7 @@ struct ScreenRulerDetailView: View {
             let majorColor = colorScheme == .dark ? Color.white.opacity(0.75) : Color.black.opacity(0.7)
 
             // --- Left Edge: Metric Millimeter & Centimeter Scale ---
-            for mm in 0...totalMm {
+            for mm in 0 ... totalMm {
                 let y = CGFloat(mm) * ppm
                 let isMajor = (mm % 10 == 0)
                 let isMid = (mm % 5 == 0)
@@ -293,7 +293,7 @@ struct ScreenRulerDetailView: View {
             }
 
             // --- Right Edge: Imperial Inch Scale (1/10" & 1/16") ---
-            for inchTenth in 0...(totalInches * 10 + 10) {
+            for inchTenth in 0 ... (totalInches * 10 + 10) {
                 let y = CGFloat(inchTenth) * (pointsPerInch / 10.0)
                 guard y <= size.height else { break }
 
@@ -375,7 +375,7 @@ struct ScreenRulerDetailView: View {
                     Text(L10n.Tools.zeroMmBenchmark)
                         .font(Typography.badgeTagMono)
                 } else {
-                    Image(systemName: "arrow.down")
+                    Image(systemName: "arrowtriangle.down.fill")
                         .font(IconTheme.badgeInline)
                     Text(L10n.Tools.jawA)
                         .font(Typography.badgeTagMono)
@@ -412,15 +412,15 @@ struct ScreenRulerDetailView: View {
             // Slider Body with Knurled Thumb Grip Lines
             VStack(spacing: SpacingTheme.micro) {
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "arrow.up")
+                    Image(systemName: "arrowtriangle.up.fill")
                         .font(IconTheme.badgeInline)
                     Text(L10n.Tools.jawB)
                         .font(Typography.badgeTagMono)
                 }
 
                 // Knurled grip grooves (3 tactile visual ribs)
-                HStack(spacing: 3) {
-                    ForEach(0..<4) { _ in
+                HStack(spacing: SpacingTheme.micro) {
+                    ForEach(0 ..< 4) { _ in
                         Rectangle()
                             .fill(Color.black.opacity(0.4))
                             .frame(width: 1.5, height: 6)

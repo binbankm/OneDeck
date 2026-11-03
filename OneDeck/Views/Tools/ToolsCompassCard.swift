@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Bento Card launcher for 3D Electronic Compass.
+//  3D electronic compass and magnetic heading launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsCompassCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: CompassDetailView()) {
+        NavigationLink(destination: LazyView(CompassDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 // Top Header Row
                 headerRow
@@ -72,6 +72,7 @@ struct ToolsCompassCard: View {
             Text(String(format: "%@: %.0f m", L10n.Tools.relativeElevation, tools.compass.altitudeMeters))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }
@@ -81,4 +82,3 @@ struct ToolsCompassCard: View {
     ToolsCompassCard()
         .padding()
 }
-

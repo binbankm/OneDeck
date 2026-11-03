@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network Telemetry: Download/Upload Bento Boxes, Dynamic Sparklines & Session Counters.
+//  Real-time network throughput and interface summary card.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct OverviewNetworkCard: View {
     // MARK: - Dependencies & Environment

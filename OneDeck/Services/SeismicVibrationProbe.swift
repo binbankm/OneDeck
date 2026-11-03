@@ -3,30 +3,28 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Tri-Axial High-Precision Seismometer & Micro-Vibration Spectrum Hardware Probe.
+//  Tri-axial accelerometer seismometer and vibration spectrum probe.
 //
 
-import Foundation
 import CoreMotion
+import Foundation
 
 public final class SeismicVibrationProbe: @unchecked Sendable {
     public static let shared = SeismicVibrationProbe()
 
-    private let motionManager = CMMotionManager()
+    @MainActor
+    private var motionManager: CMMotionManager {
+        MotionHardwareProbe.shared.motionManager
+    }
+
     private let motionQueue = OperationQueue()
     private var isRecording: Bool = false
 
-    // High-Pass Filter Memory (Gravity DC Isolation)
-    private var lastRawX: Double = 0.0
-    private var lastRawY: Double = 0.0
-    private var lastRawZ: Double = 0.0
-    private var filteredX: Double = 0.0
-    private var filteredY: Double = 0.0
-    private var filteredZ: Double = 0.0
-
     // Peak & Frequency Tracking
-    private var rollingZeroCrossings: Int = 0
-    private var sampleCountWindow: Int = 0
+    private var lastAccelZ: Double = 0.0
+    private var zeroCrossingsCount: Int = 0
+    private var sampleCount: Int = 0
+    private var dominantFreqHz: Double = 0.0
     private var currentPeakGal: Double = 0.0
 
     private var onUpdate: ((_ data: SeismometerData) -> Void)?
@@ -43,86 +41,81 @@ public final class SeismicVibrationProbe: @unchecked Sendable {
         self.onUpdate = onUpdate
         self.isRecording = true
         self.currentPeakGal = 0.0
-        self.sampleCountWindow = 0
-        self.rollingZeroCrossings = 0
+        self.sampleCount = 0
+        self.zeroCrossingsCount = 0
+        self.dominantFreqHz = 0.0
+        self.lastAccelZ = 0.0
 
-        guard motionManager.isAccelerometerAvailable else {
-            #if targetEnvironment(simulator)
-            startSimulatorSeismicLoop()
-            #endif
-            return
-        }
+        Task { @MainActor [weak self] in
+            guard let self, self.isRecording else { return }
+            let manager = self.motionManager
 
-        motionManager.accelerometerUpdateInterval = interval
-        motionManager.startAccelerometerUpdates(to: motionQueue) { [weak self] data, error in
-            guard let self = self, let data = data, error == nil, self.isRecording else { return }
-
-            let rawX = data.acceleration.x
-            let rawY = data.acceleration.y
-            let rawZ = data.acceleration.z
-
-            // 1st-order IIR High-pass filter (cutoff ~0.5Hz at 60Hz rate)
-            let alpha = 0.92
-            self.filteredX = alpha * (self.filteredX + rawX - self.lastRawX)
-            self.filteredY = alpha * (self.filteredY + rawY - self.lastRawY)
-            self.filteredZ = alpha * (self.filteredZ + rawZ - self.lastRawZ)
-
-            self.lastRawX = rawX
-            self.lastRawY = rawY
-            self.lastRawZ = rawZ
-
-            // 1G = 9.80665 m/s² = 980.665 Gal
-            let galX = self.filteredX * 980.665
-            let galY = self.filteredY * 980.665
-            let galZ = self.filteredZ * 980.665
-            let magnitudeGal = sqrt(galX * galX + galY * galY + galZ * galZ)
-
-            if magnitudeGal > self.currentPeakGal {
-                self.currentPeakGal = magnitudeGal
-            } else {
-                self.currentPeakGal = max(magnitudeGal, self.currentPeakGal * 0.992) // Smooth peak decay
+            guard manager.isDeviceMotionAvailable else {
+                #if targetEnvironment(simulator)
+                self.startSimulatorSeismicLoop()
+                #endif
+                return
             }
 
-            // Estimate dominant vibration frequency via zero crossings
-            self.sampleCountWindow += 1
-            if (self.filteredZ > 0 && self.lastRawZ <= 0) || (self.filteredZ < 0 && self.lastRawZ >= 0) {
-                self.rollingZeroCrossings += 1
-            }
+            let effectiveInterval = AppState.shared.isSensorPowerSaving ? max(interval, 1.0 / 30.0) : interval
+            manager.deviceMotionUpdateInterval = effectiveInterval
+            manager.startDeviceMotionUpdates(using: .xArbitraryZVertical, to: self.motionQueue) { [weak self] motion, error in
+                guard let self, let motion, error == nil, self.isRecording else { return }
 
-            var dominantFreq = 0.0
-            if self.sampleCountWindow >= 60 {
-                // 60 samples ~ 1 second: freq = crossings / 2
-                dominantFreq = max(0.5, Double(self.rollingZeroCrossings) / 2.0)
-                self.sampleCountWindow = 0
-                self.rollingZeroCrossings = 0
-            }
+                let userAcc = motion.userAcceleration
+                // 1 G = 980.665 Gal (cm/s²)
+                let galX = userAcc.x * 980.665
+                let galY = userAcc.y * 980.665
+                let galZ = userAcc.z * 980.665
+                let magnitudeGal = sqrt(galX * galX + galY * galY + galZ * galZ)
 
-            // Seismic Intensity mapping (PGA based)
-            let intensity: SeismicIntensity
-            if self.currentPeakGal < 1.0 {
-                intensity = .instrumental
-            } else if self.currentPeakGal < 5.0 {
-                intensity = .weak
-            } else if self.currentPeakGal < 25.0 {
-                intensity = .moderate
-            } else {
-                intensity = .strong
-            }
+                if magnitudeGal > self.currentPeakGal {
+                    self.currentPeakGal = magnitudeGal
+                } else {
+                    // Smooth exponential peak decay (~0.8% decay per 60Hz frame)
+                    self.currentPeakGal = max(magnitudeGal, self.currentPeakGal * 0.992)
+                }
 
-            let result = SeismometerData(
-                accelX: galX,
-                accelY: galY,
-                accelZ: galZ,
-                vectorMagnitudeGal: magnitudeGal,
-                peakGal: self.currentPeakGal,
-                dominantFrequencyHz: dominantFreq,
-                intensity: intensity,
-                isRecording: true
-            )
+                // Estimate dominant vibration frequency via zero crossings of Z-axis user acceleration
+                self.sampleCount += 1
+                if (userAcc.z > 0 && self.lastAccelZ <= 0) || (userAcc.z < 0 && self.lastAccelZ >= 0) {
+                    self.zeroCrossingsCount += 1
+                }
+                self.lastAccelZ = userAcc.z
 
-            Task { @MainActor [weak self] in
-                guard let self = self, self.isRecording else { return }
-                self.onUpdate?(result)
+                if self.sampleCount >= 30 {
+                    // Dominant frequency calculation over 0.5s window
+                    self.dominantFreqHz = max(0.5, Double(self.zeroCrossingsCount))
+                    self.sampleCount = 0
+                    self.zeroCrossingsCount = 0
+                }
+
+                // Seismic Intensity mapping (PGA based)
+                let intensity: SeismicIntensity = if self.currentPeakGal < 1.0 {
+                    .instrumental
+                } else if self.currentPeakGal < 5.0 {
+                    .weak
+                } else if self.currentPeakGal < 25.0 {
+                    .moderate
+                } else {
+                    .strong
+                }
+
+                let result = SeismometerData(
+                    accelX: galX,
+                    accelY: galY,
+                    accelZ: galZ,
+                    vectorMagnitudeGal: magnitudeGal,
+                    peakGal: self.currentPeakGal,
+                    dominantFrequencyHz: self.dominantFreqHz,
+                    intensity: intensity,
+                    isRecording: true
+                )
+
+                Task { @MainActor [weak self] in
+                    guard let self, self.isRecording else { return }
+                    self.onUpdate?(result)
+                }
             }
         }
     }
@@ -130,8 +123,12 @@ public final class SeismicVibrationProbe: @unchecked Sendable {
     public func stopSeismicMonitoring() {
         guard isRecording else { return }
         isRecording = false
-        motionManager.stopAccelerometerUpdates()
         onUpdate = nil
+
+        Task { @MainActor [weak self] in
+            self?.motionManager.stopDeviceMotionUpdates()
+        }
+
         #if targetEnvironment(simulator)
         simTimer?.cancel()
         simTimer = nil
@@ -149,30 +146,40 @@ public final class SeismicVibrationProbe: @unchecked Sendable {
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .userInteractive))
         timer.schedule(deadline: .now(), repeating: .milliseconds(16)) // 60Hz
 
-        var step: Double = 0.0
+        var step = 0.0
         timer.setEventHandler { [weak self] in
-            guard let self = self, self.isRecording else { return }
+            guard let self, self.isRecording else { return }
             step += 0.2
             let x = sin(step * 0.7) * 2.5
             let y = cos(step * 1.1) * 3.1
             let z = sin(step * 1.5) * 4.2
-            let mag = sqrt(x*x + y*y + z*z)
+            let mag = sqrt(x * x + y * y + z * z)
             self.currentPeakGal = max(mag, self.currentPeakGal * 0.99)
 
-            let result = SeismometerData(
+            let intensity: SeismicIntensity = if self.currentPeakGal < 1.0 {
+                .instrumental
+            } else if self.currentPeakGal < 5.0 {
+                .weak
+            } else if self.currentPeakGal < 25.0 {
+                .moderate
+            } else {
+                .strong
+            }
+
+            let data = SeismometerData(
                 accelX: x,
                 accelY: y,
                 accelZ: z,
                 vectorMagnitudeGal: mag,
                 peakGal: self.currentPeakGal,
-                dominantFrequencyHz: 14.5,
-                intensity: mag > 5.0 ? .moderate : (mag > 1.0 ? .weak : .instrumental),
+                dominantFrequencyHz: 4.5,
+                intensity: intensity,
                 isRecording: true
             )
 
             Task { @MainActor [weak self] in
-                guard let self = self, self.isRecording else { return }
-                self.onUpdate?(result)
+                guard let self, self.isRecording else { return }
+                self.onUpdate?(data)
             }
         }
         timer.resume()
@@ -180,4 +187,3 @@ public final class SeismicVibrationProbe: @unchecked Sendable {
     }
     #endif
 }
-

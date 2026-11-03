@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Bluetooth Low Energy Proximity & Radar Fullscreen Workspace.
+//  Bluetooth Low Energy (BLE) proximity and RSSI radar workspace.
 //
 
 import SwiftUI
@@ -39,12 +39,12 @@ struct BleRadarDetailView: View {
         .navigationTitle(L10n.Tools.bleRadar)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .bleRadar)
             tools.startBleRadar()
         }
         .onDisappear {
-            tools.leaveDetailView()
             tools.stopBleRadar()
+            tools.leaveDetailView()
         }
     }
 
@@ -298,4 +298,3 @@ struct BleRadarDetailView: View {
         BleRadarDetailView()
     }
 }
-

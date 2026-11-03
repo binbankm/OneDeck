@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Precision Torch & Strobe Bento Launcher Card.
+//  Micro-brightness torch and strobe frequency launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsPrecisionTorchCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: PrecisionTorchDetailView()) {
+        NavigationLink(destination: LazyView(PrecisionTorchDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -69,6 +69,7 @@ struct ToolsPrecisionTorchCard: View {
             Text(tools.torch.currentMode == .continuous ? L10n.Tools.dimMode : "\(Int(tools.torch.strobeFrequencyHz)) Hz")
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

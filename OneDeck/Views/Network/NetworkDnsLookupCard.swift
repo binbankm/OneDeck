@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network DNS Lookup Card: Direct POSIX getaddrinfo Domain Name Resolution (A / AAAA).
+//  Domain name resolution and DNS record query card.
 //
 
 import SwiftUI
@@ -218,8 +218,8 @@ struct NetworkDnsLookupCard: View {
                                 Haptics.tick()
                             } label: {
                                 Image(systemName: "doc.on.doc.fill")
-                                .font(IconTheme.copyIndicator)
-                                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                                    .font(IconTheme.copyIndicator)
+                                    .foregroundStyle(Theme.textTertiary(for: colorScheme))
                             }
                         }
                     }

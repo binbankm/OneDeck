@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network Public IP Card: Asynchronous Public IP, ISP ASN & GeoIP Resolution.
+//  External public IP address, ISP provider, and geolocation card.
 //
 
 import SwiftUI

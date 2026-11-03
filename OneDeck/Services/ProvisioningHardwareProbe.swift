@@ -3,13 +3,13 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Deep Certificate & MobileProvision Telemetry Probe (X.509, CryptoKit, TrollStore & Enterprise).
+//  Certificate, mobile provisioning profile, and entitlement telemetry probe.
 //
 
+import CryptoKit
 import Foundation
 import Observation
 import Security
-import CryptoKit
 
 @Observable
 @MainActor
@@ -21,8 +21,8 @@ public final class ProvisioningHardwareProbe {
     public var profileName: String = ""
     public var profileUUID: String = ""
     public var appIdentifier: String = Bundle.main.bundleIdentifier ?? "com.binbankm.OneDeck"
-    public var creationDate: Date? = nil
-    public var expirationDate: Date? = nil
+    public var creationDate: Date?
+    public var expirationDate: Date?
     public var remainingDays: Int = 0
     public var remainingHours: Int = 0
     public var isExpired: Bool = false
@@ -110,9 +110,9 @@ public final class ProvisioningHardwareProbe {
             case .enterprise:
                 return "building.2.crop.circle.fill"
             case .trollStore:
-                return "shield.checkered"
+                return "checkmark.shield.fill"
             case .testFlight:
-                return "airplane.departure"
+                return "airplane.circle.fill"
             case .appStore:
                 return "apple.logo"
             case .simulator:
@@ -140,13 +140,13 @@ public final class ProvisioningHardwareProbe {
         return
         #endif
 
-        let trollStoreDetected = detectTrollStore()
+            let trollStoreDetected = detectTrollStore()
         self.isTrollStore = trollStoreDetected
 
         // Search for embedded.mobileprovision inside App Bundle
         guard let path = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision") ??
-                        Bundle.main.path(forResource: "embedded.mobileprovision", ofType: nil),
-              let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
+            Bundle.main.path(forResource: "embedded.mobileprovision", ofType: nil),
+            let data = try? Data(contentsOf: URL(fileURLWithPath: path)) else {
             // No embedded.mobileprovision present
             self.hasProvisionProfile = false
             if trollStoreDetected {
@@ -291,7 +291,7 @@ public final class ProvisioningHardwareProbe {
         guard let startRange = rawString.range(of: "<?xml") else { return nil }
         guard let endRange = rawString.range(of: "</plist>") else { return nil }
 
-        let plistSubstring = rawString[startRange.lowerBound..<endRange.upperBound]
+        let plistSubstring = rawString[startRange.lowerBound ..< endRange.upperBound]
         return String(plistSubstring)
     }
 }

@@ -3,12 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Deep Device Identity & Hardware Telemetry Probe:
-//  IOPlatformExpertDevice (IOKit), libMobileGestalt, Sysctl Kernel, and Commercial Model Parsing.
+//  Low-level device identity and hardware specification telemetry probe.
 //
 
-import Foundation
 import Darwin
+import Foundation
 import MachO
 
 // MARK: - Deep Device Identity & Hardware Telemetry Data Model
@@ -28,7 +27,7 @@ public struct DeviceIdentityHardwareTelemetry: Sendable {
     public var l2Mb: Int?
     public var clockFrequencyHz: UInt64?
 
-    nonisolated public init() {}
+    public nonisolated init() {}
 }
 
 // MARK: - Device Hardware Probe Engine
@@ -39,7 +38,7 @@ public enum DeviceHardwareProbe {
     private typealias IOObjectReleaseFunc = @convention(c) (mach_port_t) -> kern_return_t
     private typealias MGCopyAnswerFunc = @convention(c) (CFString) -> Unmanaged<CFTypeRef>?
 
-    nonisolated public static func sample() -> DeviceIdentityHardwareTelemetry {
+    public nonisolated static func sample() -> DeviceIdentityHardwareTelemetry {
         var result = DeviceIdentityHardwareTelemetry()
 
         // 1. IOKit IOPlatformExpertDevice (Platform Serial, Board ID, Clock Frequency)
@@ -84,8 +83,7 @@ public enum DeviceHardwareProbe {
                         // Clock Frequency
                         if let prop = ioRegistryEntryCreateCFProperty(service, "clock-frequency" as CFString, kCFAllocatorDefault, 0) {
                             let val = prop.takeRetainedValue()
-                            if CFGetTypeID(val) == CFDataGetTypeID() {
-                                let data = val as! Data
+                            if CFGetTypeID(val) == CFDataGetTypeID(), let data = val as? Data {
                                 if data.count == 4 {
                                     let hz = data.withUnsafeBytes { $0.load(as: UInt32.self) }
                                     result.clockFrequencyHz = UInt64(hz)
@@ -199,12 +197,12 @@ public enum DeviceHardwareProbe {
             let firstChar = model.prefix(1).uppercased()
             let (typeZh, typeEn, typeHant): (String, String, String) = {
                 switch firstChar {
-                case "M": return ("零售正品", "Retail", "零售正品")
-                case "N": return ("官方换机", "Replacement", "官方換機")
-                case "F": return ("官方翻新", "Apple Refurbished", "官方翻新")
-                case "P": return ("定制镌刻", "Personalized", "客製鐫刻")
-                case "3": return ("展示样机", "Demo Unit", "展示樣機")
-                default: return ("零售原厂", "Retail", "零售原廠")
+                case "M": return ("零售机", "Retail", "零售機")
+                case "N": return ("官换机", "Replacement", "官換機")
+                case "F": return ("官翻机", "Refurbished", "官翻機")
+                case "P": return ("定制机", "Custom", "客製機")
+                case "3": return ("展示机", "Demo", "展示機")
+                default: return ("零售机", "Retail", "零售機")
                 }
             }()
 
@@ -237,4 +235,3 @@ public enum DeviceHardwareProbe {
         return result
     }
 }
-

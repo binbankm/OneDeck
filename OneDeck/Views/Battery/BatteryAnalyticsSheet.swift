@@ -3,11 +3,57 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Analytics File Importer & Text Parser Sheet for Battery Diagnostics.
+//  Apple diagnostic analytics log importer and parsing sheet.
 //
 
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
+
+// MARK: - Document Picker Coordinator
+final class DocumentPickerCoordinator: NSObject, UIDocumentPickerDelegate {
+    private let onPick: (URL) -> Void
+    private let onDismiss: (() -> Void)?
+
+    init(onPick: @escaping (URL) -> Void, onDismiss: (() -> Void)? = nil) {
+        self.onPick = onPick
+        self.onDismiss = onDismiss
+    }
+
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let url = urls.first else { return }
+        onPick(url)
+    }
+
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        onDismiss?()
+    }
+}
+
+// MARK: - View Controller Presentation Helper
+extension UIApplication {
+    @MainActor
+    fileprivate func topMostViewController(base: UIViewController? = nil) -> UIViewController? {
+        let baseVC = base ?? connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .rootViewController
+
+        if let nav = baseVC as? UINavigationController {
+            return topMostViewController(base: nav.visibleViewController)
+        }
+        if let tab = baseVC as? UITabBarController {
+            if let selected = tab.selectedViewController {
+                return topMostViewController(base: selected)
+            }
+        }
+        if let presented = baseVC?.presentedViewController {
+            return topMostViewController(base: presented)
+        }
+        return baseVC
+    }
+}
 
 struct BatteryAnalyticsSheet: View {
     // MARK: - Dependencies & Environment
@@ -17,10 +63,10 @@ struct BatteryAnalyticsSheet: View {
     @Bindable private var battery = BatteryViewModel.shared
 
     // MARK: - State
-    @State private var showFilePicker: Bool = false
     @State private var pastedText: String = ""
     @State private var errorMessage: String?
     @State private var successRecord: BatteryAnalyticsRecord?
+    @State private var pickerCoordinator: DocumentPickerCoordinator?
 
     // MARK: - Body
     var body: some View {
@@ -45,13 +91,6 @@ struct BatteryAnalyticsSheet: View {
                     .font(Typography.sectionHeader)
                     .foregroundStyle(appState.accentColor)
                 }
-            }
-            .fileImporter(
-                isPresented: $showFilePicker,
-                allowedContentTypes: [.item, .text, .json],
-                allowsMultipleSelection: false
-            ) { result in
-                handleFileImport(result: result)
             }
         }
     }
@@ -89,8 +128,7 @@ struct BatteryAnalyticsSheet: View {
     @ViewBuilder
     private var filePickerSection: some View {
         Button {
-            Haptics.impact(.medium)
-            showFilePicker = true
+            openFilePicker()
         } label: {
             HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: "doc.fill.badge.plus")
@@ -104,6 +142,7 @@ struct BatteryAnalyticsSheet: View {
             .foregroundStyle(Color.black)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -151,7 +190,7 @@ struct BatteryAnalyticsSheet: View {
                 handlePasteParse()
             } label: {
                 HStack(spacing: SpacingTheme.compact) {
-                    Image(systemName: "sparkles")
+                    Image(systemName: "doc.badge.gearshape.fill")
                         .font(IconTheme.actionButton)
                     Text(L10n.Battery.parseNow)
                 }
@@ -162,6 +201,7 @@ struct BatteryAnalyticsSheet: View {
                 .foregroundStyle(appState.accentColor)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
             }
+            .buttonStyle(.plain)
             .disabled(pastedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
@@ -212,27 +252,56 @@ struct BatteryAnalyticsSheet: View {
     }
 
     // MARK: - Handlers
-    private func handleFileImport(result: Result<[URL], Error>) {
-        switch result {
-        case .success(let urls):
-            guard let url = urls.first else { return }
-            Task {
-                let parseResult = await battery.parseAnalyticsFile(url: url)
-                switch parseResult {
-                case .success(let rec):
-                    Haptics.success()
-                    self.successRecord = rec
-                    self.errorMessage = nil
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                        dismiss()
-                    }
-                case .failure(let err):
-                    Haptics.error()
-                    self.errorMessage = err.localizedDescription
-                }
+    private func openFilePicker() {
+        Haptics.impact(.medium)
+
+        let types: [UTType] = [
+            .item,
+            .content,
+            .data,
+            .text,
+            .plainText,
+            .json,
+            UTType(filenameExtension: "ips") ?? .data,
+            UTType(filenameExtension: "synced") ?? .data,
+            UTType(filenameExtension: "ca") ?? .data,
+            UTType(filenameExtension: "log") ?? .data
+        ]
+
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: true)
+        picker.allowsMultipleSelection = false
+
+        let coordinator = DocumentPickerCoordinator(
+            onPick: { url in
+                handleFileImport(url: url)
+            },
+            onDismiss: {
+                self.pickerCoordinator = nil
             }
-        case .failure(let err):
-            self.errorMessage = err.localizedDescription
+        )
+        self.pickerCoordinator = coordinator
+        picker.delegate = coordinator
+
+        guard let topVC = UIApplication.shared.topMostViewController() else { return }
+        topVC.present(picker, animated: true)
+    }
+
+    private func handleFileImport(url: URL) {
+        self.pickerCoordinator = nil
+        Task {
+            let parseResult = await battery.parseAnalyticsFile(url: url)
+            switch parseResult {
+            case let .success(rec):
+                Haptics.success()
+                self.successRecord = rec
+                self.errorMessage = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    dismiss()
+                }
+            case let .failure(err):
+                Haptics.error()
+                self.errorMessage = err.localizedDescription
+            }
         }
     }
 
@@ -242,14 +311,14 @@ struct BatteryAnalyticsSheet: View {
 
         let result = battery.parseAnalyticsText(text, sourceName: "Manual Paste")
         switch result {
-        case .success(let rec):
+        case let .success(rec):
             Haptics.success()
             self.successRecord = rec
             self.errorMessage = nil
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                 dismiss()
             }
-        case .failure(let err):
+        case let .failure(err):
             Haptics.error()
             self.errorMessage = err.localizedDescription
         }

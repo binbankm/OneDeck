@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Atmospheric Barometer & Relative Altimeter / Vertical Speed Fullscreen Workspace.
+//  Atmospheric barometer, altimeter, and vertical speed detail workspace.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct BarometerDetailView: View {
     // MARK: - Dependencies & Environment
@@ -38,12 +38,12 @@ struct BarometerDetailView: View {
         .navigationTitle(L10n.Tools.barometer)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .barometer)
             tools.startBarometer()
         }
         .onDisappear {
-            tools.leaveDetailView()
             tools.stopBarometer()
+            tools.leaveDetailView()
         }
     }
 
@@ -167,7 +167,7 @@ struct BarometerDetailView: View {
                     }
                 }
                 .chartXAxis(.hidden)
-                .chartYScale(domain: yMin...yMax)
+                .chartYScale(domain: yMin ... yMax)
                 .chartYAxis {
                     AxisMarks(position: .trailing, values: [yMin, mid, yMax]) { val in
                         AxisGridLine(stroke: ChartTheme.gridStroke)

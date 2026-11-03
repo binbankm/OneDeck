@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network Tab: Real-Time Darwin POSIX Network Intelligence Orchestrator.
+//  Network dashboard view hosting connection and traffic diagnostics.
 //
 
 import SwiftUI

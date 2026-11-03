@@ -3,126 +3,71 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Obsidian Bento Glassmorphism Design System & Dynamic Full-Spectrum Palette Engine.
+//  Design system defining spacing, typography, colors, and layout tokens.
 //
 
 import SwiftUI
 
 // MARK: - App Theme Preset
-public struct ThemePreset: Identifiable, Hashable {
-    public let id: String
-    public let nameZh: String
-    public let nameEn: String
+public struct ThemePreset: Hashable {
     public let hex: String
-    public let secondaryHex: String
 
-    public var displayName: String {
-        L10n.tr(zh: nameZh, en: nameEn)
-    }
-
-    public var primaryColor: Color {
-        Color(hex: hex)
-    }
-
-    public var secondaryColor: Color {
-        Color(hex: secondaryHex)
-    }
-
-    public static let emerald = ThemePreset(
-        id: "emerald",
-        nameZh: "赛博冷翠",
-        nameEn: "Cyber Emerald",
-        hex: "#00F5A0",
-        secondaryHex: "#00D084"
-    )
-
-    public static let cyan = ThemePreset(
-        id: "cyan",
-        nameZh: "深邃青蓝",
-        nameEn: "Cyber Cyan",
-        hex: "#00C9FF",
-        secondaryHex: "#0072FF"
-    )
-
-    public static let orange = ThemePreset(
-        id: "orange",
-        nameZh: "钛金暖橙",
-        nameEn: "Titanium Orange",
-        hex: "#FF9500",
-        secondaryHex: "#FF5E3A"
-    )
-
-    public static let violet = ThemePreset(
-        id: "violet",
-        nameZh: "霓虹紫罗兰",
-        nameEn: "Neon Violet",
-        hex: "#AF52DE",
-        secondaryHex: "#5856D6"
-    )
-
-    public static let blue = ThemePreset(
-        id: "blue",
-        nameZh: "极速电蓝",
-        nameEn: "Electric Blue",
-        hex: "#007AFF",
-        secondaryHex: "#00C9FF"
-    )
-
-    public static let silver = ThemePreset(
-        id: "silver",
-        nameZh: "极简冰银",
-        nameEn: "Monochrome Ice",
-        hex: "#E5E5EA",
-        secondaryHex: "#8E8E93"
-    )
-
-    public static let allPresets: [ThemePreset] = [
-        .emerald, .cyan, .orange, .violet, .blue, .silver
-    ]
+    public static let emerald = ThemePreset(hex: "#00F5A0")
 }
 
 // MARK: - Theme Manager
 public enum Theme {
+    // Pre-instantiated static colors for zero-allocation 120Hz rendering performance
+    private static let darkCanvas = Color(hex: "#07070A")
+    private static let lightCanvas = Color(hex: "#F4F5F8")
+
+    private static let darkCard = Color(hex: "#13131A")
+    private static let lightCard = Color.white
+
+    private static let darkCardBorder = Color.white.opacity(0.08)
+    private static let lightCardBorder = Color.black.opacity(0.06)
+
+    private static let darkTextPrimary = Color.white
+    private static let lightTextPrimary = Color(hex: "#111114")
+
+    private static let darkTextSecondary = Color(hex: "#B0B0BD")
+    private static let lightTextSecondary = Color(hex: "#54545F")
+
+    private static let darkTextTertiary = Color(hex: "#8E8E9C")
+    private static let lightTextTertiary = Color(hex: "#666672")
+
     // Canvas Background
     public static func background(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "#07070A") : Color(hex: "#F4F5F8")
+        scheme == .dark ? darkCanvas : lightCanvas
     }
 
     // Card Surface
     public static func cardBackground(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "#13131A") : Color.white
+        scheme == .dark ? darkCard : lightCard
     }
 
     // Card Subtle Border
     public static func cardBorder(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)
+        scheme == .dark ? darkCardBorder : lightCardBorder
     }
 
     // Text Colors - Fully calibrated for WCAG AA compliance (Contrast >= 4.5:1)
     public static func textPrimary(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color.white : Color(hex: "#111114")
+        scheme == .dark ? darkTextPrimary : lightTextPrimary
     }
 
     public static func textSecondary(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "#B0B0BD") : Color(hex: "#54545F")
+        scheme == .dark ? darkTextSecondary : lightTextSecondary
     }
 
     public static func textTertiary(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "#8E8E9C") : Color(hex: "#666672")
+        scheme == .dark ? darkTextTertiary : lightTextTertiary
     }
 
     // Dynamic Gradient Generator from any single Color
     public static func gradient(for primary: Color) -> LinearGradient {
         LinearGradient(
             colors: [primary, primary.opacity(0.75)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
-    public static func dualGradient(primary: Color, secondary: Color) -> LinearGradient {
-        LinearGradient(
-            colors: [primary, secondary],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -144,7 +89,6 @@ public enum Typography {
     public static let headlineValue: Font = .system(size: 16, weight: .bold, design: .rounded)
     /// Bento Card Section Headers (14pt)
     public static let sectionHeader: Font = .system(size: 14, weight: .bold, design: .rounded)
-    public static let sectionHeaderMono: Font = .system(size: 14, weight: .bold, design: .monospaced)
     /// Core Metric Values in list tiles & gauges (13pt)
     public static let bodyValue: Font = .system(size: 13, weight: .semibold, design: .rounded)
     public static let bodyValueMono: Font = .system(size: 13, weight: .semibold, design: .monospaced)
@@ -168,6 +112,8 @@ public enum Typography {
 
 // MARK: - Spacing Design System Tokens (8pt Grid System)
 public enum SpacingTheme {
+    /// Zero spacing token (0pt)
+    public static let none: CGFloat = 0.0
     /// Tightest inline micro gap between icon & text (2pt)
     public static let micro: CGFloat = 2.0
     /// Inline badge & tag internal spacing (4pt)
@@ -194,8 +140,7 @@ public enum CornerRadiusTheme {
     public static let micro: CGFloat = 4.0
     /// Secondary badge & small platter radius (6pt)
     public static let compact: CGFloat = 6.0
-    /// Standard section header icon platter radius (7pt / 8pt)
-    public static let platter: CGFloat = 7.0
+    /// Standard section header icon platter radius (8pt)
     public static let standard: CGFloat = 8.0
     /// Inner list tile & sub-card container radius (10pt)
     public static let tile: CGFloat = 10.0
@@ -220,6 +165,8 @@ public enum IconTheme {
     public static let actionButton: Font = .system(size: 12, weight: .semibold)
     /// Inline secondary copy indicator icon font size
     public static let copyIndicator: Font = .system(size: 11, weight: .medium)
+    /// Micro menu chevron up/down indicator font size
+    public static let chevronIndicator: Font = .system(size: 9, weight: .semibold)
     /// Prominent card control / action button icon font size
     public static let prominentAction: Font = .system(size: 24, weight: .semibold)
     /// Hero avatar / Device preview icon font size
@@ -353,8 +300,8 @@ public struct BentoCardModifier: ViewModifier {
 
 extension View {
     public func bentoCard(
-        padding: CGFloat = 16,
-        cornerRadius: CGFloat = 18,
+        padding: CGFloat = SpacingTheme.cardStack,
+        cornerRadius: CGFloat = CornerRadiusTheme.card,
         isHighlighted: Bool = false,
         accent: Color = .green
     ) -> some View {
@@ -414,4 +361,3 @@ public struct FlowLayout: Layout {
         }
     }
 }
-

@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  CPU Telemetry: 30s Rolling Waveform, Multi-Core Distribution & Dynamic Level Meters.
+//  Real-time multi-core CPU load and cluster telemetry card.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct OverviewCpuCard: View {
     // MARK: - Dependencies & Environment
@@ -125,7 +125,7 @@ struct OverviewCpuCard: View {
                 }
                 .chartXAxis(.hidden)
                 .chartYAxis(.hidden)
-                .chartYScale(domain: 0...100)
+                .chartYScale(domain: 0 ... 100)
                 .padding(.trailing, ChartTheme.trailingMargin)
                 .allowsHitTesting(false)
             }

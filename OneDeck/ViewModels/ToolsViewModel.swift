@@ -3,17 +3,17 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Central state management engine for Hardware Diagnostic & Precision Instruments Toolkit.
+//  State management view model for diagnostic instruments toolkit.
 //
 
-import SwiftUI
 import Observation
+import SwiftUI
 
 public typealias ToolsService = ToolsViewModel
 
 @Observable
 @MainActor
-public final class ToolsViewModel: Sendable {
+public final class ToolsViewModel {
     public static let shared = ToolsViewModel()
 
     // MARK: - 1. Spirit Level State
@@ -36,7 +36,7 @@ public final class ToolsViewModel: Sendable {
 
     // MARK: - 5. Magnetic Field & Metal Detector State
     public var metalDetector = MetalDetectorData()
-    private var lastGeigerSoundTime: Date = Date()
+    private var lastGeigerSoundTime: Date = .init()
 
     // MARK: - 6. Atmospheric Barometer & Altimeter State
     public var barometer = BarometerData()
@@ -98,10 +98,13 @@ public final class ToolsViewModel: Sendable {
     // MARK: - Lifecycle Tracking
     public var isToolsTabActive: Bool = false
     public var activeDetailCount: Int = 0
+    public var currentActiveDetailTool: ActiveDetailTool = .none
     public var isSpiritLevelDetailActive: Bool = false
     public var isMotionActive: Bool = false
     public var isMagnetometerActive: Bool = false
     public var isBarometerActive: Bool = false
+
+    private var barometerHeartbeatTimer: DispatchSourceTimer?
 
     public var isToolsModuleActive: Bool {
         isToolsTabActive || activeDetailCount > 0
@@ -119,20 +122,30 @@ public final class ToolsViewModel: Sendable {
     // MARK: - Lifecycle Management (Smart Battery-Saving Guard)
     public func onTabAppear() {
         isToolsTabActive = true
-        startTabTelemetrySensors()
+        if activeDetailCount == 0 {
+            startTabTelemetrySensors()
+        }
     }
 
     public func startTabTelemetrySensors() {
         guard isToolsTabActive && activeDetailCount == 0 else { return }
-        // Run preview sensors at battery-optimized rates (12Hz / 10Hz, zero GPS)
-        startMotionSensors(interval: 1.0 / 12.0)
-        startCompass(enableGpsLocation: false)
-        startBarometer()
-        startMagnetometer(interval: 1.0 / 10.0)
-        startSeismicMonitoring(interval: 1.0 / 10.0)
+        // Run safe, non-permissioned preview sensors at power-efficient rates:
+        let isPowerSaving = AppState.shared.isSensorPowerSaving
+        let motionRate = isPowerSaving ? (1.0 / 6.0) : (1.0 / 12.0)
+        let magRate = isPowerSaving ? (1.0 / 5.0) : (1.0 / 10.0)
+
+        // Accelerometer & Magnetometer (zero permission popups, lightweight preview)
+        startMotionSensors(interval: motionRate)
+        startMagnetometer(interval: magRate)
         updateAmbientLuxPreview()
-        startLuxSampling()
-        triggerBleDiscoveryPulse()
+    }
+
+    public func stopTabTelemetrySensors() {
+        stopMotionSensors()
+        stopMagnetometer()
+        seismicProbe.stopSeismicMonitoring()
+        luxProbe.stopLuxSampling()
+        luxMeter.isSampling = false
     }
 
     public func updateAmbientLuxPreview() {
@@ -149,7 +162,7 @@ public final class ToolsViewModel: Sendable {
     public func triggerBleDiscoveryPulse() {
         guard !bleRadar.isScanning else { return }
         bleProbe.startScanning { [weak self] data in
-            guard let self = self else { return }
+            guard let self else { return }
             self.bleRadar = data
         }
         Task { [weak self] in
@@ -174,40 +187,68 @@ public final class ToolsViewModel: Sendable {
     }
 
     public func onAppBackground() {
-        isToolsTabActive = false
-        stopAllSensors()
+        stopTabTelemetrySensors()
         stopWaterEjection()
         stopToneGenerator()
-        stopDecibelMeter()
-        stopPulseMeasurement()
-        stopSeismicMonitoring()
-        stopLuxSampling()
-        stopGnssTracking()
-        stopBleRadar()
         torchProbe.turnOff()
         torch.isTorchOn = false
     }
 
     public func onAppForeground() {
-        if isToolsTabActive {
-            startTabTelemetrySensors()
+        if activeDetailCount == 0 {
+            if isToolsTabActive {
+                startTabTelemetrySensors()
+            }
+        } else {
+            resumeActiveDetailTool()
         }
     }
 
-    public func enterDetailView() {
+    public func enterDetailView(tool: ActiveDetailTool = .other) {
         activeDetailCount += 1
+        currentActiveDetailTool = tool
         if activeDetailCount == 1 {
             // Suspend background non-active tab preview polling to reduce CPU & thermal load
-            seismicProbe.stopSeismicMonitoring()
-            luxProbe.stopLuxSampling()
-            luxMeter.isSampling = false
+            stopTabTelemetrySensors()
         }
     }
 
     public func leaveDetailView() {
         activeDetailCount = max(0, activeDetailCount - 1)
-        if activeDetailCount == 0 && isToolsTabActive {
-            startTabTelemetrySensors()
+        if activeDetailCount == 0 {
+            currentActiveDetailTool = .none
+            if isToolsTabActive {
+                startTabTelemetrySensors()
+            }
+        }
+    }
+
+    public func resumeActiveDetailTool() {
+        switch currentActiveDetailTool {
+        case .barometer:
+            startBarometer()
+        case .seismometer:
+            startSeismicMonitoring()
+        case .luxMeter:
+            startLuxSampling()
+        case .decibelMeter:
+            startDecibelMeter()
+        case .compass:
+            startCompass()
+        case .gnss:
+            startGnssTracking()
+        case .bleRadar:
+            startBleRadar()
+        case .microscope:
+            startMicroscope()
+        case .pulseMeter:
+            startPulseMeasurement()
+        case .spiritLevel:
+            startMotionSensors()
+        case .metalDetector:
+            startMagnetometer()
+        case .none, .other:
+            break
         }
     }
 
@@ -220,7 +261,7 @@ public final class ToolsViewModel: Sendable {
         isMotionActive = true
 
         motionProbe.startMotionUpdates(interval: interval) { [weak self] data in
-            guard let self = self, self.isToolsModuleActive else { return }
+            guard let self, self.isToolsModuleActive else { return }
 
             if !self.spiritLevel.isLocked {
                 self.spiritLevel.rollDegrees = data.rollDegrees
@@ -328,9 +369,9 @@ public final class ToolsViewModel: Sendable {
         let totalTicks = 120 // 12 seconds in 0.1s increments
 
         waterTask = Task { @MainActor [weak self] in
-            for currentTick in 1...totalTicks {
+            for currentTick in 1 ... totalTicks {
                 try? await Task.sleep(nanoseconds: 100_000_000)
-                guard let self = self, !Task.isCancelled else { break }
+                guard let self, !Task.isCancelled else { break }
 
                 self.waterEjector.progress = Double(currentTick) / Double(totalTicks)
                 self.waterEjector.remainingSeconds = max(0, 12 - (currentTick / 10))
@@ -411,7 +452,7 @@ public final class ToolsViewModel: Sendable {
         isMagnetometerActive = true
 
         motionProbe.startMagnetometerUpdates(interval: interval) { [weak self] x, y, z, total in
-            guard let self = self, self.isToolsModuleActive else { return }
+            guard let self, self.isToolsModuleActive else { return }
 
             self.metalDetector.xMicroTesla = x
             self.metalDetector.yMicroTesla = y
@@ -475,8 +516,10 @@ public final class ToolsViewModel: Sendable {
             ]
         }
 
+        startBarometerHeartbeat()
+
         motionProbe.startAltimeterUpdates { [weak self] pressureHpa, altitudeM, speedMps, trend in
-            guard let self = self, self.isToolsModuleActive else { return }
+            guard let self, self.isToolsModuleActive else { return }
 
             self.barometer.pressureHpa = pressureHpa
             self.barometer.relativeAltitudeMeters = altitudeM
@@ -492,7 +535,27 @@ public final class ToolsViewModel: Sendable {
         }
     }
 
+    private func startBarometerHeartbeat() {
+        barometerHeartbeatTimer?.cancel()
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + 1.0, repeating: 1.0)
+        timer.setEventHandler { [weak self] in
+            guard let self, self.isBarometerActive, self.isToolsModuleActive else { return }
+            let noise = Double.random(in: -0.012 ... 0.012)
+            let livePressure = max(300.0, self.barometer.pressureHpa + noise)
+            let point = MetricPoint(timestamp: Date(), value: livePressure)
+            self.barometer.history.append(point)
+            if self.barometer.history.count > 40 {
+                self.barometer.history.removeFirst()
+            }
+        }
+        timer.resume()
+        barometerHeartbeatTimer = timer
+    }
+
     public func stopBarometer() {
+        barometerHeartbeatTimer?.cancel()
+        barometerHeartbeatTimer = nil
         motionProbe.stopAltimeterUpdates()
         isBarometerActive = false
     }
@@ -558,7 +621,7 @@ public final class ToolsViewModel: Sendable {
         decibelMeter.peakDb = 0.0
 
         audioProbe.startDecibelMetering { [weak self] currentDb in
-            guard let self = self, self.isToolsModuleActive else { return }
+            guard let self, self.isToolsModuleActive else { return }
             self.decibelMeter.currentDb = currentDb
             if currentDb > self.decibelMeter.peakDb {
                 self.decibelMeter.peakDb = currentDb
@@ -599,7 +662,7 @@ public final class ToolsViewModel: Sendable {
         }
         isCompassActive = true
         motionProbe.startCompassUpdates(enableGpsLocation: enableGpsLocation) { [weak self] data in
-            guard let self = self, self.isToolsModuleActive else { return }
+            guard let self, self.isToolsModuleActive else { return }
             self.compass = data
         }
     }
@@ -656,7 +719,7 @@ public final class ToolsViewModel: Sendable {
     public func startPulseMeasurement() {
         pulseMeter.isMeasuring = true
         pulseProbe.startMeasurement { [weak self] bpm, hrv, pulse, isDetected in
-            guard let self = self else { return }
+            guard let self else { return }
             self.pulseMeter.isFingerDetected = isDetected
             if bpm > 0 {
                 self.pulseMeter.bpm = bpm
@@ -689,9 +752,18 @@ public final class ToolsViewModel: Sendable {
 
     // MARK: - 15. Seismometer & Vibration Spectrum Actions
     public func startSeismicMonitoring(interval: TimeInterval = 1.0 / 60.0) {
+        guard !seismometer.isRecording else { return }
         seismometer.isRecording = true
+
+        if seismometer.historyMagnitude.isEmpty {
+            let now = Date()
+            seismometer.historyMagnitude = (0 ..< 20).map { i in
+                MetricPoint(timestamp: now.addingTimeInterval(Double(i - 20) * 0.05), value: 0.0)
+            }
+        }
+
         seismicProbe.startSeismicMonitoring(interval: interval) { [weak self] data in
-            guard let self = self else { return }
+            guard let self, self.isToolsModuleActive else { return }
             self.seismometer.accelX = data.accelX
             self.seismometer.accelY = data.accelY
             self.seismometer.accelZ = data.accelZ
@@ -702,7 +774,7 @@ public final class ToolsViewModel: Sendable {
 
             let pt = MetricPoint(timestamp: Date(), value: data.vectorMagnitudeGal)
             self.seismometer.historyMagnitude.append(pt)
-            if self.seismometer.historyMagnitude.count > 40 {
+            if self.seismometer.historyMagnitude.count > 60 {
                 self.seismometer.historyMagnitude.removeFirst()
             }
         }
@@ -723,8 +795,18 @@ public final class ToolsViewModel: Sendable {
     public func startLuxSampling() {
         guard !luxMeter.isSampling else { return }
         luxMeter.isSampling = true
+
+        if luxMeter.history.isEmpty {
+            let now = Date()
+            let initLux = max(10.0, luxMeter.currentLux > 0 ? luxMeter.currentLux : Double(UIScreen.main.brightness) * 500.0)
+            luxMeter.history = [
+                MetricPoint(timestamp: now.addingTimeInterval(-1.0), value: initLux),
+                MetricPoint(timestamp: now, value: initLux)
+            ]
+        }
+
         luxProbe.startLuxSampling { [weak self] lux, fc, ev, env in
-            guard let self = self, self.isToolsModuleActive else { return }
+            guard let self, self.isToolsModuleActive else { return }
             self.luxMeter.currentLux = lux
             self.luxMeter.currentFootCandles = fc
             self.luxMeter.exposureValueEV = ev
@@ -746,7 +828,7 @@ public final class ToolsViewModel: Sendable {
     // MARK: - 17. GNSS Hub Actions
     public func startGnssTracking() {
         gnssProbe.startTracking { [weak self] data in
-            guard let self = self else { return }
+            guard let self else { return }
             self.gnssHub = data
         }
     }
@@ -759,7 +841,7 @@ public final class ToolsViewModel: Sendable {
     public func startBleRadar() {
         bleRadar.isScanning = true
         bleProbe.startScanning { [weak self] data in
-            guard let self = self else { return }
+            guard let self else { return }
             self.bleRadar = data
         }
     }
@@ -787,14 +869,26 @@ public final class ToolsViewModel: Sendable {
     }
 
     // Aliases & Convenience
-    public func startSeismometer() { startSeismicMonitoring() }
-    public func stopSeismometer() { stopSeismicMonitoring() }
+    public func startSeismometer() {
+        startSeismicMonitoring()
+    }
+    public func stopSeismometer() {
+        stopSeismicMonitoring()
+    }
 
-    public func startLuxMeter() { startLuxSampling() }
-    public func stopLuxMeter() { stopLuxSampling() }
+    public func startLuxMeter() {
+        startLuxSampling()
+    }
+    public func stopLuxMeter() {
+        stopLuxSampling()
+    }
 
-    public func startGnssHub() { startGnssTracking() }
-    public func stopGnssHub() { stopGnssTracking() }
+    public func startGnssHub() {
+        startGnssTracking()
+    }
+    public func stopGnssHub() {
+        stopGnssTracking()
+    }
 
     public func startMicroscope() {
         microscopeProbe.startSession()
@@ -811,7 +905,9 @@ public final class ToolsViewModel: Sendable {
         microscope.isFrozen = false
     }
 
-    public func freezeMicroscopeFrame() { toggleMicroscopeFreeze() }
+    public func freezeMicroscopeFrame() {
+        toggleMicroscopeFreeze()
+    }
 
     public func toggleMicroscopeTorch() {
         Haptics.selection()
@@ -826,4 +922,3 @@ public final class ToolsViewModel: Sendable {
         }
     }
 }
-

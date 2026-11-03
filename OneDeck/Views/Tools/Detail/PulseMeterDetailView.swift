@@ -1,14 +1,13 @@
 //
-//  PulseOpticalProbe.swift & Detail View
 //  PulseMeterDetailView.swift
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Camera PPG Optical Heart Rate & Pulse Waveform Fullscreen Workspace.
+//  Camera optical PPG heart rate and pulse waveform workspace.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct PulseMeterDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -49,12 +48,12 @@ struct PulseMeterDetailView: View {
             }
         }
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .pulseMeter)
             tools.startPulseMeasurement()
         }
         .onDisappear {
-            tools.leaveDetailView()
             tools.stopPulseMeasurement()
+            tools.leaveDetailView()
         }
     }
 
@@ -184,7 +183,7 @@ struct PulseMeterDetailView: View {
                 }
                 .chartXAxis(.hidden)
                 .chartYAxis(.hidden)
-                .chartYScale(domain: yMin...yMax)
+                .chartYScale(domain: yMin ... yMax)
                 .frame(height: 160)
             }
         }
@@ -261,4 +260,3 @@ struct PulseMeterDetailView: View {
         PulseMeterDetailView()
     }
 }
-

@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Bluetooth Low Energy Proximity & Radar Bento Launcher Card.
+//  Bluetooth Low Energy beacon and proximity radar launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsBleRadarCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: BleRadarDetailView()) {
+        NavigationLink(destination: LazyView(BleRadarDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -69,6 +69,7 @@ struct ToolsBleRadarCard: View {
             Text(tools.bleRadar.devices.isEmpty ? "0 dBm · 0.0m" : String(format: "%d dBm · ~%.1fm", tools.bleRadar.nearestDeviceRssi, tools.bleRadar.estimatedDistanceMeters))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

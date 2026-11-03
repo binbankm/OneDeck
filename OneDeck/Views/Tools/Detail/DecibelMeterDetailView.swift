@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Precision Acoustic Sound Pressure Level (SPL) & Noise Spectrum Workspace.
+//  Acoustic sound pressure level (SPL) and noise spectrum workspace.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct DecibelMeterDetailView: View {
     // MARK: - Dependencies & Environment
@@ -33,7 +33,7 @@ struct DecibelMeterDetailView: View {
                 historyChart
 
                 // Master Start / Stop Button
-                masterToggleButton
+                primaryToggleButton
             }
             .padding(.horizontal, SpacingTheme.cardStack)
             .padding(.vertical, SpacingTheme.rowStandard)
@@ -43,12 +43,12 @@ struct DecibelMeterDetailView: View {
         .navigationTitle(L10n.Tools.decibelMeter)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .decibelMeter)
             tools.startDecibelMeter()
         }
         .onDisappear {
-            tools.leaveDetailView()
             tools.stopDecibelMeter()
+            tools.leaveDetailView()
         }
     }
 
@@ -159,7 +159,7 @@ struct DecibelMeterDetailView: View {
                         .interpolationMethod(.monotone)
                     }
                 }
-                .chartYScale(domain: 30...120)
+                .chartYScale(domain: 30 ... 120)
                 .chartXAxis(.hidden)
                 .chartYAxis {
                     AxisMarks(position: .leading, values: [40, 70, 90]) { val in
@@ -180,9 +180,9 @@ struct DecibelMeterDetailView: View {
         .bentoCard(accent: appState.accentColor)
     }
 
-    // MARK: - Master Play/Stop Button
+    // MARK: - Primary Play/Stop Button
     @ViewBuilder
-    private var masterToggleButton: some View {
+    private var primaryToggleButton: some View {
         let isRunning = tools.decibelMeter.isRecording
 
         Button {

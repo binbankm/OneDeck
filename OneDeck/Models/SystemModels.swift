@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Domain entities and telemetry data models for System, Hardware, CPU & Memory.
+//  Domain entities and hardware specification data models for system telemetry.
 //
 
 import Foundation
@@ -43,12 +43,12 @@ public struct CoreLoad: Sendable {
 
 // MARK: - Hardware Telemetry Enum Tiers (Reactive to Localization)
 public enum DisplayPanelType: Sendable {
-    case superRetinaHD           // iPhone X, XS, XS Max
-    case superRetinaXDROLED      // iPhone 11 Pro, 12, 13, 14, 15, 16, 17, 18 standard
+    case superRetinaHD // iPhone X, XS, XS Max
+    case superRetinaXDROLED // iPhone 11 Pro, 12, 13, 14, 15, 16, 17, 18 standard
     case superRetinaXDRProMotion // ProMotion models
-    case ultraRetinaXDR          // iPad Pro M4, M5 (Tandem OLED)
-    case liquidRetina            // iPhone XR, 11, SE, iPad Air
-    case retina                  // Default
+    case ultraRetinaXDR // iPad Pro M4, M5 (Tandem OLED)
+    case liquidRetina // iPhone XR, 11, SE, iPad Air
+    case retina // Default
 
     public var localizedName: String {
         switch self {

@@ -258,9 +258,11 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "OneDeck 需要访问蓝牙以扫描周边设备信号与寻物雷达";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "OneDeck 需要使用蓝牙以扫描周边设备信号与雷达遥测";
 				INFOPLIST_KEY_NSCameraUsageDescription = "OneDeck 需要访问相机以进行脉搏波光电检测与工业微距放大";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OneDeck 需要获取位置信息以计算真北偏角与地理坐标";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "OneDeck 需要访问麦克风以测量实时环境噪声分贝（Sound Pressure Level）";
+				INFOPLIST_KEY_NSMotionUsageDescription = "OneDeck 需要访问运动传感器与气压计以提供水平仪倾角、海拔高度变化与微震遥测";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -295,9 +297,11 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "OneDeck 需要访问蓝牙以扫描周边设备信号与寻物雷达";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "OneDeck 需要使用蓝牙以扫描周边设备信号与雷达遥测";
 				INFOPLIST_KEY_NSCameraUsageDescription = "OneDeck 需要访问相机以进行脉搏波光电检测与工业微距放大";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OneDeck 需要获取位置信息以计算真北偏角与地理坐标";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "OneDeck 需要访问麦克风以测量实时环境噪声分贝（Sound Pressure Level）";
+				INFOPLIST_KEY_NSMotionUsageDescription = "OneDeck 需要访问运动传感器与气压计以提供水平仪倾角、海拔高度变化与微震遥测";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

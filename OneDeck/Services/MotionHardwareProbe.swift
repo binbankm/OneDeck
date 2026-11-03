@@ -3,21 +3,22 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Low-level hardware telemetry probe for CoreMotion & CoreLocation (Gyro, Accelerometer, Magnetometer, Altimeter, Compass).
+//  CoreMotion telemetry probe for gyroscope, accelerometer, and magnetometer.
 //
 
-import Foundation
-import CoreMotion
 import CoreLocation
+import CoreMotion
+import Foundation
 
 @MainActor
 public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
     public static let shared = MotionHardwareProbe()
 
-    private let motionManager = CMMotionManager()
+    let motionManager = CMMotionManager()
     private let altimeter = CMAltimeter()
     private var locationManager: CLLocationManager?
     private var compassHandler: ((CompassData) -> Void)?
+    private var altimeterRetryWorkItem: DispatchWorkItem?
 
     // Motion State
     private(set) var isMotionActive: Bool = false
@@ -27,9 +28,9 @@ public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
 
     // Smoothing & Baseline
     private var lastAltitudeMeters: Double = 0.0
-    private var lastAltitudeTimestamp: Date = Date()
+    private var lastAltitudeTimestamp: Date = .init()
 
-    private override init() {
+    override private init() {
         super.init()
     }
 
@@ -37,11 +38,12 @@ public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
     public func startMotionUpdates(interval: TimeInterval = 1.0 / 60.0, handler: @escaping (SpiritLevelData) -> Void) {
         guard motionManager.isDeviceMotionAvailable else { return }
 
-        motionManager.deviceMotionUpdateInterval = interval
+        let effectiveInterval = AppState.shared.isSensorPowerSaving ? max(interval, 1.0 / 24.0) : interval
+        motionManager.deviceMotionUpdateInterval = effectiveInterval
         isMotionActive = true
 
         motionManager.startDeviceMotionUpdates(using: .xArbitraryZVertical, to: .main) { [weak self] motion, error in
-            guard self != nil, let motion = motion, error == nil else { return }
+            guard self != nil, let motion, error == nil else { return }
 
             let rollRad = motion.attitude.roll
             let pitchRad = motion.attitude.pitch
@@ -53,7 +55,7 @@ public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
             let gx = motion.gravity.x
             let gy = motion.gravity.y
             let gz = motion.gravity.z
-            let totalG = max(0.001, sqrt(gx*gx + gy*gy + gz*gz))
+            let totalG = max(0.001, sqrt(gx * gx + gy * gy + gz * gz))
 
             // Phone orientation determination:
             // Vertical wall ruler mode is ONLY valid when the screen plane is held perpendicular
@@ -78,7 +80,7 @@ public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
                 // 2D surface / inclinometer mode:
                 // True 3D tilt is the deviation of the gravity vector from the phone's Z normal (table plane).
                 // Both roll and pitch contribute to deviation from level.
-                let xyMagnitude = sqrt(gx*gx + gy*gy)
+                let xyMagnitude = sqrt(gx * gx + gy * gy)
                 tiltDeg = asin(min(1.0, xyMagnitude / totalG)) * (180.0 / .pi)
                 isLevel = tiltDeg <= 0.35
             }
@@ -117,16 +119,17 @@ public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
     public func startMagnetometerUpdates(interval: TimeInterval = 1.0 / 30.0, handler: @escaping (Double, Double, Double, Double) -> Void) {
         guard motionManager.isMagnetometerAvailable else { return }
 
-        motionManager.magnetometerUpdateInterval = interval
+        let effectiveInterval = AppState.shared.isSensorPowerSaving ? max(interval, 1.0 / 15.0) : interval
+        motionManager.magnetometerUpdateInterval = effectiveInterval
         isMagnetometerActive = true
 
         motionManager.startMagnetometerUpdates(to: .main) { [weak self] data, error in
-            guard self != nil, let data = data, error == nil else { return }
+            guard self != nil, let data, error == nil else { return }
 
             let x = data.magneticField.x
             let y = data.magneticField.y
             let z = data.magneticField.z
-            let total = sqrt(x*x + y*y + z*z)
+            let total = sqrt(x * x + y * y + z * z)
 
             handler(x, y, z, total)
         }
@@ -146,13 +149,22 @@ public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
     // MARK: - 3. Barometer & Relative Altimeter
     public func startAltimeterUpdates(handler: @escaping (Double, Double, Double, PressureTrend) -> Void) {
         guard CMAltimeter.isRelativeAltitudeAvailable() else { return }
+        guard !isAltimeterActive else { return }
 
         isAltimeterActive = true
         lastAltitudeTimestamp = Date()
         lastAltitudeMeters = 0.0
 
         altimeter.startRelativeAltitudeUpdates(to: .main) { [weak self] data, error in
-            guard let self = self, let data = data, error == nil else { return }
+            guard let self else { return }
+            if error != nil {
+                self.isAltimeterActive = false
+                if CMAltimeter.authorizationStatus() == .notDetermined {
+                    self.scheduleAltimeterRetry(handler: handler)
+                }
+                return
+            }
+            guard let data else { return }
 
             // Pressure from kPa to hPa (1 kPa = 10 hPa)
             let pressureHpa = data.pressure.doubleValue * 10.0
@@ -168,20 +180,34 @@ public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
             self.lastAltitudeTimestamp = now
 
             // Determine trend
-            let trend: PressureTrend
-            if verticalSpeed > 0.05 {
-                trend = .falling // going up means lower atmospheric pressure
+            let trend: PressureTrend = if verticalSpeed > 0.05 {
+                .falling // going up means lower atmospheric pressure
             } else if verticalSpeed < -0.05 {
-                trend = .rising  // going down means higher atmospheric pressure
+                .rising // going down means higher atmospheric pressure
             } else {
-                trend = .steady
+                .steady
             }
 
             handler(pressureHpa, altitudeM, verticalSpeed, trend)
         }
     }
 
+    private func scheduleAltimeterRetry(handler: @escaping (Double, Double, Double, PressureTrend) -> Void) {
+        altimeterRetryWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            guard let self, !self.isAltimeterActive else { return }
+            let status = CMAltimeter.authorizationStatus()
+            if status == .authorized || status == .notDetermined {
+                self.startAltimeterUpdates(handler: handler)
+            }
+        }
+        altimeterRetryWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: item)
+    }
+
     public func stopAltimeterUpdates() {
+        altimeterRetryWorkItem?.cancel()
+        altimeterRetryWorkItem = nil
         guard isAltimeterActive else { return }
         altimeter.stopRelativeAltitudeUpdates()
         isAltimeterActive = false
@@ -227,7 +253,19 @@ public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
     }
 
     // CLLocationManagerDelegate
-    nonisolated public func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+    public nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        if status == .authorizedWhenInUse || status == .authorizedAlways {
+            Task { @MainActor in
+                if self.isCompassActive {
+                    manager.startUpdatingHeading()
+                    manager.startUpdatingLocation()
+                }
+            }
+        }
+    }
+
+    public nonisolated func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
         Task { @MainActor in
             guard let handler = self.compassHandler else { return }
             let mag = newHeading.magneticHeading
@@ -253,4 +291,3 @@ public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
         return directions[max(0, min(directions.count - 1, index))]
     }
 }
-

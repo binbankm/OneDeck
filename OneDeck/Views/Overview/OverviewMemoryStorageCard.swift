@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Memory & Storage Bento: Smooth Continuous Segmented Bars, 2x2 Memory Breakdown & Tactile Cleaner.
+//  Physical memory distribution and flash storage partition card.
 //
 
 import SwiftUI
@@ -191,7 +191,7 @@ struct OverviewMemoryStorageCard: View {
                             .fontWeight(.semibold)
                             .lineLimit(1)
                     } else {
-                        Image(systemName: "sparkles")
+                        Image(systemName: "checkmark.circle.fill")
                             .font(IconTheme.actionButton)
 
                         Text(L10n.Overview.cleanPurged)

@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Bluetooth Low Energy (BLE) RSSI Proximity Radar Hardware Probe.
+//  Bluetooth Low Energy (BLE) proximity and RSSI scanning probe.
 //
 
-import Foundation
 import CoreBluetooth
+import Foundation
 
 public final class BleScannerProbe: NSObject, CBCentralManagerDelegate, @unchecked Sendable {
     public static let shared = BleScannerProbe()
@@ -19,7 +19,7 @@ public final class BleScannerProbe: NSObject, CBCentralManagerDelegate, @uncheck
     private var trackedPeripherals: [UUID: BleDeviceItem] = [:]
     private var onUpdate: ((_ data: BleRadarData) -> Void)?
 
-    private override init() {
+    override private init() {
         super.init()
     }
 
@@ -97,9 +97,8 @@ public final class BleScannerProbe: NSObject, CBCentralManagerDelegate, @uncheck
         )
 
         Task { @MainActor [weak self] in
-            guard let self = self, self.isScanning else { return }
+            guard let self, self.isScanning else { return }
             self.onUpdate?(result)
         }
     }
 }
-

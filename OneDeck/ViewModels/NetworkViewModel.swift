@@ -3,22 +3,16 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Direct Darwin Socket, POSIX Interface & Network.framework Telemetry Engine:
-//  - Real-time Interface (Wi-Fi en0, Cellular pdp_ip0, Subnet Mask, Gateway Router, DNS).
-//  - Asynchronous Public IP & GeoIP Resolver (IPv4/IPv6, ISP/ASN, Geolocation).
-//  - Real POSIX Non-Blocking TCP RTT Ping Latency & Jitter Monitor (Cloudflare, AliDNS, Google, Gateway).
-//  - Real LAN Device Discovery via NWBrowser Bonjour / mDNS.
-//  - Real POSIX UDP Broadcast Wake-on-LAN (WOL) 102-Byte Magic Packet Dispatcher.
+//  Network interfaces, traffic throughput, and connection telemetry view model.
 //
 
-import SwiftUI
-import Observation
-import Network
 import Darwin
+import Network
+import Observation
+import SwiftUI
 #if os(iOS)
 import CoreTelephony
 #endif
-
 
 // MARK: - Network ViewModel Hub
 @Observable
@@ -36,11 +30,11 @@ public final class NetworkViewModel: @unchecked Sendable {
     public var carrierName: String = ""
     public var wifiHardwareGeneration: String = "Wi-Fi 6"
     public var wifiStandard: String = "802.11ax"
-    public var wifiSSID: String? = nil
-    public var wifiBSSID: String? = nil
-    public var wifiRssiDbm: Int? = nil
-    public var wifiChannel: Int? = nil
-    public var wifiTxRateMbps: Int? = nil
+    public var wifiSSID: String?
+    public var wifiBSSID: String?
+    public var wifiRssiDbm: Int?
+    public var wifiChannel: Int?
+    public var wifiTxRateMbps: Int?
 
     public var activeInterfaceSummary: String {
         switch linkType {
@@ -171,7 +165,7 @@ public final class NetworkViewModel: @unchecked Sendable {
     private var lanBrowsers: [NWBrowser] = []
     private var lastRawBytesIn: UInt64 = 0
     private var lastRawBytesOut: UInt64 = 0
-    private var lastBytesTimestamp: Date = Date()
+    private var lastBytesTimestamp: Date = .init()
     private var pingHistorySamples: [Double] = []
 
     public init() {
@@ -184,15 +178,15 @@ public final class NetworkViewModel: @unchecked Sendable {
 
     private func seedInitialHistory() {
         let now = Date()
-        for i in (0..<15).reversed() {
+        for i in (0 ..< 15).reversed() {
             let time = now.addingTimeInterval(-Double(i) * 2.0)
             let baseLatency = 16.0 + sin(Double(i) * 0.8) * 4.0
             latencyHistory.append(MetricPoint(timestamp: time, value: max(8.0, baseLatency)))
 
             let baseDown = 850_000.0 + cos(Double(i) * 0.5) * 400_000.0
-            let baseUp = 120_000.0 + sin(Double(i) * 0.6) * 60_000.0
+            let baseUp = 120_000.0 + sin(Double(i) * 0.6) * 60000.0
             let pointId = "init-traffic-\(i)"
-            trafficHistory.append(TrafficDataPoint(id: pointId, timestamp: time, downBps: max(20_000.0, baseDown), upBps: max(10_000.0, baseUp)))
+            trafficHistory.append(TrafficDataPoint(id: pointId, timestamp: time, downBps: max(20000.0, baseDown), upBps: max(10000.0, baseUp)))
         }
         currentLatencyMs = latencyHistory.last?.value ?? 18.0
         jitterMs = 1.4
@@ -211,7 +205,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         let monitor = NWPathMonitor()
         monitor.pathUpdateHandler = { [weak self] path in
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
+                guard let self else { return }
                 self.handlePathUpdate(path)
             }
         }
@@ -272,7 +266,7 @@ public final class NetworkViewModel: @unchecked Sendable {
 
     // MARK: - Wi-Fi & Cellular Hardware / Radio Discovery
     public static func detectWifiHardwareInfo() -> (generation: String, standard: String) {
-        var size: Int = 0
+        var size = 0
         sysctlbyname("hw.machine", nil, &size, nil, 0)
         var machine = [CChar](repeating: 0, count: max(1, size))
         sysctlbyname("hw.machine", &machine, &size, nil, 0)
@@ -323,10 +317,8 @@ public final class NetworkViewModel: @unchecked Sendable {
                 switch tech {
                 case CTRadioAccessTechnologyNR, CTRadioAccessTechnologyNRNSA:
                     gen = "5G NR"
-                    break
                 case CTRadioAccessTechnologyLTE:
                     gen = "4G LTE"
-                    break
                 case CTRadioAccessTechnologyWCDMA,
                      CTRadioAccessTechnologyHSDPA,
                      CTRadioAccessTechnologyHSUPA,
@@ -335,12 +327,10 @@ public final class NetworkViewModel: @unchecked Sendable {
                      CTRadioAccessTechnologyCDMAEVDORevB,
                      CTRadioAccessTechnologyeHRPD:
                     gen = "3G"
-                    break
                 case CTRadioAccessTechnologyEdge,
                      CTRadioAccessTechnologyGPRS,
                      CTRadioAccessTechnologyCDMA1x:
                     gen = "2G"
-                    break
                 default:
                     break
                 }
@@ -356,7 +346,7 @@ public final class NetworkViewModel: @unchecked Sendable {
     // MARK: - POSIX Network Interface Address Extraction (getifaddrs)
     public func refreshInterfaceAddresses() {
         workerQueue.async { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             var ifaddr: UnsafeMutablePointer<ifaddrs>?
             guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else { return }
             defer { freeifaddrs(ifaddr) }
@@ -434,7 +424,7 @@ public final class NetworkViewModel: @unchecked Sendable {
             let finalCellularIP = cellularIP
 
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
+                guard let self else { return }
                 self.interfaceMtu = finalMtu
                 self.interfaceBaudrateMbps = finalBaudrate
 
@@ -500,9 +490,9 @@ public final class NetworkViewModel: @unchecked Sendable {
     }
 
     // MARK: - Public IP & GeoIP Asynchronous Fetcher
-    private var publicIPTask: Task<Void, Never>? = nil
+    private var publicIPTask: Task<Void, Never>?
 
-    nonisolated private static func makeEphemeralSession() -> URLSession {
+    private nonisolated static func makeEphemeralSession() -> URLSession {
         let config = URLSessionConfiguration.ephemeral
         config.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
         config.urlCache = nil
@@ -511,7 +501,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         return URLSession(configuration: config)
     }
 
-    nonisolated private static func cleanIspName(_ name: String) -> String {
+    private nonisolated static func cleanIspName(_ name: String) -> String {
         var s = name
         s = s.replacingOccurrences(of: "PRIVATE LIMITED", with: "Pvt Ltd", options: .caseInsensitive)
         s = s.replacingOccurrences(of: "LIMITED", with: "Ltd", options: .caseInsensitive)
@@ -519,11 +509,11 @@ public final class NetworkViewModel: @unchecked Sendable {
         return s.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    nonisolated private static func isIPv6Address(_ ip: String) -> Bool {
+    private nonisolated static func isIPv6Address(_ ip: String) -> Bool {
         return ip.contains(":")
     }
 
-    nonisolated private static func isChinaRegion(_ country: String) -> Bool {
+    private nonisolated static func isChinaRegion(_ country: String) -> Bool {
         let c = country.trimmingCharacters(in: .whitespaces).uppercased()
         return c == "CN" || c.contains("CHINA") || c.contains("中国") || c.contains("中國")
     }
@@ -538,7 +528,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         isQueryingPublicIP = true
 
         publicIPTask = Task.detached(priority: .userInitiated) { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             let session = Self.makeEphemeralSession()
 
             // Concurrently query direct domestic IP and foreign/edge resolver in parallel
@@ -663,7 +653,7 @@ public final class NetworkViewModel: @unchecked Sendable {
     }
 
     // MARK: - Direct Domestic IP Resolution (IPIP.net & IP.sb fallback)
-    nonisolated private static func queryDirectDomesticIP(session: URLSession) async -> (ip: String, isp: String, city: String, country: String)? {
+    private nonisolated static func queryDirectDomesticIP(session: URLSession) async -> (ip: String, isp: String, city: String, country: String)? {
         guard let url = URL(string: "https://myip.ipip.net") else { return nil }
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
@@ -677,7 +667,7 @@ public final class NetworkViewModel: @unchecked Sendable {
             return nil
         }
 
-        // Expected format: "当前 IP：112.xx.xx.xxx  来自于：中国 xx xx  移动\n"
+        // Expected upstream payload: IP address and location summary
         let parts = text.components(separatedBy: "来自于")
         guard parts.count >= 2 else { return nil }
 
@@ -703,7 +693,7 @@ public final class NetworkViewModel: @unchecked Sendable {
 
         var city = ""
         if words.count > 2 {
-            city = words[1..<words.count-1].joined(separator: " ")
+            city = words[1 ..< words.count - 1].joined(separator: " ")
         } else if words.count == 2 {
             city = words[1]
         }
@@ -712,7 +702,7 @@ public final class NetworkViewModel: @unchecked Sendable {
     }
 
     // MARK: - Foreign / Edge IP Resolution (100% HTTPS, ATS-Compliant)
-    nonisolated private static func queryForeignEdgeIP(session: URLSession) async -> (ip: String, isp: String, city: String, country: String)? {
+    private nonisolated static func queryForeignEdgeIP(session: URLSession) async -> (ip: String, isp: String, city: String, country: String)? {
         // Attempt 1: IPInfo.io (HTTPS)
         if let res = await queryIPInfoHttps(session: session) {
             return res
@@ -728,7 +718,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         return nil
     }
 
-    nonisolated private static func queryIPInfoHttps(session: URLSession) async -> (ip: String, isp: String, city: String, country: String)? {
+    private nonisolated static func queryIPInfoHttps(session: URLSession) async -> (ip: String, isp: String, city: String, country: String)? {
         guard let url = URL(string: "https://ipinfo.io/json") else { return nil }
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
@@ -751,7 +741,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         return (ip, org, city, country)
     }
 
-    nonisolated private static func queryIpSbHttps(session: URLSession) async -> (ip: String, isp: String, city: String, country: String)? {
+    private nonisolated static func queryIpSbHttps(session: URLSession) async -> (ip: String, isp: String, city: String, country: String)? {
         guard let url = URL(string: "https://api.ip.sb/geoip") else { return nil }
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
@@ -773,7 +763,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         return (ip, isp.isEmpty ? "Global Transit" : isp, city, countryCode)
     }
 
-    nonisolated private static func queryIpifyHttps(session: URLSession) async -> String? {
+    private nonisolated static func queryIpifyHttps(session: URLSession) async -> String? {
         guard let url = URL(string: "https://api.ipify.org?format=json") else { return nil }
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
@@ -791,7 +781,8 @@ public final class NetworkViewModel: @unchecked Sendable {
     // MARK: - POSIX TCP RTT Ping Latency Engine
     public func startContinuousPing() {
         pingTimer?.invalidate()
-        pingTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        let interval: TimeInterval = AppState.shared.isSensorPowerSaving ? 5.0 : 2.0
+        pingTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             self?.pingCurrentTarget()
         }
         pingCurrentTarget()
@@ -820,11 +811,11 @@ public final class NetworkViewModel: @unchecked Sendable {
         }
 
         workerQueue.async { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             let latency = Self.measureTcpConnectRTT(host: host, port: port, timeoutSec: 0.8)
 
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
+                guard let self else { return }
                 let now = Date()
 
                 if let rtt = latency {
@@ -854,7 +845,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         }
     }
 
-    nonisolated private static func measureTcpConnectRTT(host: String, port: UInt16, timeoutSec: Double) -> Double? {
+    private nonisolated static func measureTcpConnectRTT(host: String, port: UInt16, timeoutSec: Double) -> Double? {
         let sock = socket(AF_INET, SOCK_STREAM, 0)
         guard sock >= 0 else { return nil }
         defer { close(sock) }
@@ -898,7 +889,8 @@ public final class NetworkViewModel: @unchecked Sendable {
     // MARK: - Live Bandwidth Throughput Sampler
     private func startTrafficSampling() {
         trafficTimer?.invalidate()
-        trafficTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+        let interval: TimeInterval = AppState.shared.isSensorPowerSaving ? 3.5 : 1.5
+        trafficTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             self?.workerQueue.async {
                 self?.sampleTrafficThroughput()
             }
@@ -936,7 +928,7 @@ public final class NetworkViewModel: @unchecked Sendable {
             let upRate = outDelta / timeDelta
 
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
+                guard let self else { return }
                 self.downloadSpeedBps = downRate
                 self.uploadSpeedBps = upRate
                 self.totalBytesIn = currentIn
@@ -967,7 +959,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         let currentGateway = self.gatewayIPv4
 
         workerQueue.async { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
 
             // 1. Read Darwin Kernel ARP Cache for active subnet devices with real IPs and MACs
             let arpDevices = NetworkKernelProbe.queryArpTable()
@@ -1006,11 +998,11 @@ public final class NetworkViewModel: @unchecked Sendable {
                 let browser = NWBrowser(for: descriptor, using: params)
 
                 browser.browseResultsChangedHandler = { [weak self] results, _ in
-                    guard let self = self else { return }
+                    guard let self else { return }
                     for res in results {
-                        if case .service(let name, let serviceType, _, let iface) = res.endpoint {
+                        if case let .service(name, serviceType, _, iface) = res.endpoint {
                             Task { @MainActor [weak self] in
-                                guard let self = self else { return }
+                                guard let self else { return }
                                 let key = "bonjour-\(name)-\(serviceType)"
                                 if !self.discoveredDevices.contains(where: { $0.name == name }) {
                                     let dev = DiscoveredDevice(
@@ -1066,7 +1058,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         for i in stride(from: 0, to: 12, by: 2) {
             let start = clean.index(clean.startIndex, offsetBy: i)
             let end = clean.index(start, offsetBy: 2)
-            guard let b = UInt8(clean[start..<end], radix: 16) else {
+            guard let b = UInt8(clean[start ..< end], radix: 16) else {
                 return (false, L10n.Network.wolInvalidMac)
             }
             macBytes.append(b)
@@ -1074,7 +1066,7 @@ public final class NetworkViewModel: @unchecked Sendable {
 
         // Construct 102-Byte Magic Packet: 6x 0xFF + 16x MAC
         var packet = [UInt8](repeating: 0xFF, count: 6)
-        for _ in 0..<16 {
+        for _ in 0 ..< 16 {
             packet.append(contentsOf: macBytes)
         }
 
@@ -1109,7 +1101,7 @@ public final class NetworkViewModel: @unchecked Sendable {
     }
 
     // MARK: - POSIX DNS Dig & Domain Resolver (Non-blocking Background Thread)
-    nonisolated public func resolveDomainName(domain: String) async -> DnsDigResult? {
+    public nonisolated func resolveDomainName(domain: String) async -> DnsDigResult? {
         let clean = domain.trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "https://", with: "")
             .replacingOccurrences(of: "http://", with: "")
@@ -1171,7 +1163,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         ]
 
         monitorQueue.async { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             var results: [DnsBenchmarkResult] = []
 
             for t in targets {
@@ -1181,7 +1173,7 @@ public final class NetworkViewModel: @unchecked Sendable {
 
             let valid = results.filter { $0.latencyMs < 900.0 }
             if let minNode = valid.min(by: { $0.latencyMs < $1.latencyMs }) {
-                for i in 0..<results.count {
+                for i in 0 ..< results.count {
                     if results[i].id == minNode.id {
                         results[i].isFastest = true
                     }
@@ -1190,7 +1182,7 @@ public final class NetworkViewModel: @unchecked Sendable {
 
             let sortedResults = results.sorted(by: { $0.latencyMs < $1.latencyMs })
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
+                guard let self else { return }
                 self.dnsBenchmarkResults = sortedResults
                 self.isBenchmarkingDns = false
                 Haptics.tick()
@@ -1217,7 +1209,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         ]
 
         workerQueue.async { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             let group = DispatchGroup()
             let lock = NSLock()
             var results: [PortScanItem] = []
@@ -1239,7 +1231,7 @@ public final class NetworkViewModel: @unchecked Sendable {
             results.sort { $0.port < $1.port }
             let finalScanResults = results
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
+                guard let self else { return }
                 self.portScanResults = finalScanResults
                 self.isScanningPorts = false
                 Haptics.tick()
@@ -1282,11 +1274,11 @@ public final class NetworkViewModel: @unchecked Sendable {
         let initialJitter = self.jitterMs > 0 ? self.jitterMs : 1.2
 
         speedTestTask = Task.detached(priority: .userInitiated) { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
 
             // STEP 1: Ping & Jitter measurement (4 probes on background thread)
             var pings: [Double] = []
-            for _ in 0..<4 {
+            for _ in 0 ..< 4 {
                 if Task.isCancelled { return }
                 if let rtt = Self.measureTcpConnectRTT(host: "1.1.1.1", port: 53, timeoutSec: 0.8) {
                     pings.append(rtt)
@@ -1301,7 +1293,7 @@ public final class NetworkViewModel: @unchecked Sendable {
             let avgPing = pings.reduce(0, +) / Double(pings.count)
             var jitterSum = 0.0
             if pings.count > 1 {
-                for i in 1..<pings.count {
+                for i in 1 ..< pings.count {
                     jitterSum += abs(pings[i] - pings[i - 1])
                 }
                 jitterSum /= Double(pings.count - 1)
@@ -1331,14 +1323,14 @@ public final class NetworkViewModel: @unchecked Sendable {
                 config.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
                 let testSession = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
 
-                var totalBytesReceived: Double = 0.0
-                var windowBytes: Double = 0.0
+                var totalBytesReceived = 0.0
+                var windowBytes = 0.0
                 var lastWindowTime = Date()
                 let testStartTime = Date()
                 var rateSamples: [Double] = []
 
                 delegate.onChunk = { [weak self] chunkSize in
-                    guard let self = self else { return }
+                    guard let self else { return }
                     totalBytesReceived += Double(chunkSize)
                     windowBytes += Double(chunkSize)
 
@@ -1351,7 +1343,7 @@ public final class NetworkViewModel: @unchecked Sendable {
                         let overallProg = min(0.65, 0.15 + (0.50 * (totalBytesReceived / 50_000_000.0)))
 
                         Task { @MainActor [weak self] in
-                            guard let self = self else { return }
+                            guard let self else { return }
                             self.speedTestCurrentMbps = currentRateMbps
                             self.speedTestDownloadPeakMbps = max(self.speedTestDownloadPeakMbps, currentRateMbps)
                             self.speedTestDownloadMbps = avgRate
@@ -1366,7 +1358,7 @@ public final class NetworkViewModel: @unchecked Sendable {
                 task.resume()
 
                 // Run download for up to 6.0 seconds
-                for _ in 0..<60 {
+                for _ in 0 ..< 60 {
                     if Task.isCancelled || totalBytesReceived >= 50_000_000.0 { break }
                     try? await Task.sleep(nanoseconds: 100_000_000)
                 }

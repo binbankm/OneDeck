@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Reusable Bento Section Header with Tinted Icon Badge and Rounded Typography.
+//  Standardized section header component with icon and title.
 //
 
 import SwiftUI
@@ -16,8 +16,8 @@ struct OverviewSectionHeader: View {
     // MARK: - Configuration Properties
     let title: String
     let icon: String
-    var subtitle: String? = nil
-    var accentColor: Color? = nil
+    var subtitle: String?
+    var accentColor: Color?
 
     private var activeAccent: Color {
         accentColor ?? appState.accentColor
@@ -43,6 +43,7 @@ struct OverviewSectionHeader: View {
                         .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
             }
         }

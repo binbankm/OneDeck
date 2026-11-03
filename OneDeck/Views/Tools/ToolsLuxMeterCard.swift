@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Ambient Illuminance & Foot-Candles Bento Card Launcher.
+//  Optical illuminance and ambient lux meter launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsLuxMeterCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: LuxMeterDetailView()) {
+        NavigationLink(destination: LazyView(LuxMeterDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -62,6 +62,8 @@ struct ToolsLuxMeterCard: View {
                 Text(tools.luxMeter.environmentDescription)
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
             Spacer()
@@ -69,6 +71,7 @@ struct ToolsLuxMeterCard: View {
             Text(String(format: "%.1f fc · EV %.1f", tools.luxMeter.footCandles, tools.luxMeter.ev))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }
@@ -78,4 +81,3 @@ struct ToolsLuxMeterCard: View {
     ToolsLuxMeterCard()
         .padding()
 }
-

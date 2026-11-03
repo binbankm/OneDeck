@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Multi-Constellation GNSS Satellite Telemetry Bento Launcher Card.
+//  GNSS satellite constellation and coordinate launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsGnssHubCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: GnssHubDetailView()) {
+        NavigationLink(destination: LazyView(GnssHubDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -62,6 +62,7 @@ struct ToolsGnssHubCard: View {
                 Text(tools.gnssHub.mgrsString.isEmpty ? tools.gnssHub.fixStatusText : tools.gnssHub.mgrsString)
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -69,6 +70,7 @@ struct ToolsGnssHubCard: View {
             Text(String(format: "HDOP %.1f · %.0f m", tools.gnssHub.hdop, tools.gnssHub.altitudeM))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

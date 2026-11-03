@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Battery Tab: Production Apple-Grade Power & Battery Intelligence Orchestrator.
+//  Battery dashboard view hosting telemetry cards and health matrices.
 //
 
 import SwiftUI

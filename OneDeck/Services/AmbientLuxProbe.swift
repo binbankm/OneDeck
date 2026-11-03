@@ -3,11 +3,14 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Optical Photometric Illuminance & Ambient Lux Hardware Meter Probe.
+//  Optical illuminance and ambient lux hardware probe.
 //
 
-import Foundation
 import AVFoundation
+import CoreMedia
+import CoreVideo
+import ImageIO
+import UIKit
 
 public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
     public static let shared = AmbientLuxProbe()
@@ -21,7 +24,7 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
 
     private var onUpdate: ((_ lux: Double, _ fc: Double, _ ev: Double, _ env: String) -> Void)?
 
-    private override init() {
+    override private init() {
         super.init()
     }
 
@@ -31,22 +34,42 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
         self.isSampling = true
         self.lastUpdateTimestamp = 0
 
+        // Emit instantaneous seed reading from screen brightness so UI is never blank
+        #if canImport(UIKit)
+        let seedLux = max(20.0, Double(UIScreen.main.brightness) * 450.0)
+        let seedFc = seedLux / 10.764
+        let seedEv = log2(seedLux / 2.5)
+        let seedDesc = self.describeLux(seedLux)
+        onUpdate(seedLux, seedFc, seedEv, seedDesc)
+        #endif
+
         #if targetEnvironment(simulator)
         startSimulatorLuxLoop()
         #else
         let auth = AVCaptureDevice.authorizationStatus(for: .video)
-        if auth == .authorized {
+        switch auth {
+        case .authorized:
             sessionQueue.async { [weak self] in
                 self?.configureSession()
             }
-        } else if auth == .notDetermined {
+        case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                guard let self else { return }
                 if granted {
-                    self?.sessionQueue.async {
-                        self?.configureSession()
+                    self.isSampling = true
+                    self.sessionQueue.async {
+                        self.configureSession()
                     }
+                } else {
+                    self.isSampling = false
                 }
             }
+        case .denied, .restricted:
+            self.isSampling = false
+            return
+        @unknown default:
+            self.isSampling = false
+            return
         }
         #endif
     }
@@ -61,7 +84,7 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
         simTimer = nil
         #else
         sessionQueue.async { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             self.captureSession?.stopRunning()
             self.captureSession = nil
             self.videoDevice = nil
@@ -70,10 +93,13 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
     }
 
     private func configureSession() {
+        guard isSampling else { return }
         let session = AVCaptureSession()
+        session.beginConfiguration()
         session.sessionPreset = .low
 
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) ?? AVCaptureDevice.default(for: .video) else {
+            session.commitConfiguration()
             return
         }
         self.videoDevice = device
@@ -86,51 +112,42 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
             device.unlockForConfiguration()
 
             let input = try AVCaptureDeviceInput(device: device)
-            if session.canAddInput(input) { session.addInput(input) }
+            if session.canAddInput(input) {
+                session.addInput(input)
+            }
 
             let output = AVCaptureVideoDataOutput()
             output.alwaysDiscardsLateVideoFrames = true
+            output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
             output.setSampleBufferDelegate(self, queue: sampleQueue)
-            if session.canAddOutput(output) { session.addOutput(output) }
+            if session.canAddOutput(output) {
+                session.addOutput(output)
+            }
 
+            session.commitConfiguration()
             session.startRunning()
             self.captureSession = session
         } catch {
-            return
+            session.commitConfiguration()
         }
     }
 
     public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard isSampling else { return }
 
-        // Rate limit UI updates to 10Hz (every 100ms) for high responsiveness without frame drops
+        // Rate limit UI updates (~12Hz normal / ~5Hz power saving) for snappy responsiveness without thermal throttle
         let now = CFAbsoluteTimeGetCurrent()
-        guard lastUpdateTimestamp == 0 || (now - lastUpdateTimestamp >= 0.10) else { return }
+        let minInterval = AppState.shared.isSensorPowerSaving ? 0.20 : 0.08
+        guard lastUpdateTimestamp == 0 || (now - lastUpdateTimestamp >= minInterval) else { return }
         lastUpdateTimestamp = now
 
-        var fNumber: Double = 1.8
-        var exposureTime: Double = 1.0 / 60.0
-        var iso: Double = 100.0
+        var fNumber = 1.8
+        var exposureTime = 1.0 / 60.0
+        var iso = 100.0
 
-        // Primary source: Direct real-time hardware telemetry from camera sensor
-        if let device = self.videoDevice {
-            let devIso = Double(device.iso)
-            let devSeconds = CMTimeGetSeconds(device.exposureDuration)
-            let devAperture = Double(device.lensAperture)
-
-            if devIso > 0 && devIso.isFinite {
-                iso = devIso
-            }
-            if devSeconds > 0 && devSeconds.isFinite {
-                exposureTime = devSeconds
-            }
-            if devAperture > 0 && devAperture.isFinite {
-                fNumber = devAperture
-            }
-        }
-
-        // Secondary refinement: Frame EXIF metadata attachment (safely coerced via NSNumber)
-        if let exif = CMGetAttachment(sampleBuffer, key: "{Exif}" as CFString, attachmentModeOut: nil) as? [String: Any] {
+        // Extract metadata attachments
+        if let attachments = CMCopyDictionaryOfAttachments(allocator: kCFAllocatorDefault, target: sampleBuffer, attachmentMode: kCMAttachmentMode_ShouldPropagate) as? [String: Any],
+           let exif = attachments["{Exif}"] as? [String: Any] {
             if let fn = (exif[kCGImagePropertyExifFNumber as String] as? NSNumber)?.doubleValue, fn > 0 {
                 fNumber = fn
             }
@@ -144,19 +161,58 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
             }
         }
 
-        guard fNumber > 0, exposureTime > 0, iso > 0 else { return }
+        // Secondary fallback to device hardware properties if EXIF was partial
+        if let device = self.videoDevice {
+            let devIso = Double(device.iso)
+            let devSeconds = CMTimeGetSeconds(device.exposureDuration)
+            let devAperture = Double(device.lensAperture)
+            if devIso > 0 && devIso.isFinite { iso = devIso }
+            if devSeconds > 0 && devSeconds.isFinite { exposureTime = devSeconds }
+            if devAperture > 0 && devAperture.isFinite { fNumber = devAperture }
+        }
 
-        // Standard Photometric Equation:
+        // Subsample center grid pixel luminance (Rec. 601 Luma: Y = 0.299R + 0.587G + 0.114B)
+        var pixelLumaNormalized = 0.46
+        if let imageBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+            CVPixelBufferLockBaseAddress(imageBuffer, .readOnly)
+            let width = CVPixelBufferGetWidth(imageBuffer)
+            let height = CVPixelBufferGetHeight(imageBuffer)
+            let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
+            if let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer), width > 0, height > 0 {
+                var totalY: Double = 0
+                var sampleCount: Double = 0
+                let stepX = max(1, width / 8)
+                let stepY = max(1, height / 8)
+                for py in stride(from: stepY, to: height - stepY, by: stepY) {
+                    let rowPtr = baseAddress.advanced(by: py * bytesPerRow).assumingMemoryBound(to: UInt8.self)
+                    for px in stride(from: stepX, to: width - stepX, by: stepX) {
+                        let offset = px * 4
+                        let b = Double(rowPtr[offset])
+                        let g = Double(rowPtr[offset + 1])
+                        let r = Double(rowPtr[offset + 2])
+                        totalY += (0.299 * r + 0.587 * g + 0.114 * b)
+                        sampleCount += 1
+                    }
+                }
+                if sampleCount > 0 {
+                    pixelLumaNormalized = max(0.02, (totalY / sampleCount) / 255.0)
+                }
+            }
+            CVPixelBufferUnlockBaseAddress(imageBuffer, .readOnly)
+        }
+
+        // Standard Photometric Equation with dynamic pixel luma scaling:
         // EV = log2(N² / t) - log2(ISO / 100)
-        let ev = log2((fNumber * fNumber) / exposureTime) - log2(iso / 100.0)
+        let ev = log2((fNumber * fNumber) / max(0.0001, exposureTime)) - log2(max(1.0, iso) / 100.0)
 
-        // Lux = 2.5 * 2^EV (Incident light calibration constant C ≈ 250 / 100)
-        let lux = max(0.1, 2.5 * pow(2.0, ev))
+        // Lux = 2.5 * 2^EV * (pixelLuma / 0.46)
+        let rawLux = 2.5 * pow(2.0, ev) * (pixelLumaNormalized / 0.46)
+        let lux = max(0.1, min(150_000.0, rawLux))
         let footCandles = lux / 10.764
         let envDescription = describeLux(lux)
 
         Task { @MainActor [weak self] in
-            guard let self = self, self.isSampling else { return }
+            guard let self, self.isSampling else { return }
             self.onUpdate?(lux, footCandles, ev, envDescription)
         }
     }
@@ -180,17 +236,17 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
 
     private func startSimulatorLuxLoop() {
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .userInteractive))
-        timer.schedule(deadline: .now(), repeating: .milliseconds(200)) // 5Hz
+        timer.schedule(deadline: .now(), repeating: .milliseconds(150)) // ~7Hz
 
         timer.setEventHandler { [weak self] in
-            guard let self = self, self.isSampling else { return }
-            let lux = 480.0 + Double(arc4random_uniform(40))
+            guard let self, self.isSampling else { return }
+            let lux = 480.0 + Double.random(in: 0 ..< 40)
             let fc = lux / 10.764
             let ev = 7.6
 
             let envText = self.describeLux(lux)
             Task { @MainActor [weak self] in
-                guard let self = self, self.isSampling else { return }
+                guard let self, self.isSampling else { return }
                 self.onUpdate?(lux, fc, ev, envText)
             }
         }

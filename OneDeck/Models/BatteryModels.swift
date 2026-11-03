@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Domain entities and data models for Battery telemetry, calibration & thermal chassis.
+//  Domain entities and telemetry data models for battery subsystem.
 //
 
 import Foundation
@@ -114,4 +114,3 @@ public struct DegradationPoint: Identifiable, Sendable {
         self.health = health
     }
 }
-

@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Industrial Microscope & Macro Camera Bento Launcher Card.
+//  Macro optical magnifier and zoom camera launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsMicroscopeCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: MicroscopeDetailView()) {
+        NavigationLink(destination: LazyView(MicroscopeDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -69,6 +69,7 @@ struct ToolsMicroscopeCard: View {
             Text(tools.microscope.isTorchOn ? "LED ON · 15x" : "LED OFF · 15x")
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

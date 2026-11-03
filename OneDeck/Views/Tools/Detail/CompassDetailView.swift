@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  3D Electronic Compass, True North & Geographic Geodesy Workspace.
+//  3D electronic compass and magnetic heading workspace.
 //
 
 import SwiftUI
@@ -39,7 +39,7 @@ struct CompassDetailView: View {
         .navigationTitle(L10n.Tools.compass)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .compass)
             tools.startCompass(enableGpsLocation: true)
         }
         .onDisappear {
@@ -96,7 +96,7 @@ struct CompassDetailView: View {
             // Dynamic Rotating Compass Rose (rotates by -heading)
             ZStack {
                 // Graduation Ticks (every 30 degrees)
-                ForEach(0..<12) { i in
+                ForEach(0 ..< 12) { i in
                     let angle = Double(i * 30)
                     Rectangle()
                         .fill(angle == 0 ? Color.red : Theme.textTertiary(for: colorScheme))

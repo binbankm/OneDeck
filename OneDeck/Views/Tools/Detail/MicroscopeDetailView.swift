@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Industrial Macro Microscope & Surface Edge Inspection Fullscreen Workspace.
+//  Macro optical magnifier camera and digital zoom workspace.
 //
 
-import SwiftUI
 import AVFoundation
+import SwiftUI
 
 struct MicroscopeDetailView: View {
     // MARK: - Dependencies & Environment
@@ -34,12 +34,12 @@ struct MicroscopeDetailView: View {
         .navigationTitle(L10n.Tools.microscope)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .microscope)
             tools.startMicroscope()
         }
         .onDisappear {
-            tools.leaveDetailView()
             tools.stopMicroscope()
+            tools.leaveDetailView()
         }
     }
 
@@ -142,7 +142,7 @@ struct MicroscopeDetailView: View {
             .stroke(appState.accentColor.opacity(0.25), lineWidth: 0.6)
 
             // Graticule Tick Marks
-            ForEach(-4...4, id: \.self) { i in
+            ForEach(-4 ... 4, id: \.self) { i in
                 if i != 0 {
                     let offset = CGFloat(i) * 15.0
                     Rectangle()
@@ -179,8 +179,8 @@ struct MicroscopeDetailView: View {
             Slider(value: Binding(
                 get: { Double(tools.microscope.zoomFactor) },
                 set: { tools.setMicroscopeZoom(CGFloat($0)) }
-            ), in: 1.0...15.0, step: 0.1)
-            .tint(appState.accentColor)
+            ), in: 1.0 ... 15.0, step: 0.1)
+                .tint(appState.accentColor)
 
             // Preset Zoom Buttons
             HStack(spacing: SpacingTheme.compact) {
@@ -292,4 +292,3 @@ struct MicroscopeDetailView: View {
         MicroscopeDetailView()
     }
 }
-

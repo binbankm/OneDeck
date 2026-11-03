@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Multi-Constellation GNSS Precision & Geodetic Coordinate Conversion Engine.
+//  GNSS satellite telemetry and geodetic coordinate probe.
 //
 
-import Foundation
 import CoreLocation
+import Foundation
 
 public final class GnssSatelliteProbe: NSObject, CLLocationManagerDelegate, @unchecked Sendable {
     public static let shared = GnssSatelliteProbe()
@@ -16,7 +16,7 @@ public final class GnssSatelliteProbe: NSObject, CLLocationManagerDelegate, @unc
     private var isTracking: Bool = false
     private var onUpdate: ((_ data: GnssHubData) -> Void)?
 
-    private override init() {
+    override private init() {
         super.init()
     }
 
@@ -41,6 +41,15 @@ public final class GnssSatelliteProbe: NSObject, CLLocationManagerDelegate, @unc
         locationManager?.stopUpdatingLocation()
         locationManager = nil
         onUpdate = nil
+    }
+
+    public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        if status == .authorizedWhenInUse || status == .authorizedAlways {
+            if isTracking {
+                manager.startUpdatingLocation()
+            }
+        }
     }
 
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -86,14 +95,14 @@ public final class GnssSatelliteProbe: NSObject, CLLocationManagerDelegate, @unc
         )
 
         Task { @MainActor [weak self] in
-            guard let self = self, self.isTracking else { return }
+            guard let self, self.isTracking else { return }
             self.onUpdate?(result)
         }
     }
 
     // MARK: - Geodetic Transformations (Krasovsky 1940 & Obfuscation Mathematics)
     private static let piConst = Double.pi
-    private static let aAxis = 6378245.0
+    private static let aAxis = 6_378_245.0
     private static let eeEccentricity = 0.00669342162296594323
 
     public static func wgs84ToGcj02(lat: Double, lon: Double) -> (Double, Double) {
@@ -128,8 +137,8 @@ public final class GnssSatelliteProbe: NSObject, CLLocationManagerDelegate, @unc
         let latIdx = max(0, min(19, Int((lat + 80.0) / 8.0)))
         let letter = latLetters[latLetters.index(latLetters.startIndex, offsetBy: latIdx)]
 
-        let easting = Int(abs(lon).truncatingRemainder(dividingBy: 6.0) * 100000) % 100000
-        let northing = Int(abs(lat).truncatingRemainder(dividingBy: 8.0) * 100000) % 100000
+        let easting = Int(abs(lon).truncatingRemainder(dividingBy: 6.0) * 100_000) % 100_000
+        let northing = Int(abs(lat).truncatingRemainder(dividingBy: 8.0) * 100_000) % 100_000
 
         return "\(zone)\(letter) \(String(format: "%05d %05d", easting, northing))"
     }

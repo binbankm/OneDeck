@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Apple Taptic Engine Hardware Diagnostics & Linear Actuator Lab.
+//  Taptic Engine actuator waveforms and haptic diagnostics workspace.
 //
 
 import SwiftUI
@@ -203,9 +203,9 @@ struct HapticLabDetailView: View {
                         }
                         dialValue = newVal
                     }
-                ), in: 0...100, step: 1)
-                .tint(appState.accentColor)
-                .padding(.horizontal, SpacingTheme.standard)
+                ), in: 0 ... 100, step: 1)
+                    .tint(appState.accentColor)
+                    .padding(.horizontal, SpacingTheme.standard)
             }
         }
         .bentoCard(accent: appState.accentColor)

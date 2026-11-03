@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Precision Torch, High-Frequency Strobe Tachometer & Softbox Fullscreen Workspace.
+//  Micro-brightness torch, strobe tachometer, and softbox workspace.
 //
 
 import SwiftUI
@@ -40,7 +40,7 @@ struct PrecisionTorchDetailView: View {
             Spacer()
 
             // Master On/Off Toggle Button
-            masterToggleButton
+            primaryToggleButton
         }
         .padding(.horizontal, SpacingTheme.cardStack)
         .padding(.vertical, SpacingTheme.rowStandard)
@@ -95,9 +95,9 @@ struct PrecisionTorchDetailView: View {
             Slider(value: Binding(
                 get: { Double(tools.torch.brightness) },
                 set: { tools.setTorchBrightness(Float($0)) }
-            ), in: 0.01...1.0)
-            .tint(appState.accentColor)
-            .padding(.horizontal, SpacingTheme.rowStandard)
+            ), in: 0.01 ... 1.0)
+                .tint(appState.accentColor)
+                .padding(.horizontal, SpacingTheme.rowStandard)
 
             // Preset Quick Buttons
             HStack(spacing: SpacingTheme.compact) {
@@ -141,7 +141,7 @@ struct PrecisionTorchDetailView: View {
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
 
-            Slider(value: $tools.torch.strobeFrequencyHz, in: 0.5...30.0, step: 0.5)
+            Slider(value: $tools.torch.strobeFrequencyHz, in: 0.5 ... 30.0, step: 0.5)
                 .tint(appState.accentColor)
                 .padding(.horizontal, SpacingTheme.rowStandard)
                 .onChange(of: tools.torch.strobeFrequencyHz) { _, val in
@@ -214,7 +214,7 @@ struct PrecisionTorchDetailView: View {
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
 
-            Slider(value: $tools.torch.softboxKelvin, in: 2700...6500, step: 100)
+            Slider(value: $tools.torch.softboxKelvin, in: 2700 ... 6500, step: 100)
                 .tint(kelvinColor(tools.torch.softboxKelvin))
 
             Button {
@@ -238,9 +238,9 @@ struct PrecisionTorchDetailView: View {
         .padding(.horizontal, SpacingTheme.standard)
     }
 
-    // MARK: - Master Toggle Button
+    // MARK: - Primary Toggle Button
     @ViewBuilder
-    private var masterToggleButton: some View {
+    private var primaryToggleButton: some View {
         let isOn = tools.torch.isTorchOn
 
         Button {
@@ -295,7 +295,7 @@ struct PrecisionTorchDetailView: View {
         } else if kelvin <= 5500 {
             return Color(red: 1.0, green: 0.98, blue: 0.95) // 5000K Pure White
         } else {
-            return Color(red: 0.85, green: 0.92, blue: 1.0)  // 6500K Cool Daylight
+            return Color(red: 0.85, green: 0.92, blue: 1.0) // 6500K Cool Daylight
         }
     }
 }
@@ -306,4 +306,3 @@ struct PrecisionTorchDetailView: View {
         PrecisionTorchDetailView()
     }
 }
-

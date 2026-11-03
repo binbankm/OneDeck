@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Bento Card launcher for Touch Digitizer & Matrix Multi-Touch Test.
+//  Capacitive touch digitizer and multi-touch test launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsTouchMatrixCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: TouchMatrixDetailView()) {
+        NavigationLink(destination: LazyView(TouchMatrixDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -41,7 +41,9 @@ struct ToolsTouchMatrixCard: View {
             Text(tools.touchMatrixPassedCount == 80 ? L10n.Tools.levelBalanced : "\(tools.touchMatrixPassedCount)/80")
                 .font(Typography.headlineValue)
                 .fontDesign(.monospaced)
-                .foregroundStyle(tools.touchMatrixPassedCount == 80 ? Color.green : (tools.touchMatrixPassedCount > 0 ? appState.accentColor : Theme.textSecondary(for: colorScheme)))
+                .foregroundStyle(
+                    tools.touchMatrixPassedCount == 80 ? Color.green : (tools.touchMatrixPassedCount > 0 ? appState.accentColor : Theme.textSecondary(for: colorScheme))
+                )
                 .lineLimit(1)
 
             Image(systemName: "chevron.right")

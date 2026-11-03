@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Stereo Channel Separation, Diaphragm Resonance & Acoustic Phase Diagnostics.
+//  Stereo acoustic channel separation and frequency response workspace.
 //
 
 import SwiftUI
@@ -44,7 +44,7 @@ struct SpeakerLabDetailView: View {
                     frequencySelectorSection
 
                     // Master Stop / Play Button
-                    masterToggleButton
+                    primaryToggleButton
                 }
                 .padding(.horizontal, SpacingTheme.cardStack)
                 .padding(.vertical, SpacingTheme.rowStandard)
@@ -189,9 +189,9 @@ struct SpeakerLabDetailView: View {
         .bentoCard(accent: appState.accentColor)
     }
 
-    // MARK: - Master Toggle Button
+    // MARK: - Primary Toggle Button
     @ViewBuilder
-    private var masterToggleButton: some View {
+    private var primaryToggleButton: some View {
         Button {
             if isPlaying {
                 stopAudio()

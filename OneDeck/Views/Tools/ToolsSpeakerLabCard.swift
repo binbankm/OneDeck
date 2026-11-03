@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Bento Card launcher for Stereo Acoustic Speaker Lab.
+//  Stereo acoustic channel separation and speaker test launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsSpeakerLabCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: SpeakerLabDetailView()) {
+        NavigationLink(destination: LazyView(SpeakerLabDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -63,6 +63,7 @@ struct ToolsSpeakerLabCard: View {
             Text(L10n.Tools.stereoDual)
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

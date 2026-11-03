@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Leica-grade Taptic feedback engine for physical instruments and dials.
+//  Tactile feedback engine for physical instruments and dials.
 //
 
 import UIKit
@@ -83,4 +83,3 @@ public enum Haptics {
         notificationFeedback.notificationOccurred(.error)
     }
 }
-

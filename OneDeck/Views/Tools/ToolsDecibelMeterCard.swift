@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Bento Card launcher for Acoustic Sound Level Meter.
+//  Acoustic sound pressure and decibel meter launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsDecibelMeterCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: DecibelMeterDetailView()) {
+        NavigationLink(destination: LazyView(DecibelMeterDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -69,6 +69,7 @@ struct ToolsDecibelMeterCard: View {
             Text(String(format: "%@: %.1f dB", L10n.Tools.peakNoise, tools.decibelMeter.peakDb))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

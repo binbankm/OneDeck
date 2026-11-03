@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  165Hz Acoustic Water Ejector Bento Launcher Card.
+//  Acoustic diaphragm water and dust ejection launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsWaterEjectorCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: WaterEjectorDetailView()) {
+        NavigationLink(destination: LazyView(WaterEjectorDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleStatusRow
@@ -69,6 +69,7 @@ struct ToolsWaterEjectorCard: View {
             Text(tools.waterEjector.selectedMode == .deep165Hz ? L10n.Tools.deepEject165 : L10n.Tools.dustClear440)
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }

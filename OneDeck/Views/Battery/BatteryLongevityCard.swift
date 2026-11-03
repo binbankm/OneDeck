@@ -3,17 +3,12 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Battery Longevity Assessment & Diagnostic Health Care Hub:
-//  - Swift Charts Capacity & Health Degradation Trajectory Curve (Cycles vs Retention vs Apple 80% Baseline).
-//  - Physics-accurate electrochemical SEI aging trajectory + predictive future projection.
-//  - Cycle degradation rate & 80% Apple service threshold margin.
-//  - Multi-tier intelligent battery care guidelines (shallow cycles, thermal management, 80% limit).
-//  - One-click copy & export of formatted professional hardware diagnostic report.
+//  Battery longevity evaluation and care guideline hub card.
 //
 
+import Charts
 import SwiftUI
 import UIKit
-import Charts
 
 struct BatteryLongevityCard: View {
     // MARK: - Dependencies & Environment
@@ -64,7 +59,7 @@ struct BatteryLongevityCard: View {
                 .clipShape(Capsule())
             }
 
-            // MARK: - 2. Battery Capacity Degradation Curve Chart (衰减图)
+            // MARK: - Capacity Degradation Chart
             degradationCurveSection
 
             // MARK: - 3. 2-Tile Scientific Longevity Metrics
@@ -164,6 +159,7 @@ struct BatteryLongevityCard: View {
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
             // Legend Row (Dedicated Full-Width, Zero Crowding, Zero Word Breaking)
@@ -211,12 +207,12 @@ struct BatteryLongevityCard: View {
     @ViewBuilder
     private var insightCapsuleRow: some View {
         if battery.hasRealTelemetry && battery.cycleCountDisplay > 0 {
-            let currentCycle: Double = Double(battery.cycleCountDisplay)
+            let currentCycle = Double(battery.cycleCountDisplay)
             let specHealthAtCurrent: Double = max(60.0, 100.0 - (currentCycle / 500.0) * 20.0)
             let delta: Double = battery.healthPercentDisplay - specHealthAtCurrent
             let isPositive: Bool = delta >= 0
             let badgeColor: Color = isPositive ? appState.accentColor : Color.yellow
-            let deltaFormatted: String = String(format: "%.1f%%", delta)
+            let deltaFormatted = String(format: "%.1f%%", delta)
             let deltaText: String = isPositive ? "\(L10n.Battery.baselineAbove) +\(deltaFormatted)" : "\(L10n.Battery.baselineBelow) \(deltaFormatted)"
 
             HStack(spacing: SpacingTheme.tight) {
@@ -276,7 +272,7 @@ struct BatteryLongevityCard: View {
         let initialHealth = max(103.0, currentHealth + 3.0)
 
         let steps = 6
-        return (0..<steps).map { i in
+        return (0 ..< steps).map { i in
             let progress = Double(i) / Double(steps - 1)
             let cycle = currentCycle * progress
             // SEI layer expansion follows sub-linear root progression
@@ -502,7 +498,7 @@ private struct BatteryAgingCurveChart: View {
                 .annotation(
                     position: battery.healthPercentDisplay >= 92.0 ? .bottom : .top,
                     alignment: .center,
-                    spacing: 8
+                    spacing: SpacingTheme.standard
                 ) {
                     HStack(spacing: SpacingTheme.tight) {
                         Text("\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit)")
@@ -524,8 +520,8 @@ private struct BatteryAgingCurveChart: View {
                 }
             }
         }
-        .chartXScale(domain: 0...maxDomain)
-        .chartYScale(domain: 68...106)
+        .chartXScale(domain: 0 ... maxDomain)
+        .chartYScale(domain: 68 ... 106)
         .chartXAxis {
             AxisMarks(values: ticks) { value in
                 AxisGridLine(stroke: ChartTheme.gridStroke)
@@ -550,8 +546,8 @@ private struct BatteryAgingCurveChart: View {
                             .font(ChartTheme.axisLabelFont)
                             .foregroundStyle(
                                 health == 80.0
-                                ? Color.red.opacity(0.85)
-                                : ChartTheme.axisLabelColor(for: colorScheme)
+                                    ? Color.red.opacity(0.85)
+                                    : ChartTheme.axisLabelColor(for: colorScheme)
                             )
                             .frame(width: 28, alignment: .trailing)
                     }
@@ -622,4 +618,3 @@ private struct LongevityTile: View {
     BatteryLongevityCard()
         .padding()
 }
-

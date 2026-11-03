@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Dashboard Tab: Production Apple-Grade Bento Orchestrator with Zero Horizontal Drift.
+//  System overview dashboard view with real-time performance telemetry.
 //
 
 import SwiftUI

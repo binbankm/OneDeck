@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Live Electrical Telemetry: Real-time Wattage, 30s Rolling Waveform, Voltage & Current Flow.
+//  Real-time wattage chart, voltage, and electrical current flow card.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct BatteryLivePowerCard: View {
     // MARK: - Dependencies & Environment
@@ -47,7 +47,7 @@ struct BatteryLivePowerCard: View {
                     .clipShape(Capsule())
                 } else if battery.batteryState == .charging {
                     HStack(spacing: SpacingTheme.tight) {
-                        Image(systemName: "waveform.path.badge.plus")
+                        Image(systemName: "bolt.fill")
                             .font(IconTheme.badgeInline)
                         Text(L10n.Battery.modelEstimatedTag)
                             .font(Typography.badgeTag)
@@ -157,7 +157,7 @@ struct BatteryLivePowerCard: View {
                 }
                 .chartXAxis(.hidden)
                 .chartYAxis(.hidden)
-                .chartYScale(domain: 0...dynamicMaxY)
+                .chartYScale(domain: 0 ... dynamicMaxY)
                 .padding(.trailing, ChartTheme.trailingMargin)
                 .allowsHitTesting(false)
             }

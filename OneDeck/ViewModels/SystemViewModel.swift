@@ -3,16 +3,16 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Direct Darwin & Mach Kernel hardware telemetry ViewModel for CPU, RAM, Disk, Device specs & Real-time Network Traffic.
+//  Mach kernel hardware telemetry, CPU, memory, and device specs view model.
 //
 
-import SwiftUI
-import Observation
+import AVFoundation
 import Darwin
+import LocalAuthentication
 import MachO
 import Metal
-import LocalAuthentication
-import AVFoundation
+import Observation
+import SwiftUI
 
 // MARK: - System ViewModel Hub
 @Observable
@@ -51,7 +51,7 @@ public final class SystemViewModel {
         sessionTotalOutBytes.formattedBytes
     }
 
-    // Dynamic localized active interface name (Synchronized with NetworkService NWPathMonitor & CoreTelephony)
+    // Dynamic localized interface name from NWPathMonitor and CoreTelephony
     public var activeInterfaceName: String {
         NetworkService.shared.activeInterfaceSummary
     }
@@ -90,14 +90,18 @@ public final class SystemViewModel {
     public var salesTypeEn: String = ""
     public var salesTypeHant: String = ""
     public var uptimeFormatted: String = "0h 0m"
-    public var bootDate: Date? = nil
+    public var bootDate: Date?
 
-    public var bootTimeFormatted: String {
-        guard let date = bootDate else { return L10n.Common.unknown }
+    private static let bootDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale.current
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        return formatter.string(from: date)
+        return formatter
+    }()
+
+    public var bootTimeFormatted: String {
+        guard let date = bootDate else { return L10n.Common.unknown }
+        return Self.bootDateFormatter.string(from: date)
     }
 
     public var thermalState: ProcessInfo.ThermalState = .nominal
@@ -111,7 +115,7 @@ public final class SystemViewModel {
         }
     }
     public var isCleaningCache: Bool = false
-    public var hardwareSpecs: DetailedHardwareSpecs = DetailedHardwareSpecs()
+    public var hardwareSpecs: DetailedHardwareSpecs = .init()
 
     // MARK: - Thermal & Real-Time Temperature Telemetry
     public var batteryTemperature: Double = 31.5
@@ -156,7 +160,7 @@ public final class SystemViewModel {
     private var previousCoreLoads: [CoreLoad] = []
     private var previousInBytes: UInt64 = 0
     private var previousOutBytes: UInt64 = 0
-    private var previousNetworkTime: Date = Date()
+    private var previousNetworkTime: Date = .init()
     private var timer: Timer?
     private var isMonitoring: Bool = false
     private let maxHistoryPoints: Int = 30
@@ -184,7 +188,8 @@ public final class SystemViewModel {
         isMonitoring = true
         refreshAll()
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+        let interval: TimeInterval = AppState.shared.isSensorPowerSaving ? 3.0 : 1.0
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             self?.refreshAll()
         }
     }
@@ -233,7 +238,7 @@ public final class SystemViewModel {
         var totalActiveTicks: UInt32 = 0
         var totalAllTicks: UInt32 = 0
 
-        for i in 0..<count {
+        for i in 0 ..< count {
             let offset = Int(CPU_STATE_MAX) * i
             let user = UInt32(info[offset + Int(CPU_STATE_USER)])
             let system = UInt32(info[offset + Int(CPU_STATE_SYSTEM)])
@@ -443,14 +448,14 @@ public final class SystemViewModel {
 
     // MARK: - 6. Device Identification & Full Specs
     private func resolveDeviceIdentity() {
-        var size: Int = 0
+        var size = 0
         sysctlbyname("hw.machine", nil, &size, nil, 0)
         var machine = [CChar](repeating: 0, count: size)
         sysctlbyname("hw.machine", &machine, &size, nil, 0)
         let identifier = String(cString: machine)
         self.machineIdentifier = identifier
 
-        var modelSize: Int = 0
+        var modelSize = 0
         sysctlbyname("hw.model", nil, &modelSize, nil, 0)
         var modelChars = [CChar](repeating: 0, count: modelSize)
         sysctlbyname("hw.model", &modelChars, &modelSize, nil, 0)
@@ -509,16 +514,22 @@ public final class SystemViewModel {
         }
         specs.scale = Int(screen.nativeScale > 0 ? screen.nativeScale : screen.scale)
         specs.maxFps = screen.maximumFramesPerSecond
-        if machineIdentifier.hasPrefix("iPhone11,2") || machineIdentifier.hasPrefix("iPhone11,4") || machineIdentifier.hasPrefix("iPhone11,6") || machineIdentifier.hasPrefix("iPhone10,3") || machineIdentifier.hasPrefix("iPhone10,6") {
+        if machineIdentifier.hasPrefix("iPhone11,2") || machineIdentifier.hasPrefix("iPhone11,4") || machineIdentifier.hasPrefix("iPhone11,6") || machineIdentifier.hasPrefix(
+            "iPhone10,3"
+        ) || machineIdentifier.hasPrefix("iPhone10,6") {
             specs.ppi = 458
             specs.panelType = .superRetinaHD
         } else if machineIdentifier.hasPrefix("iPhone14,4") || machineIdentifier.hasPrefix("iPhone13,1") {
             specs.ppi = 476
             specs.panelType = .superRetinaXDROLED
-        } else if machineIdentifier.hasPrefix("iPad16,3") || machineIdentifier.hasPrefix("iPad16,4") || machineIdentifier.hasPrefix("iPad16,5") || machineIdentifier.hasPrefix("iPad16,6") || machineIdentifier.hasPrefix("iPad17") {
+        } else if machineIdentifier.hasPrefix("iPad16,3") || machineIdentifier.hasPrefix("iPad16,4") || machineIdentifier.hasPrefix("iPad16,5") || machineIdentifier.hasPrefix(
+            "iPad16,6"
+        ) || machineIdentifier.hasPrefix("iPad17") {
             specs.ppi = 264
             specs.panelType = .ultraRetinaXDR
-        } else if machineIdentifier.hasPrefix("iPhone11,8") || machineIdentifier.hasPrefix("iPhone12,1") || machineIdentifier.hasPrefix("iPhone12,8") || machineIdentifier.hasPrefix("iPhone14,6") {
+        } else if machineIdentifier.hasPrefix("iPhone11,8") || machineIdentifier.hasPrefix("iPhone12,1") || machineIdentifier.hasPrefix("iPhone12,8") || machineIdentifier.hasPrefix(
+            "iPhone14,6"
+        ) {
             specs.ppi = 326
             specs.panelType = .liquidRetina
         } else if specs.maxFps >= 120 {
@@ -588,7 +599,9 @@ public final class SystemViewModel {
             specs.processNodeEn = "5nm (TSMC N5P)"
             specs.isaTier = .armV86
             specs.aneTier = .a15
-            specs.gpuCores = machineIdentifier.contains("iPhone14,2") || machineIdentifier.contains("iPhone14,3") || machineIdentifier.contains("iPhone14,7") || machineIdentifier.contains("iPhone14,8") ? 5 : 4
+            specs.gpuCores = machineIdentifier.contains("iPhone14,2") || machineIdentifier.contains("iPhone14,3") || machineIdentifier.contains("iPhone14,7") || machineIdentifier.contains(
+                "iPhone14,8"
+            ) ? 5 : 4
             specs.metalFeatureSet = "Metal 3 (Family 8)"
             specs.l1dKb = 128
             specs.l2Mb = 12
@@ -671,15 +684,15 @@ public final class SystemViewModel {
 
         // 6. Physical Port
         if machineIdentifier.hasPrefix("iPhone16,1") || machineIdentifier.hasPrefix("iPhone16,2") ||
-           machineIdentifier.hasPrefix("iPhone17,1") || machineIdentifier.hasPrefix("iPhone17,2") ||
-           machineIdentifier.hasPrefix("iPhone18,1") || machineIdentifier.hasPrefix("iPhone18,2") ||
-           machineIdentifier.hasPrefix("iPhone19,2") || machineIdentifier.hasPrefix("iPhone19,3") ||
-           machineIdentifier.hasPrefix("iPhone19,4") || machineIdentifier.hasPrefix("iPad16") ||
-           machineIdentifier.hasPrefix("iPad17") {
+            machineIdentifier.hasPrefix("iPhone17,1") || machineIdentifier.hasPrefix("iPhone17,2") ||
+            machineIdentifier.hasPrefix("iPhone18,1") || machineIdentifier.hasPrefix("iPhone18,2") ||
+            machineIdentifier.hasPrefix("iPhone19,2") || machineIdentifier.hasPrefix("iPhone19,3") ||
+            machineIdentifier.hasPrefix("iPhone19,4") || machineIdentifier.hasPrefix("iPad16") ||
+            machineIdentifier.hasPrefix("iPad17") {
             specs.isUsbC10G = true
         } else if machineIdentifier.hasPrefix("iPhone15") || machineIdentifier.hasPrefix("iPhone16") ||
-                  machineIdentifier.hasPrefix("iPhone17") || machineIdentifier.hasPrefix("iPhone18") ||
-                  machineIdentifier.hasPrefix("iPhone19") || machineIdentifier.hasPrefix("iPad") {
+            machineIdentifier.hasPrefix("iPhone17") || machineIdentifier.hasPrefix("iPhone18") ||
+            machineIdentifier.hasPrefix("iPhone19") || machineIdentifier.hasPrefix("iPad") {
             specs.isUsbC480M = true
         } else {
             specs.isLightning = true
@@ -699,7 +712,7 @@ public final class SystemViewModel {
             let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("onedeck_purge_temp")
             try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
             let dummyData = Data(repeating: 0xFF, count: 10 * 1024 * 1024)
-            for i in 0..<5 {
+            for i in 0 ..< 5 {
                 let file = tempDir.appendingPathComponent("block_\(i).tmp")
                 try? dummyData.write(to: file)
             }
@@ -718,7 +731,7 @@ public final class SystemViewModel {
         let state = ProcessInfo.processInfo.thermalState
         self.thermalState = state
 
-        // 1. Query real hardware temperature sensors via HardwareBatteryProbe (IOHIDEventSystemClient & AppleSmartBattery)
+        // Query hardware temperature sensors via HardwareBatteryProbe
         let hw = HardwareBatteryProbe.sample()
 
         // 2. Base temperature & throttling load baseline
@@ -835,102 +848,84 @@ public final class SystemViewModel {
         case "iPhone19,3": return ("iPhone 18 Pro Max", "Apple A20 Pro")
         case "iPhone19,4": return ("iPhone Fold", "Apple A20 Pro")
         case "iPhone19,5": return ("iPhone 18 Air", "Apple A20")
-
         // iPhone 17 Family (Late 2025)
         case "iPhone18,1": return ("iPhone 17 Pro", "Apple A19 Pro")
         case "iPhone18,2": return ("iPhone 17 Pro Max", "Apple A19 Pro")
         case "iPhone18,3": return ("iPhone 17", "Apple A19")
         case "iPhone18,4": return ("iPhone Air", "Apple A19")
         case "iPhone18,5": return ("iPhone 17e", "Apple A19")
-
         // iPhone 16 Family (2024–2025)
         case "iPhone17,1": return ("iPhone 16 Pro", "Apple A18 Pro")
         case "iPhone17,2": return ("iPhone 16 Pro Max", "Apple A18 Pro")
         case "iPhone17,3": return ("iPhone 16", "Apple A18")
         case "iPhone17,4": return ("iPhone 16 Plus", "Apple A18")
         case "iPhone17,5": return ("iPhone 16e", "Apple A18")
-
         // iPhone 15 Family (2023)
         case "iPhone16,1": return ("iPhone 15 Pro", "Apple A17 Pro")
         case "iPhone16,2": return ("iPhone 15 Pro Max", "Apple A17 Pro")
         case "iPhone15,4": return ("iPhone 15", "Apple A16 Bionic")
         case "iPhone15,5": return ("iPhone 15 Plus", "Apple A16 Bionic")
-
         // iPhone 14 Family (2022)
         case "iPhone15,2": return ("iPhone 14 Pro", "Apple A16 Bionic")
         case "iPhone15,3": return ("iPhone 14 Pro Max", "Apple A16 Bionic")
         case "iPhone14,7": return ("iPhone 14", "Apple A15 Bionic")
         case "iPhone14,8": return ("iPhone 14 Plus", "Apple A15 Bionic")
-
         // iPhone 13 Family & SE 3 (2021-2022)
         case "iPhone14,2": return ("iPhone 13 Pro", "Apple A15 Bionic")
         case "iPhone14,3": return ("iPhone 13 Pro Max", "Apple A15 Bionic")
         case "iPhone14,4": return ("iPhone 13 mini", "Apple A15 Bionic")
         case "iPhone14,5": return ("iPhone 13", "Apple A15 Bionic")
         case "iPhone14,6": return ("iPhone SE (3rd gen)", "Apple A15 Bionic")
-
         // iPhone 12 Family (2020)
         case "iPhone13,1": return ("iPhone 12 mini", "Apple A14 Bionic")
         case "iPhone13,2": return ("iPhone 12", "Apple A14 Bionic")
         case "iPhone13,3": return ("iPhone 12 Pro", "Apple A14 Bionic")
         case "iPhone13,4": return ("iPhone 12 Pro Max", "Apple A14 Bionic")
-
         // iPhone 11 Family & SE 2 (2019-2020)
         case "iPhone12,8": return ("iPhone SE (2nd gen)", "Apple A13 Bionic")
         case "iPhone12,5": return ("iPhone 11 Pro Max", "Apple A13 Bionic")
         case "iPhone12,3": return ("iPhone 11 Pro", "Apple A13 Bionic")
         case "iPhone12,1": return ("iPhone 11", "Apple A13 Bionic")
-
         // iPhone XS / XR (2018)
         case "iPhone11,8": return ("iPhone XR", "Apple A12 Bionic")
         case "iPhone11,6", "iPhone11,4": return ("iPhone XS Max", "Apple A12 Bionic")
         case "iPhone11,2": return ("iPhone XS", "Apple A12 Bionic")
-
         // iPhone X & 8 (2017)
         case "iPhone10,6", "iPhone10,3": return ("iPhone X", "Apple A11 Bionic")
         case "iPhone10,5", "iPhone10,2": return ("iPhone 8 Plus", "Apple A11 Bionic")
         case "iPhone10,4", "iPhone10,1": return ("iPhone 8", "Apple A11 Bionic")
-
         // iPhone 7 & Prior
         case "iPhone9,4", "iPhone9,2": return ("iPhone 7 Plus", "Apple A10 Fusion")
         case "iPhone9,3", "iPhone9,1": return ("iPhone 7", "Apple A10 Fusion")
         case "iPhone8,4": return ("iPhone SE (1st gen)", "Apple A9")
         case "iPhone8,2": return ("iPhone 6s Plus", "Apple A9")
         case "iPhone8,1": return ("iPhone 6s", "Apple A9")
-
         // iPad Pro M5 (2025-2026)
         case "iPad17,1", "iPad17,2": return ("iPad Pro 11-inch (M5)", "Apple M5")
         case "iPad17,3", "iPad17,4": return ("iPad Pro 13-inch (M5)", "Apple M5")
-
         // iPad Air M4 (2025)
         case "iPad16,8", "iPad16,9": return ("iPad Air 11-inch (M4)", "Apple M4")
         case "iPad16,10", "iPad16,11": return ("iPad Air 13-inch (M4)", "Apple M4")
-
         // iPad Pro M4 (2024)
         case "iPad16,3", "iPad16,4": return ("iPad Pro 11-inch (M4)", "Apple M4")
         case "iPad16,5", "iPad16,6": return ("iPad Pro 13-inch (M4)", "Apple M4")
-
         // iPad mini 7 (2024)
         case "iPad16,1", "iPad16,2": return ("iPad mini (A17 Pro)", "Apple A17 Pro")
-
         // iPad Pro M2 & M1
         case "iPad14,3", "iPad14,4": return ("iPad Pro 11-inch (4th gen)", "Apple M2")
         case "iPad14,5", "iPad14,6": return ("iPad Pro 12.9-inch (6th gen)", "Apple M2")
         case "iPad13,4", "iPad13,5", "iPad13,6", "iPad13,7": return ("iPad Pro 11-inch (3rd gen)", "Apple M1")
         case "iPad13,8", "iPad13,9", "iPad13,10", "iPad13,11": return ("iPad Pro 12.9-inch (5th gen)", "Apple M1")
-
         // iPad Air M2 & M1
         case "iPad14,8", "iPad14,9": return ("iPad Air 11-inch (M2)", "Apple M2")
         case "iPad14,10", "iPad14,11": return ("iPad Air 13-inch (M2)", "Apple M2")
         case "iPad13,16", "iPad13,17": return ("iPad Air (5th gen)", "Apple M1")
         case "iPad13,1", "iPad13,2": return ("iPad Air (4th gen)", "Apple A14 Bionic")
-
         // iPad mini 6 & Base iPads
         case "iPad14,1", "iPad14,2": return ("iPad mini (6th gen)", "Apple A15 Bionic")
         case "iPad15,1", "iPad15,2": return ("iPad (11th gen)", "Apple A16 Bionic")
         case "iPad13,18", "iPad13,19": return ("iPad (10th gen)", "Apple A14 Bionic")
         case "iPad12,1", "iPad12,2": return ("iPad (9th gen)", "Apple A13 Bionic")
-
         case "arm64", "x86_64":
             return ("Apple Silicon Simulator", "Apple Silicon Host")
         default:

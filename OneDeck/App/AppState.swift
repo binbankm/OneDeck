@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Global Observable State Hub managing Localization, Appearance & Theme Engine.
+//  Global observable state managing localization, appearance, and preferences.
 //
 
-import SwiftUI
 import Observation
+import SwiftUI
 
 // MARK: - Appearance Mode
 public enum AppearanceMode: String, CaseIterable, Identifiable {
@@ -184,4 +184,3 @@ public final class AppState {
         Haptics.success()
     }
 }
-

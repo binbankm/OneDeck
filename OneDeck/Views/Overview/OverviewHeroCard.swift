@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Hero Device Deck: Marketing Identity, Hardware Badges & 3-Metric Quick HUD.
+//  Device identity, hardware badges, and real-time HUD metrics card.
 //
 
 import SwiftUI
@@ -78,27 +78,52 @@ struct OverviewHeroCard: View {
 
     @ViewBuilder
     private var badgesRow: some View {
-        FlowLayout(spacing: SpacingTheme.compact, rowSpacing: SpacingTheme.tight) {
-            badge(
-                text: system.machineIdentifier,
-                textColor: appState.accentColor,
-                bgColor: appState.accentColor.opacity(0.16),
-                isMonospaced: true
-            )
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: SpacingTheme.compact) {
+                badge(
+                    text: system.machineIdentifier,
+                    textColor: appState.accentColor,
+                    bgColor: appState.accentColor.opacity(0.12),
+                    isMonospaced: true
+                )
 
-            badge(
-                text: system.osVersionWithBuild,
-                textColor: Theme.textSecondary(for: colorScheme),
-                bgColor: colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05),
-                isMonospaced: true
-            )
+                badge(
+                    text: system.osVersion,
+                    textColor: Theme.textSecondary(for: colorScheme),
+                    bgColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04),
+                    isMonospaced: true
+                )
 
-            badge(
-                text: system.salesTypeDescription,
-                textColor: Theme.textTertiary(for: colorScheme),
-                bgColor: colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03),
-                isMonospaced: false
-            )
+                badge(
+                    text: system.salesTypeDescription,
+                    textColor: Theme.textSecondary(for: colorScheme),
+                    bgColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04),
+                    isMonospaced: false
+                )
+            }
+
+            FlowLayout(spacing: SpacingTheme.compact, rowSpacing: SpacingTheme.tight) {
+                badge(
+                    text: system.machineIdentifier,
+                    textColor: appState.accentColor,
+                    bgColor: appState.accentColor.opacity(0.12),
+                    isMonospaced: true
+                )
+
+                badge(
+                    text: system.osVersion,
+                    textColor: Theme.textSecondary(for: colorScheme),
+                    bgColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04),
+                    isMonospaced: true
+                )
+
+                badge(
+                    text: system.salesTypeDescription,
+                    textColor: Theme.textSecondary(for: colorScheme),
+                    bgColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04),
+                    isMonospaced: false
+                )
+            }
         }
     }
 
@@ -137,7 +162,7 @@ struct OverviewHeroCard: View {
         Text(text)
             .font(isMonospaced ? Typography.badgeTagMono : Typography.badgeTag)
             .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
+            .minimumScaleFactor(0.85)
             .padding(.horizontal, SpacingTheme.standard)
             .padding(.vertical, SpacingTheme.micro)
             .background(bgColor)
@@ -170,6 +195,7 @@ struct OverviewHeroCard: View {
                 .font(Typography.badgeTag)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, SpacingTheme.row)

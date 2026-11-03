@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network Latency Card: Real POSIX TCP RTT Ping, Jitter & DNS Benchmark.
+//  POSIX TCP ping latency, jitter, and target response matrix card.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct NetworkLatencyCard: View {
     // MARK: - Dependencies & Environment
@@ -241,6 +241,7 @@ struct NetworkLatencyCard: View {
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
                 Spacer()
 

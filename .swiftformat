@@ -1,0 +1,44 @@
+# =============================================================================
+# OneDeck - SwiftFormat Production Configuration
+# Tailored for Swift 5.9 / 6.0, iOS 17.0+, SwiftUI Architecture & Bento Grid
+# =============================================================================
+
+# Swift Version & Indentation Format
+--swiftversion 5.9
+--indent 4
+--indent-case false
+--linebreaks lf
+--maxwidth 180
+--trim-whitespace always
+--semicolons inline-only
+--else-position same-line
+--empty-braces no-space
+--ifdef no-indent
+--header ignore
+--trailing-commas never
+
+# Excluded directories
+--exclude .build,DerivedData,Pods,scripts
+
+# Disabled rules to preserve SwiftUI DSL, Observation, and Systems Telemetry patterns:
+--disable organizeDeclarations
+--disable sortDeclarations
+--disable trailingClosures
+--disable wrapMultilineStatementBraces
+--disable preferKeyPath
+--disable redundantSelf
+--disable redundantRawValues
+--disable redundantInit
+--disable redundantViewBuilder
+--disable wrapPropertyBodies
+--disable wrapIfStatementBodies
+--disable blankLinesAroundMark
+--disable blankLinesBetweenScopes
+--disable fileHeader
+--disable docComments
+--disable extensionAccessControl
+--disable unusedArguments
+--disable andOperator
+--disable redundantReturn
+--disable wrap
+

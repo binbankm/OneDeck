@@ -3,12 +3,12 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Acoustic audio synthesis probe: 165Hz water ejection resonance, 20Hz-20kHz tone generator, and Geiger audio clicks.
+//  Acoustic audio synthesizer and resonance tone generator probe.
 //
 
-import Foundation
-import AVFoundation
 import AudioToolbox
+import AVFoundation
+import Foundation
 
 @MainActor
 public final class AudioAcousticProbe {
@@ -45,7 +45,7 @@ public final class AudioAcousticProbe {
         let player = AVAudioPlayerNode()
         engine.attach(player)
 
-        let sampleRate: Double = 44100.0
+        let sampleRate = 44100.0
         guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1) else { return }
 
         engine.connect(player, to: engine.mainMixerNode, format: format)
@@ -62,20 +62,18 @@ public final class AudioAcousticProbe {
         let wave = self.currentWaveform
         let twoPi = 2.0 * Double.pi
 
-        for frame in 0..<Int(bufferLength) {
+        for frame in 0 ..< Int(bufferLength) {
             let time = Double(frame) / sampleRate
             let phase = (time * freq).truncatingRemainder(dividingBy: 1.0)
-            let sample: Float
-
-            switch wave {
+            let sample: Float = switch wave {
             case .sine:
-                sample = Float(sin(twoPi * freq * time))
+                Float(sin(twoPi * freq * time))
             case .square:
-                sample = phase < 0.5 ? 0.75 : -0.75
+                phase < 0.5 ? 0.75 : -0.75
             case .triangle:
-                sample = Float(4.0 * abs(phase - 0.5) - 1.0)
+                Float(4.0 * abs(phase - 0.5) - 1.0)
             case .sawtooth:
-                sample = Float(2.0 * phase - 1.0)
+                Float(2.0 * phase - 1.0)
             }
 
             channelData[frame] = sample * 0.75
@@ -121,9 +119,23 @@ public final class AudioAcousticProbe {
     private var decibelTimerTask: Task<Void, Never>?
 
     public func startDecibelMetering(handler: @escaping (Double) -> Void) {
+        let session = AVAudioSession.sharedInstance()
+        let permission = AVAudioApplication.shared.recordPermission
+        if permission == .undetermined {
+            AVAudioApplication.requestRecordPermission { [weak self] granted in
+                if granted {
+                    DispatchQueue.main.async {
+                        self?.startDecibelMetering(handler: handler)
+                    }
+                }
+            }
+            return
+        } else if permission == .denied {
+            return
+        }
+
         stopDecibelMetering()
 
-        let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playAndRecord, mode: .measurement, options: [.duckOthers, .defaultToSpeaker])
             try session.setActive(true)
@@ -147,8 +159,9 @@ public final class AudioAcousticProbe {
 
             decibelTimerTask = Task { @MainActor [weak self] in
                 while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 50_000_000) // 20Hz update
-                    guard let self = self, let recorder = self.audioRecorder, recorder.isRecording else { break }
+                    let sleepNs: UInt64 = AppState.shared.isSensorPowerSaving ? 100_000_000 : 50_000_000 // 10Hz vs 20Hz
+                    try? await Task.sleep(nanoseconds: sleepNs)
+                    guard let self, let recorder = self.audioRecorder, recorder.isRecording else { break }
                     recorder.updateMeters()
                     let avgPower = Double(recorder.averagePower(forChannel: 0))
                     // Convert -160...0 dBFS to ~30...120 dB SPL
@@ -178,7 +191,7 @@ public final class AudioAcousticProbe {
         let player = AVAudioPlayerNode()
         engine.attach(player)
 
-        let sampleRate: Double = 44100.0
+        let sampleRate = 44100.0
         guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2) else { return }
 
         engine.connect(player, to: engine.mainMixerNode, format: format)
@@ -199,7 +212,7 @@ public final class AudioAcousticProbe {
         guard let leftData = buffer.floatChannelData?[0], let rightData = buffer.floatChannelData?[1] else { return }
         let twoPi = 2.0 * Double.pi
 
-        for frame in 0..<Int(bufferLength) {
+        for frame in 0 ..< Int(bufferLength) {
             let time = Double(frame) / sampleRate
             let sample = Float(sin(twoPi * frequency * time)) * 0.8
             leftData[frame] = (channel == .left || channel == .stereo) ? sample : 0
@@ -218,4 +231,3 @@ public final class AudioAcousticProbe {
         }
     }
 }
-

@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Multi-Constellation GNSS & Precision Geodetic Datum Fullscreen Workspace.
+//  GNSS satellite constellation and geodetic coordinate workspace.
 //
 
 import SwiftUI
@@ -37,12 +37,12 @@ struct GnssHubDetailView: View {
         .navigationTitle(L10n.Tools.gnssHub)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .gnss)
             tools.startGnssHub()
         }
         .onDisappear {
-            tools.leaveDetailView()
             tools.stopGnssHub()
+            tools.leaveDetailView()
         }
     }
 

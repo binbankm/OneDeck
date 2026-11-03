@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Network Real-Time Traffic Card: Real-Time Throughput Sampler, Charts Waveform & Speed Test Sheet.
+//  Real-time network throughput sampler and sparkline chart card.
 //
 
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct NetworkTrafficCard: View {
     // MARK: - Dependencies & Environment
@@ -50,7 +50,7 @@ struct NetworkTrafficCard: View {
                 showSpeedTestSheet = true
             } label: {
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "speedometer")
+                    Image(systemName: "gauge.with.needle.fill")
                         .font(IconTheme.actionButton)
 
                     Text(L10n.Network.speedTestTitle)
@@ -75,7 +75,7 @@ struct NetworkTrafficCard: View {
                 showSpeedTestSheet = true
             } label: {
                 HStack(spacing: SpacingTheme.standard) {
-                    Image(systemName: "speedometer")
+                    Image(systemName: "gauge.with.needle.fill")
                         .font(IconTheme.actionButton)
                         .foregroundStyle(appState.accentColor)
 

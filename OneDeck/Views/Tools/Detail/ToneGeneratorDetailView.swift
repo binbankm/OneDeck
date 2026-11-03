@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  20Hz-20,000Hz Pure Audio Tone Synthesizer & Hearing Age Test Fullscreen Workspace.
+//  Pure audio sine wave synthesizer and frequency sweep workspace.
 //
 
 import SwiftUI
@@ -121,9 +121,9 @@ struct ToneGeneratorDetailView: View {
             Slider(value: Binding(
                 get: { log10(max(20.0, tools.toneGenerator.frequencyHz)) },
                 set: { tools.setToneFrequency(pow(10.0, $0)) }
-            ), in: log10(20.0)...log10(20000.0))
-            .tint(appState.accentColor)
-            .padding(.horizontal, SpacingTheme.standard)
+            ), in: log10(20.0) ... log10(20000.0))
+                .tint(appState.accentColor)
+                .padding(.horizontal, SpacingTheme.standard)
 
             HStack {
                 Text("20 Hz")
@@ -147,7 +147,7 @@ struct ToneGeneratorDetailView: View {
                     Haptics.tick()
                     tools.setToneFrequency(freq)
                 } label: {
-                    Text(freq >= 1000 ? "\(Int(freq/1000))k" : "\(Int(freq))")
+                    Text(freq >= 1000 ? "\(Int(freq / 1000))k" : "\(Int(freq))")
                         .font(Typography.badgeTagMonoMedium)
                         .foregroundStyle(abs(tools.toneGenerator.frequencyHz - freq) < 1.0 ? appState.accentColor : Theme.textSecondary(for: colorScheme))
                         .frame(maxWidth: .infinity)
@@ -302,4 +302,3 @@ struct ToneGeneratorDetailView: View {
         ToneGeneratorDetailView()
     }
 }
-

@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Atmospheric Barometer & Relative Altimeter Bento Launcher Card.
+//  Atmospheric pressure and barometric altimeter launcher card.
 //
 
 import SwiftUI
@@ -16,7 +16,7 @@ struct ToolsBarometerCard: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationLink(destination: BarometerDetailView()) {
+        NavigationLink(destination: LazyView(BarometerDetailView())) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
                 middleMetricRow
@@ -69,6 +69,7 @@ struct ToolsBarometerCard: View {
             Text(String(format: "%@: %+.1f m/s", L10n.Tools.verticalSpeed, tools.barometer.verticalSpeedMps))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
         }
     }
 }
@@ -78,4 +79,3 @@ struct ToolsBarometerCard: View {
     ToolsBarometerCard()
         .padding()
 }
-

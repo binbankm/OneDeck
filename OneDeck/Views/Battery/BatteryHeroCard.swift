@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Hero Battery Telemetry Deck: Dynamic Level Capsule, Live State Pill, ETA & Energy Reserves.
+//  Battery level gauge, charging state pill, and power throughput card.
 //
 
 import SwiftUI
@@ -38,7 +38,7 @@ struct BatteryHeroCard: View {
                         .font(IconTheme.badgeInline)
                         .foregroundStyle(activeStatusColor)
                 } else if battery.isLowPowerMode {
-                    Image(systemName: "bolt.batteryblock.fill")
+                    Image(systemName: "battery.100.bolt")
                         .font(IconTheme.badgeInline)
                         .foregroundStyle(.yellow)
                 }
@@ -121,22 +121,27 @@ struct BatteryHeroCard: View {
             }
             .frame(height: 18)
 
-            // ETA Status Sub-row
+            // ETA & Live Power Sub-row
             HStack(spacing: SpacingTheme.tight) {
-                Image(systemName: "clock.arrow.circlepath")
+                Image(systemName: "clock.fill")
                     .font(IconTheme.tileLeading)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 Text(battery.etaCountdownString)
                     .font(Typography.calloutLabel)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
-                Spacer()
+                Spacer(minLength: SpacingTheme.compact)
 
-                if battery.isLowPowerMode {
-                    Text(L10n.Battery.protocolLowPower)
-                        .font(Typography.captionBold)
-                        .foregroundStyle(.yellow)
+                HStack(spacing: SpacingTheme.tight) {
+                    Image(systemName: battery.batteryState == .charging ? "bolt.fill" : "bolt.badge.automatic.fill")
+                        .font(IconTheme.badgeInline)
+                        .foregroundStyle(activeStatusColor)
+                    Text(String(format: "%+.1f W", battery.liveWattage))
+                        .font(Typography.captionMono)
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .lineLimit(1)
                 }
             }
             .padding(.top, SpacingTheme.micro)

@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  OLED Dead Pixel, Uniformity & 120Hz Touch Digitizer Fullscreen Workspace.
+//  OLED screen uniformity, color purity, and dead pixel inspection workspace.
 //
 
 import SwiftUI
@@ -246,4 +246,3 @@ struct ScreenQualityDetailView: View {
         ScreenQualityDetailView()
     }
 }
-

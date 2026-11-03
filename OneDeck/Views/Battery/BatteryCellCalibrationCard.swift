@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Third-Party & Aftermarket Battery Calibration Hub: Custom Capacity & Super-Cell Tuning.
+//  Custom cell capacity calibration and health target adjustment card.
 //
 
 import SwiftUI
@@ -135,13 +135,13 @@ struct BatteryCellCalibrationCard: View {
             .padding(.vertical, SpacingTheme.compact)
             .background(
                 battery.customCapacityMah == mah
-                ? appState.accentColor
-                : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
+                    ? appState.accentColor
+                    : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
             )
             .foregroundStyle(
                 battery.customCapacityMah == mah
-                ? Color.black
-                : Theme.textSecondary(for: colorScheme)
+                    ? Color.black
+                    : Theme.textSecondary(for: colorScheme)
             )
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         }

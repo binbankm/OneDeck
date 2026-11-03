@@ -3,11 +3,11 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Deep Hardware Telemetry Probe via IOKit, IOPowerSources & AppleSmartBattery Private APIs.
+//  Hardware battery telemetry probe using IOKit and private APIs.
 //
 
-import Foundation
 import Darwin
+import Foundation
 
 public struct HardwareBatteryTelemetry: Sendable {
     // Adapter Details (Real Charger & Negotiated PD Profile)
@@ -37,9 +37,9 @@ public struct HardwareBatteryTelemetry: Sendable {
     public var manufactureDate: String?
     public var chemistry: String?
 
-    nonisolated public init() {}
+    public nonisolated init() {}
 
-    nonisolated public init(
+    public nonisolated init(
         adapterWatts: Int? = nil,
         adapterVoltageMv: Int? = nil,
         adapterCurrentMa: Int? = nil,
@@ -108,7 +108,7 @@ public enum HardwareBatteryProbe {
     private typealias IOHIDServiceClientCopyEventFunc = @convention(c) (CFTypeRef, Int64, Int32, Int64) -> Unmanaged<CFTypeRef>?
     private typealias IOHIDEventGetFloatValueFunc = @convention(c) (CFTypeRef, Int32) -> Double
 
-    nonisolated public static func sample() -> HardwareBatteryTelemetry {
+    public nonisolated static func sample() -> HardwareBatteryTelemetry {
         var result = HardwareBatteryTelemetry()
         guard let handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW) else {
             return result
@@ -295,7 +295,7 @@ public enum HardwareBatteryProbe {
         return result
     }
 
-    nonisolated private static func readIOHIDSensors(into result: inout HardwareBatteryTelemetry, handle: UnsafeMutableRawPointer) {
+    private nonisolated static func readIOHIDSensors(into result: inout HardwareBatteryTelemetry, handle: UnsafeMutableRawPointer) {
         func sym<T>(_ name: String, _ type: T.Type) -> T? {
             dlsym(handle, name).map { unsafeBitCast($0, to: type) }
         }
@@ -391,7 +391,7 @@ public enum HardwareBatteryProbe {
     }
 
     /// Real-world non-linear USB-PD Constant Voltage (CV) and Thermal Tapering Engine
-    nonisolated public static func computeDynamicPDWattage(
+    public nonisolated static func computeDynamicPDWattage(
         ratedWatts: Int,
         batteryLevel: Double,
         temperatureCelsius: Double
@@ -430,4 +430,3 @@ public enum HardwareBatteryProbe {
         return (power * 10.0).rounded() / 10.0
     }
 }
-

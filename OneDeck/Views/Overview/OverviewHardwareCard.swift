@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Hardware Specifications Bento Card: 4-Segment Switcher & Harmonious Bento Metric Rows.
+//  Hardware specifications category switcher and metrics card.
 //
 
 import SwiftUI
@@ -38,8 +38,8 @@ struct OverviewHardwareCard: View {
         HStack(spacing: SpacingTheme.compact) {
             ForEach(HardwareCategory.allCases) { category in
                 Button {
-                    Haptics.tick()
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                    Haptics.selection()
+                    withAnimation(.snappy(duration: 0.16, extraBounce: 0)) {
                         selectedCategory = category
                     }
                 } label: {
@@ -55,17 +55,17 @@ struct OverviewHardwareCard: View {
                     .frame(height: 32)
                     .background(
                         selectedCategory == category
-                        ? appState.accentColor
-                        : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
+                            ? appState.accentColor
+                            : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
                     )
                     .foregroundStyle(
                         selectedCategory == category
-                        ? Color.black
-                        : Theme.textSecondary(for: colorScheme)
+                            ? Color.black
+                            : Theme.textSecondary(for: colorScheme)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(CategoryTabButtonStyle())
             }
         }
     }
@@ -73,18 +73,21 @@ struct OverviewHardwareCard: View {
     @ViewBuilder
     private var specDetailsList: some View {
         VStack(spacing: SpacingTheme.standard) {
-            switch selectedCategory {
-            case .display:
-                displaySpecs
-            case .soc:
-                socSpecs
-            case .gpu:
-                gpuSpecs
-            case .system:
-                systemSpecs
+            Group {
+                switch selectedCategory {
+                case .display:
+                    displaySpecs
+                case .soc:
+                    socSpecs
+                case .gpu:
+                    gpuSpecs
+                case .system:
+                    systemSpecs
+                }
             }
+            .id(selectedCategory)
+            .transition(.opacity)
         }
-        .animation(.easeInOut(duration: 0.2), value: selectedCategory)
     }
 
     // MARK: - Category Sections
@@ -271,6 +274,15 @@ struct OverviewHardwareCard: View {
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         )
+    }
+}
+
+// MARK: - Category Tab Button Style
+private struct CategoryTabButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
     }
 }
 

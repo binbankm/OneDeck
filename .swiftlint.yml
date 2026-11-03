@@ -1,0 +1,110 @@
+# =============================================================================
+# OneDeck - SwiftLint Production Configuration
+# Tailored for iOS 17.0+, SwiftUI, Darwin Systems Programming & Bento Design
+# =============================================================================
+
+# Paths to include during linting
+included:
+  - OneDeck
+
+# Paths to ignore during linting
+excluded:
+  - scripts
+  - .build
+  - DerivedData
+  - Pods
+  - Carthage
+
+# Rules disabled to suit SwiftUI DSL, dynamic telemetry, and low-level Darwin / POSIX architecture
+disabled_rules:
+  - file_length                       # L10n.swift dictionary and centralized viewmodels naturally require cohesive length
+  - type_body_length                  # View models and state managers require unified property and method definitions
+  - function_body_length              # SwiftUI View bodies with ViewBuilder composition naturally exceed default limits
+  - cyclomatic_complexity             # Hardware telemetry decoders, packet sniffers, and battery log parsers require rich branching
+  - large_tuple                       # Darwin PF_ROUTE sysctl and POSIX C struct tuple mappings
+  - nesting                           # SwiftUI nested ViewBuilder hierarchies
+  - type_name                         # Low-level Mach and BSD kernel struct bridging wrappers
+  - trailing_whitespace               # Handled cleanly by IDE
+  - todo                              # Tracked via project issues
+  - implicit_optional_initialization  # Explicit '= nil' clarifies intentional initialization state
+  - statement_position                # Multi-line closures and ternary alignment
+  - redundant_string_enum_value       # Explicit rawValues ensure serialization consistency
+  - for_where                         # Nested if-checks are frequently clearer in network packet parsers
+  - modifier_order                    # Swift 5.9+ macro and isolation attributes
+  - static_over_final_class           # Final classes with class func
+  - line_length                       # Handled by custom rule threshold
+  - notification_center_detachment    # Teardown in lifecycle stopMonitoring methods
+  - function_parameter_count          # Rich telemetry cards & canvas views require detailed parameters
+
+# High-value opt-in rules for code safety, cleanliness, and modern Swift best practices
+opt_in_rules:
+  - empty_count
+  - fatal_error_message
+  - first_where
+  - redundant_nil_coalescing
+  - unneeded_parentheses_in_closure_argument
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+  - yoda_condition
+
+# Identifier Name customization
+# Allows standard mathematical, geometric, color, and Darwin network identifiers
+identifier_name:
+  min_length:
+    warning: 1
+    error: 1
+  max_length:
+    warning: 60
+    error: 70
+  allowed_symbols: ["_"]
+  validates_start_with_lowercase: true
+  excluded:
+    # Coordinate, geometry & physics tokens
+    - x
+    - y
+    - z
+    - w
+    - h
+    - dx
+    - dy
+    # Color channel tokens
+    - r
+    - g
+    - b
+    - a
+    # Iterators, loop & math tokens
+    - i
+    - j
+    - k
+    - n
+    - c
+    - d
+    - s
+    - v
+    - t
+    - m
+    - p
+    - e
+    - f
+    # Domain, hardware & networking tokens
+    - id
+    - ip
+    - gw
+    - sa
+    - ch
+    - mm
+    - hz
+    - db
+    - sn
+    - sz
+    - mv
+    - ma
+    - fp
+    - to
+    - ev
+    - fc
+    - v1
+    - v2
+
+# Reporting
+reporter: "xcode"
