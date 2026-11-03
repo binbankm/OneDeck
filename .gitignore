@@ -35,3 +35,7 @@ fastlane/test_output
 .Spotlight-V100
 .Trashes
 
+## Scratch files
+scratch/
+
+
