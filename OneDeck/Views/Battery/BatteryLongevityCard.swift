@@ -96,6 +96,7 @@ struct BatteryLongevityCard: View {
                 careTipRow(icon: "thermometer.sun.fill", text: L10n.Battery.careTipTemperature)
                 careTipRow(icon: "bolt.badge.checkmark.fill", text: L10n.Battery.careTipHighVoltage)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(SpacingTheme.row)
             .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
@@ -144,6 +145,7 @@ struct BatteryLongevityCard: View {
             )
             insightCapsuleRow
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(SpacingTheme.row)
         .background(colorScheme == .dark ? Color.white.opacity(0.025) : Color.black.opacity(0.02))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
@@ -322,6 +324,7 @@ struct BatteryLongevityCard: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(2)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Computed Properties

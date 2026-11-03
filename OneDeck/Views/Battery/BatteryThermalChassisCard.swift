@@ -83,10 +83,11 @@ struct BatteryThermalChassisCard: View {
                         }
                     }
 
-                    // Active Zone Concise Engineering Note
+                    // Active Zone Concise Engineering Note (pinned to match 218pt viewport)
                     activeZoneNote
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 218)
             }
         }
         .bentoCard(accent: thermalColor(for: temperature(of: selectedZone)))
@@ -682,6 +683,7 @@ struct BatteryThermalChassisCard: View {
                     .lineLimit(1)
                     .foregroundStyle(color)
             }
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, SpacingTheme.standard)
             .padding(.vertical, SpacingTheme.compact)
             .background(rowBg)
@@ -728,7 +730,24 @@ struct BatteryThermalChassisCard: View {
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(1.5)
+
+            Spacer(minLength: 0)
+
+            HStack {
+                Text(String(format: "%.1f °C", temp))
+                    .font(Typography.captionMono)
+                    .fontWeight(.bold)
+                    .foregroundStyle(color)
+
+                Spacer()
+
+                let delta = max(0.0, temp - minTemperature)
+                Text(String(format: "Δ +%.1f °C", delta))
+                    .font(Typography.badgeTagMono)
+                    .foregroundStyle(Theme.textTertiary(for: colorScheme))
+            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(SpacingTheme.standard)
         .background(isDark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))

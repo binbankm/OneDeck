@@ -55,19 +55,32 @@ public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
             let gz = motion.gravity.z
             let totalG = max(0.001, sqrt(gx*gx + gy*gy + gz*gz))
 
-            // Phone orientation determination
-            // If |gz| > 0.7, phone is lying approximately flat on table.
-            let isFlat = abs(gz) > 0.65
-            let orientation: SpiritLevelOrientation = isFlat ? .flat : .vertical
+            // Phone orientation determination:
+            // Vertical wall ruler mode is ONLY valid when the screen plane is held perpendicular
+            // to the ground (|gz| < 0.28) and resting on portrait (|gy| > 0.80) or landscape (|gx| > 0.80) edge.
+            let isVerticalWall = abs(gz) < 0.28 && (abs(gy) > 0.80 || abs(gx) > 0.80)
+            let orientation: SpiritLevelOrientation = isVerticalWall ? .vertical : .flat
 
             let tiltDeg: Double
-            if isFlat {
-                // Table plane bubble tilt
+            let isLevel: Bool
+
+            if isVerticalWall {
+                // Wall vertical ruler edge tilt
+                if abs(gx) > abs(gy) {
+                    // Standing on landscape side edge: pitch measures deviation of edge from horizontal
+                    tiltDeg = abs(pitchDeg)
+                } else {
+                    // Standing on portrait bottom/top edge: roll measures deviation of edge from horizontal
+                    tiltDeg = abs(rollDeg)
+                }
+                isLevel = tiltDeg <= 0.35
+            } else {
+                // 2D surface / inclinometer mode:
+                // True 3D tilt is the deviation of the gravity vector from the phone's Z normal (table plane).
+                // Both roll and pitch contribute to deviation from level.
                 let xyMagnitude = sqrt(gx*gx + gy*gy)
                 tiltDeg = asin(min(1.0, xyMagnitude / totalG)) * (180.0 / .pi)
-            } else {
-                // Wall vertical ruler edge tilt
-                tiltDeg = abs(rollDeg)
+                isLevel = tiltDeg <= 0.35
             }
 
             // Slope percentage (rise over run) - safe bounded calculation
@@ -75,8 +88,6 @@ public final class MotionHardwareProbe: NSObject, CLLocationManagerDelegate {
             let radForSlope = (safeTilt * .pi) / 180.0
             let rawSlope = tan(radForSlope) * 100.0
             let slope = rawSlope.isFinite ? min(999.0, max(0.0, rawSlope)) : 999.0
-
-            let isLevel = tiltDeg <= 0.35
 
             let data = SpiritLevelData(
                 rollDegrees: rollDeg,

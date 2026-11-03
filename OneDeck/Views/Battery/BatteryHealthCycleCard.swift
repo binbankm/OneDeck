@@ -122,6 +122,7 @@ struct BatteryHealthCycleCard: View {
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(2)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.compact)
         .background(Color.orange.opacity(colorScheme == .dark ? 0.08 : 0.06))

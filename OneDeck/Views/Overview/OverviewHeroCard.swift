@@ -78,7 +78,7 @@ struct OverviewHeroCard: View {
 
     @ViewBuilder
     private var badgesRow: some View {
-        HStack(spacing: SpacingTheme.compact) {
+        FlowLayout(spacing: SpacingTheme.compact, rowSpacing: SpacingTheme.tight) {
             badge(
                 text: system.machineIdentifier,
                 textColor: appState.accentColor,
@@ -99,8 +99,6 @@ struct OverviewHeroCard: View {
                 bgColor: colorScheme == .dark ? Color.white.opacity(0.05) : Color.black.opacity(0.03),
                 isMonospaced: false
             )
-
-            Spacer(minLength: 0)
         }
     }
 
@@ -139,7 +137,7 @@ struct OverviewHeroCard: View {
         Text(text)
             .font(isMonospaced ? Typography.badgeTagMono : Typography.badgeTag)
             .lineLimit(1)
-            .minimumScaleFactor(0.85)
+            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, SpacingTheme.standard)
             .padding(.vertical, SpacingTheme.micro)
             .background(bgColor)

@@ -39,10 +39,12 @@ struct SpiritLevelDetailView: View {
         .navigationTitle(L10n.Tools.spiritLevel)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            tools.isSpiritLevelDetailActive = true
             tools.enterDetailView()
             tools.startMotionSensors(interval: 1.0 / 60.0)
         }
         .onDisappear {
+            tools.isSpiritLevelDetailActive = false
             tools.leaveDetailView()
             tools.startMotionSensors(interval: 1.0 / 12.0)
         }
@@ -100,18 +102,32 @@ struct SpiritLevelDetailView: View {
         )
     }
 
+    private func computeBubbleOffset(maxRadius: CGFloat) -> (x: CGFloat, y: CGFloat) {
+        let isVertical = tools.spiritLevel.orientation == .vertical
+        let rollClamped = max(-45.0, min(45.0, tools.spiritLevel.rollDegrees))
+        let pitchClamped = max(-45.0, min(45.0, tools.spiritLevel.pitchDegrees))
+
+        if isVertical {
+            // In vertical ruler wall mode, constrain bubble to the active leveling axis
+            if abs(tools.spiritLevel.pitchDegrees) > 60.0 {
+                // Standing upright on bottom or top edge: roll moves horizontal vial bubble
+                return ((rollClamped / 45.0) * maxRadius, 0)
+            } else {
+                // Standing on side edge: pitch moves vertical vial bubble
+                return (0, (pitchClamped / 45.0) * maxRadius)
+            }
+        } else {
+            // Full 2D surface bullseye reticle
+            return ((rollClamped / 45.0) * maxRadius, (pitchClamped / 45.0) * maxRadius)
+        }
+    }
+
     @ViewBuilder
     private func centerBubbleReticle(size: CGFloat) -> some View {
         let isLevel = tools.spiritLevel.isLevel
         let activeColor = isLevel ? Color.green : appState.accentColor
         let maxRadius = size * 0.42
-
-        // Convert roll & pitch degrees to 2D pixel offset
-        let rollClamped = max(-45.0, min(45.0, tools.spiritLevel.rollDegrees))
-        let pitchClamped = max(-45.0, min(45.0, tools.spiritLevel.pitchDegrees))
-
-        let offsetX = (rollClamped / 45.0) * maxRadius
-        let offsetY = (pitchClamped / 45.0) * maxRadius
+        let bubbleOffset = computeBubbleOffset(maxRadius: maxRadius)
 
         ZStack {
             // Outer Ring
@@ -163,7 +179,7 @@ struct SpiritLevelDetailView: View {
                     .fontWeight(.bold)
                     .foregroundStyle(Color.black)
             }
-            .offset(x: isLevel ? 0 : offsetX, y: isLevel ? 0 : offsetY)
+            .offset(x: isLevel ? 0 : bubbleOffset.x, y: isLevel ? 0 : bubbleOffset.y)
             .animation(.spring(response: 0.2, dampingFraction: 0.75), value: tools.spiritLevel.tiltDegrees)
         }
     }

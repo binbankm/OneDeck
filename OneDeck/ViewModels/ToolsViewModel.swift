@@ -98,6 +98,7 @@ public final class ToolsViewModel: Sendable {
     // MARK: - Lifecycle Tracking
     public var isToolsTabActive: Bool = false
     public var activeDetailCount: Int = 0
+    public var isSpiritLevelDetailActive: Bool = false
     public var isMotionActive: Bool = false
     public var isMagnetometerActive: Bool = false
     public var isBarometerActive: Bool = false
@@ -122,6 +123,7 @@ public final class ToolsViewModel: Sendable {
     }
 
     public func startTabTelemetrySensors() {
+        guard isToolsTabActive && activeDetailCount == 0 else { return }
         // Run preview sensors at battery-optimized rates (12Hz / 10Hz, zero GPS)
         startMotionSensors(interval: 1.0 / 12.0)
         startCompass(enableGpsLocation: false)
@@ -129,6 +131,7 @@ public final class ToolsViewModel: Sendable {
         startMagnetometer(interval: 1.0 / 10.0)
         startSeismicMonitoring(interval: 1.0 / 10.0)
         updateAmbientLuxPreview()
+        startLuxSampling()
         triggerBleDiscoveryPulse()
     }
 
@@ -196,6 +199,8 @@ public final class ToolsViewModel: Sendable {
         if activeDetailCount == 1 {
             // Suspend background non-active tab preview polling to reduce CPU & thermal load
             seismicProbe.stopSeismicMonitoring()
+            luxProbe.stopLuxSampling()
+            luxMeter.isSampling = false
         }
     }
 
@@ -225,8 +230,8 @@ public final class ToolsViewModel: Sendable {
                 self.spiritLevel.orientation = data.orientation
                 self.spiritLevel.slopePercent = data.slopePercent
 
-                // Haptic & Sound Snap on 0.0° Level Lock
-                if data.isLevel && !self.wasLevelInLastTick {
+                // Haptic & Sound Snap on 0.0° Level Lock (strictly scoped to Spirit Level detail view)
+                if self.isSpiritLevelDetailActive && data.isLevel && !self.wasLevelInLastTick {
                     Haptics.impact(.medium)
                     if self.spiritLevel.isBeepEnabled {
                         self.audioProbe.playLevelLockSound()
@@ -541,6 +546,7 @@ public final class ToolsViewModel: Sendable {
         stopDecibelMeter()
         stopCompass()
         stopSpeakerTest()
+        stopLuxSampling()
     }
 
     // MARK: - 9. Decibel Sound Meter Actions
@@ -715,9 +721,10 @@ public final class ToolsViewModel: Sendable {
 
     // MARK: - 16. Ambient Lux Meter Actions
     public func startLuxSampling() {
+        guard !luxMeter.isSampling else { return }
         luxMeter.isSampling = true
         luxProbe.startLuxSampling { [weak self] lux, fc, ev, env in
-            guard let self = self else { return }
+            guard let self = self, self.isToolsModuleActive else { return }
             self.luxMeter.currentLux = lux
             self.luxMeter.currentFootCandles = fc
             self.luxMeter.exposureValueEV = ev

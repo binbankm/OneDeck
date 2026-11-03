@@ -39,8 +39,8 @@ struct LuxMeterDetailView: View {
             tools.startLuxMeter()
         }
         .onDisappear {
-            tools.leaveDetailView()
             tools.stopLuxMeter()
+            tools.leaveDetailView()
         }
     }
 

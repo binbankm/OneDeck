@@ -13,9 +13,11 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
     public static let shared = AmbientLuxProbe()
 
     private var captureSession: AVCaptureSession?
+    private var videoDevice: AVCaptureDevice?
     private let sessionQueue = DispatchQueue(label: "com.onedeck.lux.sessionQueue")
     private let sampleQueue = DispatchQueue(label: "com.onedeck.lux.sampleQueue")
     private var isSampling: Bool = false
+    private var lastUpdateTimestamp: CFAbsoluteTime = 0
 
     private var onUpdate: ((_ lux: Double, _ fc: Double, _ ev: Double, _ env: String) -> Void)?
 
@@ -27,12 +29,24 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
         guard !isSampling else { return }
         self.onUpdate = onUpdate
         self.isSampling = true
+        self.lastUpdateTimestamp = 0
 
         #if targetEnvironment(simulator)
         startSimulatorLuxLoop()
         #else
-        sessionQueue.async { [weak self] in
-            self?.configureSession()
+        let auth = AVCaptureDevice.authorizationStatus(for: .video)
+        if auth == .authorized {
+            sessionQueue.async { [weak self] in
+                self?.configureSession()
+            }
+        } else if auth == .notDetermined {
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                if granted {
+                    self?.sessionQueue.async {
+                        self?.configureSession()
+                    }
+                }
+            }
         }
         #endif
     }
@@ -50,6 +64,7 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
             guard let self = self else { return }
             self.captureSession?.stopRunning()
             self.captureSession = nil
+            self.videoDevice = nil
         }
         #endif
     }
@@ -58,11 +73,18 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
         let session = AVCaptureSession()
         session.sessionPreset = .low
 
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) ?? AVCaptureDevice.default(for: .video) else {
             return
         }
+        self.videoDevice = device
 
         do {
+            try device.lockForConfiguration()
+            if device.isExposureModeSupported(.continuousAutoExposure) {
+                device.exposureMode = .continuousAutoExposure
+            }
+            device.unlockForConfiguration()
+
             let input = try AVCaptureDeviceInput(device: device)
             if session.canAddInput(input) { session.addInput(input) }
 
@@ -81,14 +103,48 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
     public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard isSampling else { return }
 
-        // Extract optical metadata from attachments
-        guard let metadata = CMGetAttachment(sampleBuffer, key: "{Exif}" as CFString, attachmentModeOut: nil) as? [String: Any],
-              let fNumber = metadata[kCGImagePropertyExifFNumber as String] as? Double,
-              let exposureTime = metadata[kCGImagePropertyExifExposureTime as String] as? Double,
-              let isoArray = metadata[kCGImagePropertyExifISOSpeedRatings as String] as? [Double],
-              let iso = isoArray.first, iso > 0, exposureTime > 0, fNumber > 0 else {
-            return
+        // Rate limit UI updates to 10Hz (every 100ms) for high responsiveness without frame drops
+        let now = CFAbsoluteTimeGetCurrent()
+        guard lastUpdateTimestamp == 0 || (now - lastUpdateTimestamp >= 0.10) else { return }
+        lastUpdateTimestamp = now
+
+        var fNumber: Double = 1.8
+        var exposureTime: Double = 1.0 / 60.0
+        var iso: Double = 100.0
+
+        // Primary source: Direct real-time hardware telemetry from camera sensor
+        if let device = self.videoDevice {
+            let devIso = Double(device.iso)
+            let devSeconds = CMTimeGetSeconds(device.exposureDuration)
+            let devAperture = Double(device.lensAperture)
+
+            if devIso > 0 && devIso.isFinite {
+                iso = devIso
+            }
+            if devSeconds > 0 && devSeconds.isFinite {
+                exposureTime = devSeconds
+            }
+            if devAperture > 0 && devAperture.isFinite {
+                fNumber = devAperture
+            }
         }
+
+        // Secondary refinement: Frame EXIF metadata attachment (safely coerced via NSNumber)
+        if let exif = CMGetAttachment(sampleBuffer, key: "{Exif}" as CFString, attachmentModeOut: nil) as? [String: Any] {
+            if let fn = (exif[kCGImagePropertyExifFNumber as String] as? NSNumber)?.doubleValue, fn > 0 {
+                fNumber = fn
+            }
+            if let et = (exif[kCGImagePropertyExifExposureTime as String] as? NSNumber)?.doubleValue, et > 0 {
+                exposureTime = et
+            }
+            if let isoArr = exif[kCGImagePropertyExifISOSpeedRatings as String] as? [NSNumber], let first = isoArr.first?.doubleValue, first > 0 {
+                iso = first
+            } else if let isoArr = exif[kCGImagePropertyExifISOSpeedRatings as String] as? NSArray, let first = (isoArr.firstObject as? NSNumber)?.doubleValue, first > 0 {
+                iso = first
+            }
+        }
+
+        guard fNumber > 0, exposureTime > 0, iso > 0 else { return }
 
         // Standard Photometric Equation:
         // EV = log2(N² / t) - log2(ISO / 100)
@@ -97,7 +153,6 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
         // Lux = 2.5 * 2^EV (Incident light calibration constant C ≈ 250 / 100)
         let lux = max(0.1, 2.5 * pow(2.0, ev))
         let footCandles = lux / 10.764
-
         let envDescription = describeLux(lux)
 
         Task { @MainActor [weak self] in
@@ -107,15 +162,13 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
     }
 
     public func describeLux(_ lux: Double) -> String {
-        if lux < 10.0 {
+        if lux < 50.0 {
             return L10n.Tools.nightHallway
-        } else if lux < 100.0 {
-            return L10n.Tools.nightHallway
-        } else if lux < 400.0 {
+        } else if lux < 300.0 {
             return L10n.Tools.indoorLiving
-        } else if lux < 1000.0 {
+        } else if lux < 750.0 {
             return L10n.Tools.officeReading
-        } else if lux < 5000.0 {
+        } else if lux < 1500.0 {
             return L10n.Tools.precisionInspect
         } else {
             return L10n.Tools.daylightSunny
@@ -146,4 +199,3 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
     }
     #endif
 }
-
