@@ -20,6 +20,7 @@ public enum Haptics {
 
     // MARK: - Impact Styles
     public static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .medium) {
+        guard AppState.shared.isHapticsEnabled else { return }
         switch style {
         case .light:
             lightImpact.prepare()
@@ -44,34 +45,40 @@ public enum Haptics {
 
     // MARK: - Mechanical Wheel / Dial Tick
     public static func tick() {
+        guard AppState.shared.isHapticsEnabled else { return }
         rigidImpact.prepare()
         rigidImpact.impactOccurred(intensity: 0.8)
     }
 
     // MARK: - Spirit Level Zero-Lock (Mechanical lock sensation)
     public static func snapLock() {
+        guard AppState.shared.isHapticsEnabled else { return }
         rigidImpact.prepare()
         rigidImpact.impactOccurred(intensity: 1.0)
     }
 
     // MARK: - Selection change
     public static func selection() {
+        guard AppState.shared.isHapticsEnabled else { return }
         selectionFeedback.prepare()
         selectionFeedback.selectionChanged()
     }
 
     // MARK: - Notifications
     public static func success() {
+        guard AppState.shared.isHapticsEnabled else { return }
         notificationFeedback.prepare()
         notificationFeedback.notificationOccurred(.success)
     }
 
     public static func warning() {
+        guard AppState.shared.isHapticsEnabled else { return }
         notificationFeedback.prepare()
         notificationFeedback.notificationOccurred(.warning)
     }
 
     public static func error() {
+        guard AppState.shared.isHapticsEnabled else { return }
         notificationFeedback.prepare()
         notificationFeedback.notificationOccurred(.error)
     }

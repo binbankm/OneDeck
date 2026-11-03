@@ -11,20 +11,20 @@ import Observation
 
 // MARK: - Appearance Mode
 public enum AppearanceMode: String, CaseIterable, Identifiable {
-    case dark = "dark"
-    case light = "light"
     case system = "system"
+    case light = "light"
+    case dark = "dark"
 
     public var id: String { rawValue }
 
     public var displayName: String {
         switch self {
-        case .dark:
-            return L10n.Settings.modeDark
-        case .light:
-            return L10n.Settings.modeLight
         case .system:
             return L10n.Settings.modeSystem
+        case .light:
+            return L10n.Settings.modeLight
+        case .dark:
+            return L10n.Settings.modeDark
         }
     }
 }
@@ -70,6 +70,10 @@ public final class AppState {
         static let language = "onedeck_app_language"
         static let appearance = "onedeck_appearance_mode"
         static let themeHex = "onedeck_theme_hex"
+        static let haptics = "onedeck_pref_haptics"
+        static let sound = "onedeck_pref_sound"
+        static let keepAwake = "onedeck_pref_keep_awake"
+        static let sensorPowerSaving = "onedeck_pref_power_saving"
     }
 
     // MARK: - State Properties
@@ -91,6 +95,35 @@ public final class AppState {
         }
     }
 
+    public var isHapticsEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(isHapticsEnabled, forKey: Keys.haptics)
+            if isHapticsEnabled { Haptics.selection() }
+        }
+    }
+
+    public var isSoundEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(isSoundEnabled, forKey: Keys.sound)
+            Haptics.selection()
+        }
+    }
+
+    public var isKeepScreenAwake: Bool {
+        didSet {
+            UserDefaults.standard.set(isKeepScreenAwake, forKey: Keys.keepAwake)
+            UIApplication.shared.isIdleTimerDisabled = isKeepScreenAwake
+            Haptics.selection()
+        }
+    }
+
+    public var isSensorPowerSaving: Bool {
+        didSet {
+            UserDefaults.standard.set(isSensorPowerSaving, forKey: Keys.sensorPowerSaving)
+            Haptics.selection()
+        }
+    }
+
     public var activeTab: AppTab = .overview
 
     // MARK: - Computed Helpers
@@ -100,12 +133,12 @@ public final class AppState {
 
     public var resolvedColorScheme: ColorScheme? {
         switch appearance {
-        case .dark:
-            return .dark
-        case .light:
-            return .light
         case .system:
             return nil
+        case .light:
+            return .light
+        case .dark:
+            return .dark
         }
     }
 
@@ -114,11 +147,18 @@ public final class AppState {
         let savedLangRaw = UserDefaults.standard.string(forKey: Keys.language) ?? AppLanguage.system.rawValue
         self.language = AppLanguage(rawValue: savedLangRaw) ?? .system
 
-        let savedAppModeRaw = UserDefaults.standard.string(forKey: Keys.appearance) ?? AppearanceMode.dark.rawValue
-        self.appearance = AppearanceMode(rawValue: savedAppModeRaw) ?? .dark
+        let savedAppModeRaw = UserDefaults.standard.string(forKey: Keys.appearance) ?? AppearanceMode.system.rawValue
+        self.appearance = AppearanceMode(rawValue: savedAppModeRaw) ?? .system
 
         let savedHex = UserDefaults.standard.string(forKey: Keys.themeHex) ?? ThemePreset.emerald.hex
         self.themeColorHex = savedHex
+
+        self.isHapticsEnabled = UserDefaults.standard.object(forKey: Keys.haptics) as? Bool ?? true
+        self.isSoundEnabled = UserDefaults.standard.object(forKey: Keys.sound) as? Bool ?? true
+        self.isKeepScreenAwake = UserDefaults.standard.object(forKey: Keys.keepAwake) as? Bool ?? true
+        self.isSensorPowerSaving = UserDefaults.standard.object(forKey: Keys.sensorPowerSaving) as? Bool ?? false
+
+        UIApplication.shared.isIdleTimerDisabled = self.isKeepScreenAwake
     }
 
     // MARK: - Mutators
@@ -135,6 +175,13 @@ public final class AppState {
     public func setLanguage(_ lang: AppLanguage) {
         self.language = lang
         Haptics.selection()
+    }
+
+    public func resetSensorCalibration() {
+        // Reset spirit level / motion tare bias in UserDefaults
+        UserDefaults.standard.removeObject(forKey: "onedeck_level_tare_roll")
+        UserDefaults.standard.removeObject(forKey: "onedeck_level_tare_pitch")
+        Haptics.success()
     }
 }
 

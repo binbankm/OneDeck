@@ -1014,37 +1014,70 @@ public enum L10n {
     // MARK: - Settings
     public enum Settings {
         public static var title: String { tr(zh: "设置", en: "Settings", hant: "設定") }
+
+        // MARK: - 1. 外观
         public static var appearanceSection: String { tr(zh: "外观", en: "Appearance", hant: "外觀") }
-        public static var appearanceMode: String { tr(zh: "模式", en: "Theme Mode", hant: "模式") }
-        public static var modeDark: String { tr(zh: "深色", en: "Dark", hant: "深色") }
-        public static var modeLight: String { tr(zh: "浅色", en: "Light", hant: "淺色") }
+        public static var appearanceMode: String { tr(zh: "模式", en: "Appearance Mode", hant: "模式") }
         public static var modeSystem: String { tr(zh: "跟随系统", en: "System", hant: "跟隨系統") }
-
-        public static var themeColor: String { tr(zh: "强调色", en: "Accent Color", hant: "強調色") }
-        public static var customPalette: String { tr(zh: "调色板", en: "Custom Palette", hant: "調色盤") }
+        public static var modeLight: String { tr(zh: "浅色", en: "Light", hant: "淺色") }
+        public static var modeDark: String { tr(zh: "深色", en: "Dark", hant: "深色") }
+        public static var customPalette: String { tr(zh: "调色板", en: "Color Palette", hant: "調色盤") }
         public static var hexCode: String { tr(zh: "HEX 色值", en: "HEX Color", hant: "HEX 色值") }
-        public static var presets: String { tr(zh: "预设主题", en: "Curated Presets", hant: "預設主題") }
 
+        // MARK: - 2. 语言
         public static var languageSection: String { tr(zh: "语言", en: "Language", hant: "語言") }
         public static var langSystem: String { tr(zh: "跟随系统", en: "System Default", hant: "跟隨系統") }
+        public static var languageSelect: String { tr(zh: "界面语言", en: "Interface Language", hant: "介面語言") }
 
-        public static var signingSection: String { tr(zh: "证书与签名", en: "Provisioning", hant: "憑證與簽名") }
-        public static var certExpiry: String { tr(zh: "证书有效期", en: "Certificate Countdown", hant: "憑證有效期") }
+        // MARK: - 3. 偏好设置
+        public static var preferencesSection: String { tr(zh: "偏好设置", en: "Preferences", hant: "偏好設定") }
+        public static var prefHaptics: String { tr(zh: "触感反馈", en: "Haptic Feedback", hant: "觸覺回饋") }
+        public static var prefHapticsDesc: String { tr(zh: "刻度滚轮与物理交互提供高保真 Taptic 触感", en: "Haptic feedback for dials and tactile controls", hant: "刻度滾輪與物理互動提供高保真 Taptic 觸覺") }
+        public static var prefAudio: String { tr(zh: "测量音效", en: "Audio Feedback", hant: "測量音效") }
+        public static var prefAudioDesc: String { tr(zh: "水平仪校准归零与声学测试提供音调反馈", en: "Tone cues for level lock & acoustics", hant: "水平儀校準歸零與聲學測試提供音調反饋") }
+        public static var prefKeepAwake: String { tr(zh: "屏幕常亮", en: "Keep Screen Awake", hant: "螢幕常亮") }
+        public static var prefKeepAwakeDesc: String { tr(zh: "硬件诊断与仪器测试期间保持屏幕不休眠", en: "Prevent screen dimming during lab tests", hant: "硬體診斷與儀器測試期間保持螢幕不休眠") }
+        public static var prefPowerSaving: String { tr(zh: "传感器节能", en: "Sensor Power Saving", hant: "感測器節能") }
+        public static var prefPowerSavingDesc: String { tr(zh: "空闲未交互时自动降低传感器采样率", en: "Throttle sample rates when idle", hant: "閒置未互動時自動降低感測器採樣率") }
+        public static var prefResetTare: String { tr(zh: "校准传感器归零", en: "Reset Sensor Calibration", hant: "校準感測器歸零") }
+        public static var prefResetTareDesc: String { tr(zh: "将水平仪与加速度计基准偏置重置为出厂初始值", en: "Reset spirit level & accelerometer tare offset to factory default", hant: "將水平儀與加速度計基準偏置重設為原廠初始值") }
+        public static var prefResetDone: String { tr(zh: "已恢复出厂基准", en: "Calibration Reset to Default", hant: "已恢復原廠基準") }
+
+        // MARK: - 4. 签名与证书
+        public static var signingSection: String { tr(zh: "证书与签名", en: "Provisioning & Certificate", hant: "憑證與簽名") }
+        public static var certCountdown: String { tr(zh: "证书有效期", en: "Certificate Countdown", hant: "憑證有效期") }
         public static func certDaysHours(days: Int, hours: Int) -> String {
             tr(zh: "\(days) 天 \(hours) 小时", en: "\(days)d \(hours)h Left", hant: "\(days) 天 \(hours) 小時")
         }
-        public static var sevenDaysCountdown: String { tr(zh: "7 天掉签倒计时", en: "7-Day Timer", hant: "7 天倒數") }
+        public static var certType: String { tr(zh: "签名类型", en: "Signing Type", hant: "簽名類型") }
+        public static var certTeam: String { tr(zh: "团队名称", en: "Team Name", hant: "團隊名稱") }
+        public static var certTeamId: String { tr(zh: "团队 ID", en: "Team ID", hant: "團隊 ID") }
+        public static var certExpiryDate: String { tr(zh: "到期日期", en: "Expiration Date", hant: "到期日期") }
+        public static var certBundleId: String { tr(zh: "Bundle ID", en: "Bundle ID", hant: "Bundle ID") }
+        public static var certStatus: String { tr(zh: "状态", en: "Status", hant: "狀態") }
+        public static var certActive: String { tr(zh: "已签名生效中", en: "Signed & Active", hant: "已簽名生效中") }
+        public static var certFreePersonal: String { tr(zh: "个人免费自签 (7天)", en: "Free Personal (7-Day)", hant: "個人免費自簽 (7天)") }
+        public static var certEnterprise: String { tr(zh: "企业证书 (365天)", en: "Enterprise (365-Day)", hant: "企業憑證 (365天)") }
+        public static var certDeveloper: String { tr(zh: "Apple Developer (1年)", en: "Apple Developer (1-Year)", hant: "Apple Developer (1年)") }
+        public static var certAppStore: String { tr(zh: "TestFlight / App Store", en: "TestFlight / App Store", hant: "TestFlight / App Store") }
 
-        public static var sysPrefsSection: String { tr(zh: "系统设置快捷直达", en: "System Shortcuts", hant: "系統設定快捷直達") }
-        public static var prefWifi: String { tr(zh: "Wi-Fi", en: "Wi-Fi", hant: "Wi-Fi") }
-        public static var prefBluetooth: String { tr(zh: "蓝牙", en: "Bluetooth", hant: "藍牙") }
-        public static var prefBattery: String { tr(zh: "电池健康", en: "Battery Health", hant: "電池健康") }
-        public static var prefVpn: String { tr(zh: "VPN", en: "VPN", hant: "VPN") }
-        public static var prefHotspot: String { tr(zh: "个人热点", en: "Personal Hotspot", hant: "個人熱點") }
-        public static var prefGeneralUpdate: String { tr(zh: "软件更新", en: "Software Update", hant: "軟體更新") }
+        // MARK: - 5. 开源协议
+        public static var licensesSection: String { tr(zh: "开源协议", en: "Open Source Licenses", hant: "開原始碼協議") }
+        public static var licenseTitle: String { tr(zh: "MIT License", en: "MIT License", hant: "MIT License") }
+        public static var licenseDesc: String { tr(zh: "OneDeck 遵循 MIT 宽松开源协议，完全开源透明。", en: "OneDeck is open source software released under the MIT License.", hant: "OneDeck 遵循 MIT 寬鬆開源協議，完全開源透明。") }
+        public static var viewLicenseText: String { tr(zh: "查看协议全文", en: "View License Full Text", hant: "查看協議全文") }
+        public static var thirdPartyLicenses: String { tr(zh: "致谢与技术栈", en: "Acknowledgments & Stack", hant: "致謝與技術棧") }
+        public static var nativeFrameworks: String { tr(zh: "Apple 原生框架", en: "Native Frameworks", hant: "Apple 原生框架") }
+        public static var frameworksList: String { tr(zh: "SwiftUI · Metal · CoreMotion · IOKit · Network", en: "SwiftUI · Metal · CoreMotion · IOKit · Network", hant: "SwiftUI · Metal · CoreMotion · IOKit · Network") }
 
+        // MARK: - 6. 关于
         public static var aboutSection: String { tr(zh: "关于", en: "About", hant: "關於") }
-        public static var version: String { tr(zh: "版本", en: "Version", hant: "版本") }
-        public static var openSourceRepo: String { tr(zh: "开源仓库", en: "Repository", hant: "開原始碼") }
+        public static var appName: String { tr(zh: "OneDeck", en: "OneDeck", hant: "OneDeck") }
+        public static var appSubtitle: String { tr(zh: "iPhone 旗舰级硬件与设备管理工坊", en: "Flagship iPhone Hardware Console", hant: "iPhone 旗艦級硬體與設備管理工坊") }
+        public static var version: String { tr(zh: "版本号", en: "Version", hant: "版本號") }
+        public static var build: String { tr(zh: "内部构建", en: "Build", hant: "內部構建") }
+        public static var architecture: String { tr(zh: "运行架构", en: "Architecture", hant: "運行架構") }
+        public static var openSourceRepo: String { tr(zh: "开源仓库", en: "Repository", hant: "開原始碼倉庫") }
+        public static var repoLink: String { tr(zh: "GitHub / OneDeck", en: "GitHub / OneDeck", hant: "GitHub / OneDeck") }
     }
 }
