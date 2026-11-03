@@ -93,7 +93,7 @@ struct BatteryAnalyticsSheet: View {
             showFilePicker = true
         } label: {
             HStack(spacing: SpacingTheme.standard) {
-                Image(systemName: "doc.badge.plus")
+                Image(systemName: "doc.fill.badge.plus")
                     .font(IconTheme.actionButton)
                 Text(L10n.Battery.selectFileButton)
                     .font(Typography.sectionHeader)

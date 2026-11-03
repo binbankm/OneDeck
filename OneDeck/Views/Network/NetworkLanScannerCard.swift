@@ -27,7 +27,7 @@ struct NetworkLanScannerCard: View {
     @ViewBuilder
     private var headerSection: some View {
         HStack(spacing: SpacingTheme.standard) {
-            BentoSectionHeader(title: L10n.Network.lanScanTitle, icon: "bonjour")
+            BentoSectionHeader(title: L10n.Network.lanScanTitle, icon: "point.3.filled.connected.trianglepath.dotted")
 
             if !net.discoveredDevices.isEmpty {
                 Text("\(net.discoveredDevices.count)")
@@ -52,7 +52,7 @@ struct NetworkLanScannerCard: View {
                             .tint(appState.accentColor)
                             .scaleEffect(0.65)
                     } else {
-                        Image(systemName: "dot.radiowaves.left.and.right")
+                        Image(systemName: "sensor.tag.radiowaves.forward.fill")
                             .font(IconTheme.actionButton)
                     }
 
@@ -75,7 +75,7 @@ struct NetworkLanScannerCard: View {
     private var devicesListSection: some View {
         if net.discoveredDevices.isEmpty {
             VStack(spacing: SpacingTheme.standard) {
-                Image(systemName: net.isScanningLan ? "antenna.radiowaves.left.and.right" : "wifi.router")
+                Image(systemName: net.isScanningLan ? "antenna.radiowaves.left.and.right.circle.fill" : "wifi.router.fill")
                     .font(IconTheme.emptyState)
                     .foregroundStyle(appState.accentColor.opacity(0.7))
                     .symbolEffect(.pulse, isActive: net.isScanningLan)
@@ -99,15 +99,10 @@ struct NetworkLanScannerCard: View {
             VStack(spacing: SpacingTheme.standard) {
                 ForEach(net.discoveredDevices) { device in
                     HStack(spacing: SpacingTheme.row) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                                .fill(appState.accentColor.opacity(0.1))
-                                .frame(width: 32, height: 32)
-
-                            Image(systemName: device.iconName)
-                                .font(IconTheme.sectionHeader)
-                                .foregroundStyle(appState.accentColor)
-                        }
+                        Image(systemName: device.iconName)
+                            .font(IconTheme.sectionHeader)
+                            .foregroundStyle(appState.accentColor)
+                            .frame(width: 24, height: 24, alignment: .center)
 
                         VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                             HStack(spacing: SpacingTheme.compact) {

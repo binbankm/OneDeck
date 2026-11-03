@@ -77,7 +77,7 @@ struct TouchMatrixDetailView: View {
                 tools.resetTouchMatrix()
             } label: {
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "arrow.counterclockwise")
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
                     Text(L10n.Tools.resetTare)
                 }
                 .font(Typography.caption)

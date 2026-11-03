@@ -32,7 +32,7 @@ struct BatteryThermalChassisCard: View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - 1. Card Header Row & Mode Toggle
             HStack(alignment: .center) {
-                OverviewSectionHeader(title: L10n.Battery.thermalChassisTitle, icon: "iphone.gen3")
+                OverviewSectionHeader(title: L10n.Battery.thermalChassisTitle, icon: "thermometer.sun.fill")
 
                 Spacer()
 
@@ -449,7 +449,7 @@ struct BatteryThermalChassisCard: View {
                     )
 
                 VStack(spacing: SpacingTheme.micro) {
-                    Image(systemName: "cpu")
+                    Image(systemName: "cpu.fill")
                         .font(IconTheme.tileLeading)
                         .foregroundStyle(isSocActive ? sColor : (isDark ? Color.white.opacity(0.85) : Color(hex: "#1E1E24").opacity(0.75)))
 

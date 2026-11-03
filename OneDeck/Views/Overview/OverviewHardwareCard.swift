@@ -30,7 +30,7 @@ struct OverviewHardwareCard: View {
     // MARK: - Subviews
     @ViewBuilder
     private var headerRow: some View {
-        OverviewSectionHeader(title: L10n.Overview.hardwareInventory, icon: "wrench.and.screwdriver.fill")
+        OverviewSectionHeader(title: L10n.Overview.hardwareInventory, icon: "list.bullet.clipboard.fill")
     }
 
     @ViewBuilder
@@ -96,18 +96,18 @@ struct OverviewHardwareCard: View {
             value: system.hardwareSpecs.physicalResolution
         )
         specListRow(
-            icon: "bolt.badge.clock",
+            icon: "bolt.badge.clock.fill",
             label: L10n.Overview.refreshRate,
             value: system.hardwareSpecs.maxRefreshRate,
             isHighlight: system.hardwareSpecs.maxFps >= 120
         )
         specListRow(
-            icon: "circle.grid.2x2",
+            icon: "circle.grid.2x2.fill",
             label: L10n.Overview.ppiScale,
             value: system.hardwareSpecs.ppiAndScale
         )
         specListRow(
-            icon: "sparkles.tv",
+            icon: "sparkles.tv.fill",
             label: L10n.Overview.displayTech,
             value: system.hardwareSpecs.displayTechnology
         )
@@ -121,27 +121,27 @@ struct OverviewHardwareCard: View {
             value: system.hardwareSpecs.processNode
         )
         specListRow(
-            icon: "square.grid.2x2",
+            icon: "square.grid.2x2.fill",
             label: L10n.Overview.cpuClusterLabel,
             value: system.hardwareSpecs.cpuCluster
         )
         specListRow(
-            icon: "cpu",
+            icon: "cpu.fill",
             label: L10n.Overview.isaArch,
             value: system.hardwareSpecs.isaArchitecture
         )
         specListRow(
-            icon: "brain.head.profile",
+            icon: "brain.head.profile.fill",
             label: L10n.Overview.neuralEngine,
             value: system.hardwareSpecs.neuralEngineDetails
         )
         specListRow(
-            icon: "archivebox",
+            icon: "archivebox.fill",
             label: L10n.Overview.cacheSizes,
             value: system.hardwareSpecs.cacheSizes
         )
         specListRow(
-            icon: "doc.text",
+            icon: "doc.text.fill",
             label: L10n.Overview.pageSize,
             value: system.hardwareSpecs.pageSize
         )
@@ -150,17 +150,17 @@ struct OverviewHardwareCard: View {
     @ViewBuilder
     private var gpuSpecs: some View {
         specListRow(
-            icon: "gamecontroller",
+            icon: "gamecontroller.fill",
             label: L10n.Overview.metalRenderer,
             value: system.hardwareSpecs.gpuDeviceName
         )
         specListRow(
-            icon: "square.3.layers.3d.down.right",
+            icon: "square.2.layers.3d.fill",
             label: L10n.Overview.gpuCores,
             value: system.hardwareSpecs.gpuCoresDescription
         )
         specListRow(
-            icon: "puzzlepiece.extension",
+            icon: "puzzlepiece.extension.fill",
             label: L10n.Overview.metalFeatureSet,
             value: system.hardwareSpecs.metalFeatureSet
         )
@@ -171,7 +171,7 @@ struct OverviewHardwareCard: View {
             isHighlight: system.hardwareSpecs.supportsRayTracing
         )
         specListRow(
-            icon: "square.stack.3d.up",
+            icon: "square.stack.3d.up.fill",
             label: L10n.Overview.meshShading,
             value: system.hardwareSpecs.supportsMeshShaders ? L10n.Overview.msSupported : L10n.Overview.msNotSupported,
             isHighlight: system.hardwareSpecs.supportsMeshShaders
@@ -181,24 +181,24 @@ struct OverviewHardwareCard: View {
     @ViewBuilder
     private var systemSpecs: some View {
         specListRow(
-            icon: "barcode",
+            icon: "barcode.viewfinder",
             label: L10n.Overview.deviceSerial,
             value: system.serialNumber == "N/A" ? L10n.Overview.sandboxProtected : system.serialNumber
         )
         specListRow(
-            icon: "number",
+            icon: "number.circle.fill",
             label: L10n.Overview.modelNumberLabel,
             value: system.modelNumber == "N/A" ? system.machineIdentifier : system.modelNumber
         )
         if system.regulatoryModel != "N/A" {
             specListRow(
-                icon: "checkmark.seal",
+                icon: "checkmark.seal.fill",
                 label: L10n.Overview.regulatoryModelLabel,
                 value: system.regulatoryModel
             )
         }
         specListRow(
-            icon: "cpu",
+            icon: "cpu.fill",
             label: L10n.Overview.boardId,
             value: system.boardId == "N/A" ? "--" : system.boardId
         )
@@ -208,7 +208,7 @@ struct OverviewHardwareCard: View {
             value: system.uptimeFormatted
         )
         specListRow(
-            icon: "power",
+            icon: "power.circle.fill",
             label: L10n.Overview.bootTime,
             value: system.bootTimeFormatted
         )
@@ -218,7 +218,7 @@ struct OverviewHardwareCard: View {
             value: system.hardwareSpecs.biometricsType
         )
         specListRow(
-            icon: "lock.shield",
+            icon: "lock.shield.fill",
             label: L10n.Overview.secureEnclave,
             value: system.hardwareSpecs.secureEnclave
         )
@@ -234,7 +234,7 @@ struct OverviewHardwareCard: View {
             isHighlight: system.hardwareSpecs.hasLiDAR
         )
         specListRow(
-            icon: "apple.terminal",
+            icon: "apple.terminal.fill",
             label: L10n.Overview.darwinKernel,
             value: system.hardwareSpecs.darwinKernel
         )
@@ -244,14 +244,10 @@ struct OverviewHardwareCard: View {
     @ViewBuilder
     private func specListRow(icon: String, label: String, value: String, isHighlight: Bool = false) -> some View {
         HStack(alignment: .center, spacing: SpacingTheme.standard) {
-            ZStack {
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
-                    .fill(appState.accentColor.opacity(0.12))
-                    .frame(width: 24, height: 24)
-                Image(systemName: icon)
-                    .font(IconTheme.tileLeading)
-                    .foregroundStyle(appState.accentColor)
-            }
+            Image(systemName: icon)
+                .font(IconTheme.tileLeading)
+                .foregroundStyle(appState.accentColor)
+                .frame(width: 20, height: 20, alignment: .center)
 
             Text(label)
                 .font(Typography.bodyValue.weight(.medium))

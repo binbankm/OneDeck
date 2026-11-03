@@ -35,7 +35,7 @@ struct BatteryLivePowerCard: View {
 
                 if battery.isHardwareDirectWattage {
                     HStack(spacing: SpacingTheme.tight) {
-                        Image(systemName: "cpu")
+                        Image(systemName: "cpu.fill")
                             .font(IconTheme.badgeInline)
                         Text(L10n.Battery.hardwareDirectTag)
                             .font(Typography.badgeTag)
@@ -169,21 +169,21 @@ struct BatteryLivePowerCard: View {
     private var matrixSection: some View {
         HStack(spacing: SpacingTheme.standard) {
             electricalTile(
-                icon: "speedometer",
+                icon: "gauge.with.needle.fill",
                 label: L10n.Battery.voltage,
                 value: "\(battery.liveVoltageMv)",
                 unit: "mV"
             )
 
             electricalTile(
-                icon: "waveform.path.ecg",
+                icon: "waveform.path.ecg.rectangle.fill",
                 label: L10n.Battery.current,
                 value: (battery.liveCurrentMa >= 0 ? "+" : "") + "\(battery.liveCurrentMa)",
                 unit: "mA"
             )
 
             electricalTile(
-                icon: "thermometer.medium",
+                icon: "thermometer.sun.fill",
                 label: L10n.Battery.batteryTemp,
                 value: String(format: "%.1f", battery.batteryTemperature),
                 unit: "°C"

@@ -65,7 +65,7 @@ struct ToneGeneratorDetailView: View {
                     Haptics.selection()
                     showHearingTest = true
                 } label: {
-                    Image(systemName: "hearingdevice.ear")
+                    Image(systemName: "hearingdevice.ear.fill")
                         .font(IconTheme.badgeInline)
                         .foregroundStyle(appState.accentColor)
                 }
@@ -187,7 +187,6 @@ struct ToneGeneratorDetailView: View {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                     .fill(isPlaying ? Color.red : appState.accentColor)
             )
-            .shadow(color: (isPlaying ? Color.red : appState.accentColor).opacity(0.35), radius: 8, y: 3)
         }
         .buttonStyle(.plain)
     }
@@ -199,7 +198,7 @@ struct ToneGeneratorDetailView: View {
             ScrollView {
                 VStack(spacing: SpacingTheme.cardStack) {
                     VStack(spacing: SpacingTheme.micro) {
-                        Image(systemName: "hearingdevice.ear")
+                        Image(systemName: "hearingdevice.ear.fill")
                             .font(Typography.displayHero)
                             .foregroundStyle(appState.accentColor)
                             .padding(.bottom, SpacingTheme.micro)
@@ -258,7 +257,7 @@ struct ToneGeneratorDetailView: View {
             }
         } label: {
             HStack(spacing: SpacingTheme.standard) {
-                Image(systemName: isCurrent ? "waveform" : "play.circle")
+                Image(systemName: isCurrent ? "waveform" : "play.circle.fill")
                     .font(IconTheme.actionButton)
                     .foregroundStyle(isCurrent ? Color.red : appState.accentColor)
 

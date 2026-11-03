@@ -236,7 +236,7 @@ struct BleRadarDetailView: View {
     @ViewBuilder
     private func deviceRow(dev: BleDeviceItem) -> some View {
         HStack(spacing: SpacingTheme.standard) {
-            Image(systemName: "antenna.radiowaves.left.and.right")
+            Image(systemName: "sensor.tag.radiowaves.forward.fill")
                 .font(IconTheme.badgeInline)
                 .foregroundStyle(Color.cyan)
                 .frame(width: 22)

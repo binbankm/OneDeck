@@ -27,9 +27,9 @@ public enum NetworkLinkType: Sendable {
     public var iconName: String {
         switch self {
         case .wifi: return "wifi"
-        case .cellular: return "antenna.radiowaves.left.and.right"
+        case .cellular: return "antenna.radiowaves.left.and.right.circle.fill"
         case .wired: return "cable.connector"
-        case .none: return "bolt.horizontal.circle"
+        case .none: return "bolt.horizontal.circle.fill"
         }
     }
 }
@@ -150,15 +150,15 @@ public struct DiscoveredDevice: Identifiable, Hashable, Sendable {
         } else if lower.contains("ipad") {
             return "ipad"
         } else if lower.contains("tv") || lower.contains("apple-tv") {
-            return "appletv"
+            return "appletv.fill"
         } else if lower.contains("router") || lower.contains("gateway") || lower.contains("路由") {
-            return "wifi.router"
+            return "wifi.router.fill"
         } else if lower.contains("nas") || lower.contains("synology") || lower.contains("smb") {
-            return "externaldrive.connected.to.line.below"
+            return "externaldrive.connected.to.line.below.fill"
         } else if lower.contains("print") {
             return "printer.fill"
         } else if lower.contains("iot") || lower.contains("智能") || lower.contains("esp") {
-            return "sensor"
+            return "sensor.fill"
         } else {
             return "desktopcomputer"
         }

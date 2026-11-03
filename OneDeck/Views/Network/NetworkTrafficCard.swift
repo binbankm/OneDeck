@@ -50,7 +50,7 @@ struct NetworkTrafficCard: View {
                 showSpeedTestSheet = true
             } label: {
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "gauge.with.dots.needle.bottom.50percent")
+                    Image(systemName: "speedometer")
                         .font(IconTheme.actionButton)
 
                     Text(L10n.Network.speedTestTitle)
@@ -75,7 +75,7 @@ struct NetworkTrafficCard: View {
                 showSpeedTestSheet = true
             } label: {
                 HStack(spacing: SpacingTheme.standard) {
-                    Image(systemName: "gauge.with.dots.needle.67percent")
+                    Image(systemName: "speedometer")
                         .font(IconTheme.actionButton)
                         .foregroundStyle(appState.accentColor)
 
@@ -138,7 +138,7 @@ struct NetworkTrafficCard: View {
         HStack(spacing: SpacingTheme.rowStandard) {
             let down = formatRate(net.downloadSpeedBps)
             speedBlock(
-                direction: "arrow.down",
+                direction: "arrow.down.circle.fill",
                 color: appState.accentColor,
                 label: L10n.Network.downloadSpeed,
                 value: down.value,
@@ -147,7 +147,7 @@ struct NetworkTrafficCard: View {
 
             let up = formatRate(net.uploadSpeedBps)
             speedBlock(
-                direction: "arrow.up",
+                direction: "arrow.up.circle.fill",
                 color: Color.mint,
                 label: L10n.Network.uploadSpeed,
                 value: up.value,
@@ -221,7 +221,7 @@ struct NetworkTrafficCard: View {
     private var cumulativeTotalsSection: some View {
         HStack {
             HStack(spacing: SpacingTheme.compact) {
-                Image(systemName: "arrow.down.to.line.compact")
+                Image(systemName: "arrow.down.circle.fill")
                     .font(IconTheme.tileLeading)
                     .foregroundStyle(appState.accentColor)
 
@@ -237,7 +237,7 @@ struct NetworkTrafficCard: View {
             Spacer()
 
             HStack(spacing: SpacingTheme.compact) {
-                Image(systemName: "arrow.up.to.line.compact")
+                Image(systemName: "arrow.up.circle.fill")
                     .font(IconTheme.tileLeading)
                     .foregroundStyle(Color.mint)
 
@@ -256,15 +256,10 @@ struct NetworkTrafficCard: View {
     @ViewBuilder
     private func speedBlock(direction: String, color: Color, label: String, value: String, unit: String) -> some View {
         HStack(spacing: SpacingTheme.standard) {
-            ZStack {
-                Circle()
-                    .fill(color.opacity(0.12))
-                    .frame(width: 28, height: 28)
-
-                Image(systemName: direction)
-                    .font(IconTheme.actionButton)
-                    .foregroundStyle(color)
-            }
+            Image(systemName: direction)
+                .font(IconTheme.sectionHeader)
+                .foregroundStyle(color)
+                .frame(width: 22, height: 22, alignment: .center)
 
             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(label)

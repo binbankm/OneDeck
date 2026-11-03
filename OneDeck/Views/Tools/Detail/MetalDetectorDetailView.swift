@@ -203,7 +203,7 @@ struct MetalDetectorDetailView: View {
                 tools.calibrateMetalDetectorBaseline()
             } label: {
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "scope")
+                    Image(systemName: "circle.circle.fill")
                         .font(IconTheme.actionButton)
                     Text(L10n.Tools.calibrate)
                         .font(Typography.captionBold)

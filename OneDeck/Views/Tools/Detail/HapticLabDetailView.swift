@@ -78,7 +78,7 @@ struct HapticLabDetailView: View {
     @ViewBuilder
     private var motorTelemetryHero: some View {
         VStack(spacing: SpacingTheme.standard) {
-            Image(systemName: "dot.radiowaves.left.and.right")
+            Image(systemName: "sensor.tag.radiowaves.forward.fill")
                 .font(Typography.displayHero)
                 .foregroundStyle(appState.accentColor)
 
@@ -105,7 +105,7 @@ struct HapticLabDetailView: View {
         VStack(alignment: .leading, spacing: SpacingTheme.standard) {
             BentoSectionHeader(
                 title: L10n.Tools.impactFeedback,
-                icon: "hand.tap.fill",
+                icon: "hand.point.down.fill",
                 subtitle: L10n.Tools.impactFeedbackSub
             )
 
@@ -217,7 +217,7 @@ struct HapticLabDetailView: View {
         case .success: return "checkmark.circle.fill"
         case .warning: return "exclamationmark.triangle.fill"
         case .error: return "xmark.octagon.fill"
-        @unknown default: return "circle"
+        @unknown default: return "circle.fill"
         }
     }
 

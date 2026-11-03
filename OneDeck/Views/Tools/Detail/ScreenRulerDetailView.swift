@@ -193,7 +193,7 @@ struct ScreenRulerDetailView: View {
                     }
                 } label: {
                     HStack(spacing: SpacingTheme.tight) {
-                        Image(systemName: isTopAnchored ? "pin.fill" : "arrow.up.and.down")
+                        Image(systemName: isTopAnchored ? "pin.fill" : "arrow.up.and.down.circle.fill")
                             .font(IconTheme.badgeInline)
                         Text(isTopAnchored ? L10n.Tools.anchorTopJaw : L10n.Tools.dualFloatingJaws)
                             .font(Typography.badgeTagMono)
@@ -366,7 +366,6 @@ struct ScreenRulerDetailView: View {
             Rectangle()
                 .fill(appState.accentColor)
                 .frame(width: stageWidth, height: 2.5)
-                .shadow(color: appState.accentColor.opacity(0.4), radius: 2)
 
             // Jaw Handle / Reference Pill
             HStack(spacing: SpacingTheme.tight) {
@@ -409,7 +408,6 @@ struct ScreenRulerDetailView: View {
             Rectangle()
                 .fill(appState.accentColor)
                 .frame(width: stageWidth, height: 2.5)
-                .shadow(color: appState.accentColor.opacity(0.4), radius: 2)
 
             // Slider Body with Knurled Thumb Grip Lines
             VStack(spacing: SpacingTheme.micro) {
@@ -501,7 +499,7 @@ struct ScreenRulerDetailView: View {
                 }
             } label: {
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
+                    Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
                         .font(IconTheme.actionButton)
                     Text(tools.caliperTareOffsetMm > 0 ? L10n.Tools.resetTare : L10n.Tools.tare)
                         .font(Typography.captionBold)
@@ -526,7 +524,7 @@ struct ScreenRulerDetailView: View {
                 isMeasurementLocked.toggle()
             } label: {
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: isMeasurementLocked ? "lock.fill" : "lock.open")
+                    Image(systemName: isMeasurementLocked ? "lock.fill" : "lock.open.fill")
                         .font(IconTheme.actionButton)
                     Text(isMeasurementLocked ? L10n.Tools.unlockedAngle : L10n.Tools.lockAngle)
                         .font(Typography.captionBold)
@@ -570,7 +568,7 @@ struct ScreenRulerDetailView: View {
                 Haptics.selection()
                 showHistorySheet = true
             } label: {
-                Image(systemName: "list.bullet")
+                Image(systemName: "list.bullet.circle.fill")
                     .font(IconTheme.actionButton)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .frame(width: 44, height: 44)

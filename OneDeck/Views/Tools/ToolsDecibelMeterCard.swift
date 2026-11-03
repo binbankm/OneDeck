@@ -32,7 +32,7 @@ struct ToolsDecibelMeterCard: View {
         HStack(spacing: SpacingTheme.standard) {
             BentoSectionHeader(
                 title: L10n.Tools.decibelMeter,
-                icon: "waveform.badge.mic",
+                icon: "mic.fill",
                 subtitle: L10n.Tools.decibelMeterSub
             )
 

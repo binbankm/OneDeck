@@ -32,7 +32,7 @@ struct BatteryCellCalibrationCard: View {
     // MARK: - Subviews
     @ViewBuilder
     private var headerSection: some View {
-        OverviewSectionHeader(title: L10n.Battery.cellSettingsTitle, icon: "slider.horizontal.2.square.badge.arrow.down")
+        OverviewSectionHeader(title: L10n.Battery.cellSettingsTitle, icon: "wrench.adjustable.fill")
     }
 
     @ViewBuilder

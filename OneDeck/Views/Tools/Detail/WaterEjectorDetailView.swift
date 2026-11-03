@@ -177,7 +177,6 @@ struct WaterEjectorDetailView: View {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                     .fill(isRunning ? Color.red : appState.accentColor)
             )
-            .shadow(color: (isRunning ? Color.red : appState.accentColor).opacity(0.35), radius: 8, y: 3)
         }
         .buttonStyle(.plain)
     }

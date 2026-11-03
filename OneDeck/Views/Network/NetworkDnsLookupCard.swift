@@ -63,7 +63,7 @@ struct NetworkDnsLookupCard: View {
     private var inputSection: some View {
         HStack(spacing: SpacingTheme.standard) {
             HStack(spacing: SpacingTheme.compact) {
-                Image(systemName: "globe")
+                Image(systemName: "globe.asia.australia.fill")
                     .font(IconTheme.sectionHeader)
                     .foregroundStyle(appState.accentColor)
 
@@ -188,7 +188,7 @@ struct NetworkDnsLookupCard: View {
                             UIPasteboard.general.string = ip
                             Haptics.tick()
                         } label: {
-                            Image(systemName: "doc.on.doc")
+                            Image(systemName: "doc.on.doc.fill")
                                 .font(IconTheme.copyIndicator)
                                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
                         }
@@ -217,7 +217,7 @@ struct NetworkDnsLookupCard: View {
                                 UIPasteboard.general.string = ip
                                 Haptics.tick()
                             } label: {
-                                Image(systemName: "doc.on.doc")
+                                Image(systemName: "doc.on.doc.fill")
                                 .font(IconTheme.copyIndicator)
                                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
                             }

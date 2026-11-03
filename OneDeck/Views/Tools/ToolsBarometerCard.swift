@@ -32,7 +32,7 @@ struct ToolsBarometerCard: View {
         HStack(spacing: SpacingTheme.standard) {
             BentoSectionHeader(
                 title: L10n.Tools.barometer,
-                icon: "barometer",
+                icon: "gauge.with.needle.fill",
                 subtitle: L10n.Tools.barometerSub
             )
 

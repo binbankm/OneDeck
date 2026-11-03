@@ -99,7 +99,7 @@ struct BatteryHealthCycleCard: View {
                 )
 
                 healthTile(
-                    icon: "bolt.badge.clock",
+                    icon: "bolt.badge.clock.fill",
                     label: L10n.Battery.designCapacity,
                     value: "\(battery.effectiveDesignCapacityMah)",
                     unit: "mAh",
@@ -113,7 +113,7 @@ struct BatteryHealthCycleCard: View {
     @ViewBuilder
     private var baselineNoticeSection: some View {
         HStack(spacing: SpacingTheme.compact) {
-            Image(systemName: "info.circle")
+            Image(systemName: "info.circle.fill")
                 .font(IconTheme.tileLeading)
                 .foregroundStyle(.orange)
 
@@ -131,11 +131,11 @@ struct BatteryHealthCycleCard: View {
     @ViewBuilder
     private var hardwareDetailsSection: some View {
         if let sn = battery.batterySerialNumber, !sn.isEmpty {
-            hardwareRow(icon: "barcode", label: L10n.Battery.batterySerial, value: sn)
+            hardwareRow(icon: "barcode.viewfinder", label: L10n.Battery.batterySerial, value: sn)
         }
 
         if let mDate = battery.batteryManufactureDate, !mDate.isEmpty {
-            hardwareRow(icon: "calendar", label: L10n.Battery.manufactureDate, value: mDate)
+            hardwareRow(icon: "calendar.circle.fill", label: L10n.Battery.manufactureDate, value: mDate)
         }
 
         if let chem = battery.batteryChemistry, !chem.isEmpty {
@@ -233,7 +233,7 @@ struct BatteryHealthCycleCard: View {
                     Haptics.impact(.medium)
                     battery.clearAnalyticsRecord()
                 } label: {
-                    Image(systemName: "arrow.counterclockwise")
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
                         .font(IconTheme.actionButton)
                         .frame(width: 36, height: 36)
                         .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))

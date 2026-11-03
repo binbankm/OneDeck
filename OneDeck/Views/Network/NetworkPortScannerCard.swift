@@ -31,7 +31,7 @@ struct NetworkPortScannerCard: View {
     @ViewBuilder
     private var headerSection: some View {
         HStack(spacing: SpacingTheme.standard) {
-            BentoSectionHeader(title: L10n.Network.portScanTitle, icon: "door.left.hand.open")
+            BentoSectionHeader(title: L10n.Network.portScanTitle, icon: "shield.lefthalf.filled")
 
             Spacer()
 
@@ -46,7 +46,7 @@ struct NetworkPortScannerCard: View {
                             .tint(appState.accentColor)
                             .scaleEffect(0.65)
                     } else {
-                        Image(systemName: "magnifyingglass")
+                        Image(systemName: "magnifyingglass.circle.fill")
                             .font(IconTheme.actionButton)
                     }
 

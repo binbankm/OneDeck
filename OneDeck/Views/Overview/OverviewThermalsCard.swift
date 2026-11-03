@@ -54,7 +54,7 @@ struct OverviewThermalsCard: View {
     private var dualTemperatureTiles: some View {
         HStack(spacing: SpacingTheme.row) {
             TemperatureBentoTile(
-                icon: "cpu",
+                icon: "cpu.fill",
                 iconColor: thermalColor,
                 label: L10n.Overview.socTemp,
                 value: system.socTemperature

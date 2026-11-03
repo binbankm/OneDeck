@@ -92,9 +92,9 @@ struct BatteryLongevityCard: View {
 
             // MARK: - 4. Scientific Battery Care Guidelines
             VStack(alignment: .leading, spacing: SpacingTheme.standard) {
-                careTipRow(icon: "battery.75", text: L10n.Battery.careTipOptimalCharge)
+                careTipRow(icon: "battery.100.bolt", text: L10n.Battery.careTipOptimalCharge)
                 careTipRow(icon: "thermometer.sun.fill", text: L10n.Battery.careTipTemperature)
-                careTipRow(icon: "bolt.badge.checkmark", text: L10n.Battery.careTipHighVoltage)
+                careTipRow(icon: "bolt.badge.checkmark.fill", text: L10n.Battery.careTipHighVoltage)
             }
             .padding(SpacingTheme.row)
             .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
@@ -238,7 +238,7 @@ struct BatteryLongevityCard: View {
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         } else if !battery.hasRealTelemetry {
             HStack(spacing: SpacingTheme.tight) {
-                Image(systemName: "info.circle")
+                Image(systemName: "info.circle.fill")
                     .font(IconTheme.badgeInline)
                 Text(L10n.Battery.degradationImportHint)
                     .font(Typography.caption)
@@ -518,7 +518,6 @@ private struct BatteryAgingCurveChart: View {
                         Capsule()
                             .stroke(appState.accentColor.opacity(0.4), lineWidth: 0.8)
                     )
-                    .shadow(color: appState.accentColor.opacity(0.35), radius: 4, x: 0, y: 1.5)
                 }
             }
         }

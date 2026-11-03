@@ -32,7 +32,7 @@ struct ToolsSpiritLevelCard: View {
         HStack(spacing: SpacingTheme.standard) {
             BentoSectionHeader(
                 title: L10n.Tools.spiritLevel,
-                icon: "angle",
+                icon: "level.fill",
                 subtitle: L10n.Tools.spiritLevelSub
             )
 

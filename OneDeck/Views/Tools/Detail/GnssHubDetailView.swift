@@ -127,7 +127,7 @@ struct GnssHubDetailView: View {
             datumRow(title: L10n.Tools.bd09Desc, value: tools.gnssHub.bd09Formatted, icon: "location.fill")
             Divider().foregroundStyle(Theme.cardBorder(for: colorScheme))
 
-            datumRow(title: L10n.Tools.mgrsDesc, value: tools.gnssHub.mgrsFormatted.isEmpty ? "Pending 3D Fix" : tools.gnssHub.mgrsFormatted, icon: "scope")
+            datumRow(title: L10n.Tools.mgrsDesc, value: tools.gnssHub.mgrsFormatted.isEmpty ? "Pending 3D Fix" : tools.gnssHub.mgrsFormatted, icon: "cross.circle.fill")
         }
         .padding(SpacingTheme.rowStandard)
         .background(
@@ -170,7 +170,7 @@ struct GnssHubDetailView: View {
 
                 Spacer()
 
-                Image(systemName: copiedDatum == title ? "checkmark.circle.fill" : "doc.on.doc")
+                Image(systemName: copiedDatum == title ? "checkmark.circle.fill" : "doc.on.doc.fill")
                     .font(IconTheme.badgeInline)
                     .foregroundStyle(copiedDatum == title ? Color.green : Theme.textTertiary(for: colorScheme))
             }

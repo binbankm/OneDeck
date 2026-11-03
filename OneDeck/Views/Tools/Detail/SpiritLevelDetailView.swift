@@ -176,7 +176,7 @@ struct SpiritLevelDetailView: View {
                 Haptics.selection()
             } label: {
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: tools.spiritLevel.orientation == .flat ? "table.furniture" : "ruler")
+                    Image(systemName: tools.spiritLevel.orientation == .flat ? "table.furniture.fill" : "ruler.fill")
                         .font(IconTheme.actionButton)
                     Text(tools.spiritLevel.orientation == .flat ? L10n.Tools.flatMode : L10n.Tools.verticalMode)
                         .font(Typography.captionBold)
@@ -226,7 +226,7 @@ struct SpiritLevelDetailView: View {
                 tools.toggleLevelLock()
             } label: {
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: tools.spiritLevel.isLocked ? "lock.fill" : "lock.open")
+                    Image(systemName: tools.spiritLevel.isLocked ? "lock.fill" : "lock.open.fill")
                         .font(IconTheme.actionButton)
                     Text(tools.spiritLevel.isLocked ? L10n.Tools.unlockedAngle : L10n.Tools.lockAngle)
                         .font(Typography.captionBold)

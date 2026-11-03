@@ -55,7 +55,7 @@ struct NetworkLatencyCard: View {
     @ViewBuilder
     private var headerSection: some View {
         HStack(spacing: SpacingTheme.standard) {
-            BentoSectionHeader(title: L10n.Network.latencyTitle, icon: "waveform.path.ecg")
+            BentoSectionHeader(title: L10n.Network.latencyTitle, icon: "stopwatch.fill")
 
             Spacer()
 
@@ -79,7 +79,7 @@ struct NetworkLatencyCard: View {
                     net.runDnsBenchmark()
                 }
             } label: {
-                Image(systemName: "arrow.clockwise")
+                Image(systemName: "arrow.clockwise.circle.fill")
                     .font(IconTheme.actionButton)
                     .foregroundStyle(appState.accentColor)
                     .padding(SpacingTheme.compact)

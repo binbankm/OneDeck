@@ -63,10 +63,10 @@ public enum ThermalZone: String, CaseIterable, Identifiable, Sendable {
 
     public var icon: String {
         switch self {
-        case .soc: return "cpu"
-        case .battery: return "battery.100"
+        case .soc: return "cpu.fill"
+        case .battery: return "battery.100.bolt"
         case .pmic: return "bolt.fill"
-        case .wireless: return "dot.radiowaves.up.forward"
+        case .wireless: return "antenna.radiowaves.left.and.right.circle.fill"
         }
     }
 
@@ -97,7 +97,7 @@ public enum ThermalViewMode: String, CaseIterable, Identifiable, Sendable {
     public var icon: String {
         switch self {
         case .flir: return "flame.fill"
-        case .xray: return "square.2.layers.3d"
+        case .xray: return "square.2.layers.3d.fill"
         }
     }
 }

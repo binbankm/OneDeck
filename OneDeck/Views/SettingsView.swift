@@ -95,12 +95,11 @@ struct SettingsView: View {
                                 .frame(width: 36, height: 36)
                                 .overlay {
                                     if appState.themeColorHex.uppercased() == preset.hex.uppercased() {
-                                        Image(systemName: "checkmark")
+                                        Image(systemName: "checkmark.circle.fill")
                                             .font(IconTheme.sectionHeader)
                                             .foregroundStyle(.white)
                                     }
                                 }
-                                .shadow(color: preset.primaryColor.opacity(0.3), radius: 6, y: 2)
                         }
                         .buttonStyle(.plain)
                     }
@@ -138,7 +137,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var languageCard: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
-            BentoSectionHeader(title: L10n.Settings.languageSection, icon: "globe")
+            BentoSectionHeader(title: L10n.Settings.languageSection, icon: "character.bubble.fill")
 
             Picker(L10n.Settings.languageSection, selection: $appState.language) {
                 ForEach(AppLanguage.allCases) { lang in
@@ -158,7 +157,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var signingCard: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.rowStandard) {
-            BentoSectionHeader(title: L10n.Settings.signingSection, icon: "signature")
+            BentoSectionHeader(title: L10n.Settings.signingSection, icon: "person.badge.shield.checkmark.fill")
 
             HStack {
                 VStack(alignment: .leading, spacing: SpacingTheme.tight) {
@@ -170,7 +169,7 @@ struct SettingsView: View {
                         .foregroundStyle(appState.accentColor)
                 }
                 Spacer()
-                Image(systemName: "clock.badge.checkmark")
+                Image(systemName: "clock.badge.checkmark.fill")
                     .font(IconTheme.prominentAction)
                     .foregroundStyle(appState.accentColor.opacity(0.8))
             }
@@ -182,15 +181,15 @@ struct SettingsView: View {
     @ViewBuilder
     private var systemPrefsCard: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.rowStandard) {
-            BentoSectionHeader(title: L10n.Settings.sysPrefsSection, icon: "link")
+            BentoSectionHeader(title: L10n.Settings.sysPrefsSection, icon: "link.circle.fill")
 
             VStack(spacing: SpacingTheme.standard) {
-                settingsLinkRow(title: L10n.Settings.prefWifi, icon: "wifi", url: "App-prefs:root=WIFI")
-                settingsLinkRow(title: L10n.Settings.prefBluetooth, icon: "antenna.radiowaves.left.and.right", url: "App-prefs:root=Bluetooth")
-                settingsLinkRow(title: L10n.Settings.prefBattery, icon: "battery.100", url: "App-prefs:root=BATTERY_USAGE")
-                settingsLinkRow(title: L10n.Settings.prefVpn, icon: "lock.shield", url: "App-prefs:root=General&path=VPN")
+                settingsLinkRow(title: L10n.Settings.prefWifi, icon: "wifi.circle.fill", url: "App-prefs:root=WIFI")
+                settingsLinkRow(title: L10n.Settings.prefBluetooth, icon: "antenna.radiowaves.left.and.right.circle.fill", url: "App-prefs:root=Bluetooth")
+                settingsLinkRow(title: L10n.Settings.prefBattery, icon: "battery.100.bolt", url: "App-prefs:root=BATTERY_USAGE")
+                settingsLinkRow(title: L10n.Settings.prefVpn, icon: "lock.shield.fill", url: "App-prefs:root=General&path=VPN")
                 settingsLinkRow(title: L10n.Settings.prefHotspot, icon: "personalhotspot", url: "App-prefs:root=INTERNET_TETHERING")
-                settingsLinkRow(title: L10n.Settings.prefGeneralUpdate, icon: "arrow.triangle.2.circlepath", url: "App-prefs:root=General&path=SOFTWARE_UPDATE_LINK")
+                settingsLinkRow(title: L10n.Settings.prefGeneralUpdate, icon: "arrow.triangle.2.circlepath.circle.fill", url: "App-prefs:root=General&path=SOFTWARE_UPDATE_LINK")
             }
         }
         .bentoCard(accent: appState.accentColor)
@@ -200,7 +199,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var aboutCard: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.row) {
-            BentoSectionHeader(title: L10n.Settings.aboutSection, icon: "info.circle")
+            BentoSectionHeader(title: L10n.Settings.aboutSection, icon: "info.circle.fill")
 
             HStack {
                 Text(L10n.Settings.version)
@@ -243,7 +242,7 @@ struct SettingsView: View {
                     .font(Typography.calloutLabel)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 Spacer()
-                Image(systemName: "arrow.up.forward.app")
+                Image(systemName: "arrow.up.forward.app.fill")
                     .font(IconTheme.copyIndicator)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
             }

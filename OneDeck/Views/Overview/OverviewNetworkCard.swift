@@ -29,7 +29,7 @@ struct OverviewNetworkCard: View {
     @ViewBuilder
     private var headerRow: some View {
         HStack {
-            OverviewSectionHeader(title: L10n.Overview.networkTraffic, icon: "arrow.up.arrow.down.circle.fill")
+            OverviewSectionHeader(title: L10n.Overview.networkTraffic, icon: "chart.line.uptrend.xyaxis.circle.fill")
 
             Spacer()
 
@@ -122,15 +122,10 @@ private struct OverviewMetricBentoBox: View {
     @ViewBuilder
     private var headerRow: some View {
         HStack(spacing: SpacingTheme.compact) {
-            ZStack {
-                Circle()
-                    .fill(color.opacity(0.15))
-                    .frame(width: 22, height: 22)
-
-                Image(systemName: isDownload ? "arrow.down" : "arrow.up")
-                    .font(IconTheme.tileLeading)
-                    .foregroundStyle(color)
-            }
+            Image(systemName: isDownload ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
+                .font(IconTheme.sectionHeader)
+                .foregroundStyle(color)
+                .frame(width: 22, height: 22, alignment: .center)
 
             Text(label)
                 .font(Typography.caption)

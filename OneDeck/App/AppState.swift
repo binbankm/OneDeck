@@ -51,11 +51,11 @@ public enum AppTab: Int, CaseIterable, Identifiable {
 
     public var iconName: String {
         switch self {
-        case .overview: return "gauge.with.needle.fill"
+        case .overview: return "square.grid.2x2.fill"
         case .battery: return "battery.100.bolt"
         case .network: return "network"
         case .tools: return "wrench.and.screwdriver.fill"
-        case .settings: return "slider.horizontal.3"
+        case .settings: return "gearshape.fill"
         }
     }
 }

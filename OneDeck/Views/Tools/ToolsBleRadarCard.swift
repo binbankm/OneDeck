@@ -32,7 +32,7 @@ struct ToolsBleRadarCard: View {
         HStack(spacing: SpacingTheme.standard) {
             BentoSectionHeader(
                 title: L10n.Tools.bleRadar,
-                icon: "dot.radiowaves.left.and.right",
+                icon: "sensor.tag.radiowaves.forward.fill",
                 subtitle: L10n.Tools.bleRadarSub
             )
 

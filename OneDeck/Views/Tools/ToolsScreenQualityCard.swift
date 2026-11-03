@@ -32,7 +32,7 @@ struct ToolsScreenQualityCard: View {
         HStack(spacing: SpacingTheme.standard) {
             BentoSectionHeader(
                 title: L10n.Tools.screenQuality,
-                icon: "sparkles.tv",
+                icon: "sparkles.tv.fill",
                 subtitle: L10n.Tools.screenQualitySub
             )
 

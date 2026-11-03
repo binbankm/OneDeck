@@ -149,7 +149,7 @@ struct SpeakerLabDetailView: View {
         VStack(alignment: .leading, spacing: SpacingTheme.standard) {
             BentoSectionHeader(
                 title: L10n.Tools.diaphragmResonance,
-                icon: "waveform.path",
+                icon: "waveform",
                 subtitle: L10n.Tools.diaphragmResonanceSub
             )
 
@@ -212,7 +212,6 @@ struct SpeakerLabDetailView: View {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                     .fill(isPlaying ? Color.red : appState.accentColor)
             )
-            .shadow(color: (isPlaying ? Color.red : appState.accentColor).opacity(0.35), radius: 8, y: 3)
         }
         .buttonStyle(.plain)
     }

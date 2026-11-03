@@ -259,7 +259,6 @@ struct PrecisionTorchDetailView: View {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                     .fill(isOn ? Color.orange : appState.accentColor)
             )
-            .shadow(color: (isOn ? Color.orange : appState.accentColor).opacity(0.35), radius: 8, y: 3)
         }
         .buttonStyle(.plain)
     }

@@ -32,7 +32,7 @@ struct ToolsMetalDetectorCard: View {
         HStack(spacing: SpacingTheme.standard) {
             BentoSectionHeader(
                 title: L10n.Tools.metalDetector,
-                icon: "scope",
+                icon: "circle.circle.fill",
                 subtitle: L10n.Tools.metalDetectorSub
             )
 

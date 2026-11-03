@@ -241,7 +241,7 @@ struct BarometerDetailView: View {
                 tools.resetBarometerAltitude()
             } label: {
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "arrow.counterclockwise")
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
                         .font(IconTheme.actionButton)
                     Text(L10n.Tools.resetAltitude)
                         .font(Typography.captionBold)

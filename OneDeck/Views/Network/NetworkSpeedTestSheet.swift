@@ -127,7 +127,7 @@ struct NetworkSpeedTestSheet: View {
                 value: net.speedTestJitterMs > 0 ? String(format: "±%.1f", net.speedTestJitterMs) : "--",
                 unit: "ms",
                 subtext: nil,
-                icon: "waveform.path.ecg",
+                icon: "waveform.path.ecg.rectangle.fill",
                 color: Color.orange
             )
         }
@@ -139,7 +139,7 @@ struct NetworkSpeedTestSheet: View {
         HStack(spacing: SpacingTheme.standard) {
             if !net.speedTestRating.isEmpty {
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "rosette")
+                    Image(systemName: "medal.fill")
                         .font(IconTheme.badgeInline)
                     Text(net.speedTestRating)
                         .font(Typography.badgeTag)
@@ -231,7 +231,7 @@ struct NetworkSpeedTestSheet: View {
                         net.startSpeedTest()
                     } label: {
                         HStack(spacing: SpacingTheme.compact) {
-                            Image(systemName: "arrow.clockwise")
+                            Image(systemName: "arrow.clockwise.circle.fill")
                                 .font(IconTheme.sectionHeader)
                             Text(L10n.Network.speedTestRestart)
                                 .font(Typography.headlineValue)
@@ -264,7 +264,6 @@ struct NetworkSpeedTestSheet: View {
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                             .fill(appState.accentColor)
                     )
-                    .shadow(color: appState.accentColor.opacity(0.3), radius: 8, x: 0, y: 3)
                 }
                 .buttonStyle(.plain)
             }

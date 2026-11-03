@@ -53,7 +53,7 @@ struct NetworkPublicIPCard: View {
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                     } else {
-                        Image(systemName: "arrow.clockwise")
+                        Image(systemName: "arrow.clockwise.circle.fill")
                             .font(IconTheme.actionButton)
 
                         Text(L10n.Network.refresh)
@@ -114,7 +114,7 @@ struct NetworkPublicIPCard: View {
                             .font(Typography.caption)
                             .foregroundStyle(appState.accentColor)
                     } else {
-                        Image(systemName: "doc.on.doc")
+                        Image(systemName: "doc.on.doc.fill")
                             .font(IconTheme.copyIndicator)
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     }
@@ -210,14 +210,14 @@ struct NetworkPublicIPCard: View {
             geoCell(
                 title: L10n.Network.carrierIsp,
                 value: net.ispName,
-                icon: "building.2.crop.circle"
+                icon: "building.2.crop.circle.fill"
             )
 
             let locationString = net.geoCity.isEmpty ? (net.geoCountry.isEmpty ? "--" : net.geoCountry) : "\(net.geoCity), \(net.geoCountry)"
             geoCell(
                 title: L10n.Network.geoCity,
                 value: locationString,
-                icon: "mappin.and.ellipse"
+                icon: "mappin.circle.fill"
             )
         }
         .fixedSize(horizontal: false, vertical: true)

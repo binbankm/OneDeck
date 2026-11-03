@@ -32,7 +32,7 @@ struct ToolsGnssHubCard: View {
         HStack(spacing: SpacingTheme.standard) {
             BentoSectionHeader(
                 title: L10n.Tools.gnssHub,
-                icon: "antenna.radiowaves.left.and.right",
+                icon: "antenna.radiowaves.left.and.right.circle.fill",
                 subtitle: L10n.Tools.gnssHubSub
             )
 

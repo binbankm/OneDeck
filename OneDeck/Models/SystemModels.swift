@@ -221,8 +221,8 @@ public struct DetailedHardwareSpecs: Sendable {
         switch biometryType {
         case .faceID: return "faceid"
         case .touchID: return "touchid"
-        case .opticID: return "eye"
-        default: return "lock"
+        case .opticID: return "eye.fill"
+        default: return "lock.fill"
         }
     }
 
@@ -280,8 +280,8 @@ public enum HardwareCategory: Int, CaseIterable, Identifiable, Sendable {
 
     public var icon: String {
         switch self {
-        case .display: return "display"
-        case .soc: return "cpu"
+        case .display: return "sparkles.tv.fill"
+        case .soc: return "cpu.fill"
         case .gpu: return "gamecontroller.fill"
         case .system: return "gearshape.2.fill"
         }

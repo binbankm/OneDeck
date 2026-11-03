@@ -76,7 +76,7 @@ struct ScreenQualityDetailView: View {
             HStack {
                 BentoSectionHeader(
                     title: L10n.Tools.deadPixelCheck,
-                    icon: "sparkles.tv",
+                    icon: "tv.fill",
                     subtitle: L10n.Tools.deadPixelCheckSub
                 )
                 Spacer()
@@ -109,7 +109,7 @@ struct ScreenQualityDetailView: View {
 
             // Optical Proximity Sensor Telemetry
             HStack(spacing: SpacingTheme.tight) {
-                Image(systemName: tools.isProximityNear ? "sensor.fill" : "sensor")
+                Image(systemName: "sensor.fill")
                     .font(IconTheme.badgeInline)
                     .foregroundStyle(tools.isProximityNear ? Color.orange : Color.green)
                 Text(L10n.Tools.proximitySensor)
@@ -135,7 +135,7 @@ struct ScreenQualityDetailView: View {
             HStack {
                 BentoSectionHeader(
                     title: L10n.Tools.touchGrid,
-                    icon: "hand.tap.fill",
+                    icon: "hand.draw.fill",
                     subtitle: L10n.Tools.touchGridSub
                 )
 

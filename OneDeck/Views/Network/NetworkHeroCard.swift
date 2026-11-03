@@ -160,21 +160,21 @@ struct NetworkHeroCard: View {
             metricCell(
                 label: L10n.Network.gateway,
                 value: net.gatewayIPv4,
-                icon: "point.3.connected.trianglepath.dotted",
+                icon: "point.3.filled.connected.trianglepath.dotted",
                 canCopy: true
             )
 
             metricCell(
                 label: L10n.Network.subnetMask,
                 value: net.subnetMask,
-                icon: "slider.horizontal.2.square",
+                icon: "shield.lefthalf.filled",
                 canCopy: false
             )
 
             metricCell(
                 label: L10n.Network.dnsServer,
                 value: net.dnsServers.first ?? "--",
-                icon: "server.rack",
+                icon: "cylinder.split.1x2.fill",
                 canCopy: true
             )
         }
@@ -252,7 +252,7 @@ struct NetworkHeroCard: View {
                     Spacer(minLength: 0)
 
                     if canCopy {
-                        Image(systemName: "doc.on.doc")
+                        Image(systemName: "doc.on.doc.fill")
                             .font(IconTheme.copyIndicator)
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     }

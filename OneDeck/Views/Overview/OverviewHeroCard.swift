@@ -37,7 +37,7 @@ struct OverviewHeroCard: View {
                     .minimumScaleFactor(0.85)
 
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "cpu")
+                    Image(systemName: "cpu.fill")
                         .font(IconTheme.tileLeading)
                         .foregroundStyle(appState.accentColor)
 
@@ -51,7 +51,7 @@ struct OverviewHeroCard: View {
                         .font(Typography.badgeTag)
                         .foregroundStyle(Theme.textTertiary(for: colorScheme))
 
-                    Image(systemName: "clock")
+                    Image(systemName: "clock.fill")
                         .font(IconTheme.tileLeading)
                         .foregroundStyle(appState.accentColor)
 
@@ -108,7 +108,7 @@ struct OverviewHeroCard: View {
     private var hudRow: some View {
         HStack(spacing: SpacingTheme.standard) {
             hudMetricTile(
-                icon: "cpu",
+                icon: "cpu.fill",
                 label: "CPU",
                 value: String(format: "%.0f%%", system.totalCpuUsage),
                 subtitle: "\(system.coreCount) " + L10n.Overview.hudCoresSuffix,
@@ -116,7 +116,7 @@ struct OverviewHeroCard: View {
             )
 
             hudMetricTile(
-                icon: "memorychip",
+                icon: "memorychip.fill",
                 label: "RAM",
                 value: system.activeMemory.formattedBytes,
                 subtitle: L10n.Overview.hudRamActive,
@@ -124,7 +124,7 @@ struct OverviewHeroCard: View {
             )
 
             hudMetricTile(
-                icon: "internaldrive",
+                icon: "internaldrive.fill",
                 label: L10n.Overview.hudStorageAvailable,
                 value: system.availableDiskSpace.formattedBytes,
                 subtitle: L10n.Overview.hudDiskFree,

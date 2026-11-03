@@ -68,7 +68,7 @@ struct NetworkWolCard: View {
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
             HStack(spacing: SpacingTheme.standard) {
-                Image(systemName: "number.square")
+                Image(systemName: "number.square.fill")
                     .font(IconTheme.sectionHeader)
                     .foregroundStyle(appState.accentColor)
 
@@ -100,7 +100,7 @@ struct NetworkWolCard: View {
                         Haptics.tick()
                     }
                 } label: {
-                    Image(systemName: "doc.on.clipboard")
+                    Image(systemName: "doc.on.clipboard.fill")
                         .font(IconTheme.actionButton)
                         .foregroundStyle(appState.accentColor)
                 }
@@ -202,7 +202,6 @@ struct NetworkWolCard: View {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .fill(appState.accentColor)
             )
-            .shadow(color: appState.accentColor.opacity(0.25), radius: 6, x: 0, y: 2)
         }
         .buttonStyle(.plain)
         .disabled(targetMac.count < 12)

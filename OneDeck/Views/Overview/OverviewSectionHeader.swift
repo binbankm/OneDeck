@@ -29,7 +29,7 @@ struct OverviewSectionHeader: View {
             Image(systemName: icon)
                 .font(IconTheme.sectionHeader)
                 .foregroundStyle(activeAccent)
-                .frame(width: 20, height: 20, alignment: .center)
+                .frame(width: 22, height: 22, alignment: .center)
 
             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(title)
@@ -55,7 +55,7 @@ typealias BentoSectionHeader = OverviewSectionHeader
 #Preview {
     OverviewSectionHeader(
         title: "CPU & Engine",
-        icon: "cpu",
+        icon: "cpu.fill",
         subtitle: "Real-time Telemetry"
     )
     .padding()
