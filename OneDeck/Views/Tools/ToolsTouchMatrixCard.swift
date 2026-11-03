@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Bento Card launcher for Capacitive Touch Screen Grid Matrix Test.
+//  Bento Card launcher for Touch Digitizer & Matrix Multi-Touch Test.
 //
 
 import SwiftUI
@@ -18,13 +18,10 @@ struct ToolsTouchMatrixCard: View {
     var body: some View {
         NavigationLink(destination: TouchMatrixDetailView()) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
-                // Top Header Row
                 headerRow
-
-                // Middle Coverage Ratio Row
                 middleStatusRow
             }
-            .bentoCard(accent: appState.accentColor)
+            .bentoCard(accent: tools.touchMatrixPassedCount == 80 ? Color.green : appState.accentColor)
         }
         .buttonStyle(.plain)
     }
@@ -41,10 +38,11 @@ struct ToolsTouchMatrixCard: View {
 
             Spacer()
 
-            let percent = Int((Double(tools.touchMatrixPassedCount) / 80.0) * 100.0)
-            Text("\(percent)%")
-                .font(Typography.captionMono)
-                .foregroundStyle(percent == 100 ? Color.green : appState.accentColor)
+            Text(tools.touchMatrixPassedCount == 80 ? L10n.Tools.levelBalanced : "\(tools.touchMatrixPassedCount)/80")
+                .font(Typography.headlineValue)
+                .fontDesign(.monospaced)
+                .foregroundStyle(tools.touchMatrixPassedCount == 80 ? Color.green : (tools.touchMatrixPassedCount > 0 ? appState.accentColor : Theme.textSecondary(for: colorScheme)))
+                .lineLimit(1)
 
             Image(systemName: "chevron.right")
                 .font(IconTheme.badgeInline)
@@ -56,22 +54,22 @@ struct ToolsTouchMatrixCard: View {
     @ViewBuilder
     private var middleStatusRow: some View {
         HStack(spacing: SpacingTheme.standard) {
-            HStack(spacing: SpacingTheme.compact) {
+            HStack(spacing: SpacingTheme.tight) {
                 Circle()
-                    .fill(tools.touchMatrixPassedCount == 80 ? Color.green : appState.accentColor)
+                    .fill(tools.touchMatrixPassedCount == 80 ? Color.green : (tools.touchMatrixPassedCount > 0 ? appState.accentColor : Theme.textTertiary(for: colorScheme)))
                     .frame(width: 6, height: 6)
 
-                Text("\(tools.touchMatrixPassedCount)/80 \(L10n.Tools.passedCells)")
+                Text(tools.touchMatrixPassedCount > 0 ? "\(tools.touchMatrixPassedCount)/80 \(L10n.Tools.passedCells)" : L10n.Tools.ready)
                     .font(Typography.captionMono)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
             }
 
             Spacer()
 
-            Text(tools.touchMatrixPassedCount == 80 ? L10n.Tools.levelBalanced : L10n.Tools.sweepAllCells)
+            Text(tools.touchMatrixPassedCount == 80 ? L10n.Tools.levelBalanced : "10×8 \(L10n.Tools.touchGrid)")
                 .lineLimit(1)
-                .font(Typography.badgeTag)
-                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                .font(Typography.captionMono)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
         }
     }
 }

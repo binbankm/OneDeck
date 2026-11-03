@@ -702,31 +702,112 @@ public enum L10n {
     public enum Tools {
         public static var title: String { tr(zh: "工具箱", en: "Tools", hant: "工具箱") }
         public static var spiritLevel: String { tr(zh: "水平仪", en: "Spirit Level", hant: "水平儀") }
-        public static var spiritLevelSub: String { tr(zh: "双轴倾角与平衡", en: "Dual-Axis Inclinometer", hant: "雙軸傾角與平衡") }
+        public static var spiritLevelSub: String { tr(zh: "双轴倾角仪", en: "Dual-Axis Inclinometer", hant: "雙軸傾角儀") }
         public static var screenRuler: String { tr(zh: "屏幕卡尺", en: "Screen Caliper", hant: "螢幕卡尺") }
         public static var screenRulerSub: String { tr(zh: "1:1 原生物理换算", en: "1:1 Native Scale", hant: "1:1 原生物理換算") }
-        public static var waterEjector: String { tr(zh: "声波排水", en: "Sonic Water Ejector", hant: "聲波排水") }
-        public static var waterEjectorSub: String { tr(zh: "165Hz 声学振膜清理", en: "165Hz Acoustic Clear", hant: "165Hz 聲學振膜清理") }
+        public static var waterEjector: String { tr(zh: "声波排水", en: "Water Ejector", hant: "聲波排水") }
+        public static var waterEjectorSub: String { tr(zh: "165Hz 振膜排水", en: "165Hz Acoustic Clear", hant: "165Hz 振膜排水") }
         public static var torchLab: String { tr(zh: "精细手电", en: "Precision Torch", hant: "精細手電") }
-        public static var torchLabSub: String { tr(zh: "微调光与频闪实验室", en: "Dimmer & Strobe Lab", hant: "微調光與頻閃實驗室") }
+        public static var torchLabSub: String { tr(zh: "线性调光与频闪", en: "Dimmer & Strobe Lab", hant: "線性調光與頻閃") }
         public static var metalDetector: String { tr(zh: "金属寻线", en: "Metal & EMF", hant: "金屬尋線") }
-        public static var metalDetectorSub: String { tr(zh: "磁通量与暗线探测", en: "Magnetic Flux & Stud", hant: "磁通量與暗線探測") }
+        public static var metalDetectorSub: String { tr(zh: "磁通寻线探测", en: "Magnetic Flux & Stud", hant: "磁通尋線探測") }
         public static var barometer: String { tr(zh: "气压海拔", en: "Barometer & Alt", hant: "氣壓海拔") }
-        public static var barometerSub: String { tr(zh: "相对高程与升降速", en: "Relative Altitude & VSI", hant: "相對高程與升降速") }
+        public static var barometerSub: String { tr(zh: "气压相对高程", en: "Relative Altitude & VSI", hant: "氣壓相對高程") }
         public static var toneGenerator: String { tr(zh: "音频发生器", en: "Tone Generator", hant: "音訊發生器") }
-        public static var toneGeneratorSub: String { tr(zh: "20Hz-20kHz 纯音合成", en: "20Hz-20kHz Synthesizer", hant: "20Hz-20kHz 純音合成") }
+        public static var toneGeneratorSub: String { tr(zh: "纯音频发生器", en: "20Hz-20kHz Synthesizer", hant: "純音頻發生器") }
         public static var screenQuality: String { tr(zh: "屏幕质检", en: "Screen Quality", hant: "螢幕質檢") }
-        public static var screenQualitySub: String { tr(zh: "坏点巡检与触控采样", en: "Dead Pixel & Touch", hant: "壞點巡檢與觸控採樣") }
+        public static var screenQualitySub: String { tr(zh: "坏点触控质检", en: "Dead Pixel & Touch", hant: "壞點觸控質檢") }
         public static var hapticLab: String { tr(zh: "触觉马达", en: "Haptic Lab", hant: "觸覺馬達") }
-        public static var hapticLabSub: String { tr(zh: "触觉反馈与振动诊断", en: "Taptic Engine Lab", hant: "觸覺反饋與振動診斷") }
+        public static var hapticLabSub: String { tr(zh: "Taptic 触觉反馈", en: "Taptic Engine Lab", hant: "Taptic 觸覺反饋") }
         public static var decibelMeter: String { tr(zh: "环境分贝", en: "Decibel Meter", hant: "環境分貝") }
-        public static var decibelMeterSub: String { tr(zh: "声压级与噪声巡检", en: "Sound Pressure Level", hant: "聲壓級與噪聲巡檢") }
+        public static var decibelMeterSub: String { tr(zh: "实时环境分贝", en: "Sound Pressure Level", hant: "即時環境分貝") }
         public static var compass: String { tr(zh: "电子罗盘", en: "Compass", hant: "電子羅盤") }
-        public static var compassSub: String { tr(zh: "磁罗盘与真北航向", en: "Magnetic & True North", hant: "磁羅盤與真北航向") }
+        public static var compassSub: String { tr(zh: "磁罗盘与航向", en: "Magnetic & True North", hant: "磁羅盤與航向") }
         public static var speakerLab: String { tr(zh: "扬声器质检", en: "Speaker Lab", hant: "揚聲器質檢") }
-        public static var speakerLabSub: String { tr(zh: "双声道与振膜杂音", en: "Stereo Balance & Rattle", hant: "雙聲道與振膜雜音") }
+        public static var speakerLabSub: String { tr(zh: "双声道立体声", en: "Stereo Balance & Phase", hant: "雙聲道立體聲") }
         public static var touchMatrix: String { tr(zh: "触控矩阵", en: "Touch Matrix", hant: "觸控矩陣") }
-        public static var touchMatrixSub: String { tr(zh: "全屏网格死区检测", en: "Full-Screen Grid Test", hant: "全螢幕網格死區檢測") }
+        public static var touchMatrixSub: String { tr(zh: "触控网格采样", en: "Full-Screen Grid Test", hant: "觸控網格採樣") }
+        public static var pulseMeter: String { tr(zh: "光电脉搏", en: "PPG Pulse", hant: "光電脈搏") }
+        public static var pulseMeterSub: String { tr(zh: "PPG 脉搏容积波", en: "Heart Rate & Blood Volume", hant: "PPG 脈搏容積波") }
+        public static var seismometer: String { tr(zh: "微震烈度", en: "Seismometer", hant: "微震烈度") }
+        public static var seismometerSub: String { tr(zh: "三轴地动加速度", en: "Tri-Axial & Vibration Gal", hant: "三軸地動加速度") }
+        public static var luxMeter: String { tr(zh: "环境照度", en: "Lux Meter", hant: "環境照度") }
+        public static var luxMeterSub: String { tr(zh: "环境流明照度", en: "Illuminance & Foot-Candles", hant: "環境流明照度") }
+        public static var gnssHub: String { tr(zh: "卫星导航", en: "GNSS Hub", hant: "衛星導航") }
+        public static var gnssHubSub: String { tr(zh: "多模卫星差分", en: "DOP & Coordinate Datums", hant: "多模衛星差分") }
+        public static var bleRadar: String { tr(zh: "蓝牙雷达", en: "BLE Radar", hant: "藍牙雷達") }
+        public static var bleRadarSub: String { tr(zh: "近场信号测距", en: "Proximity & Signal Tracking", hant: "近場信號測距") }
+        public static var microscope: String { tr(zh: "工业微距", en: "Microscope", hant: "工業微距") }
+        public static var microscopeSub: String { tr(zh: "微距探伤显微", en: "Macro Zoom & Edge Inspect", hant: "微距探傷顯微") }
+
+        // Additional Concise Terminology & Actions
+        public static var pulseSteadyTip: String { tr(zh: "血红蛋白吸光周期稳定", en: "Pulse wave stable", hant: "血紅蛋白吸光週期穩定") }
+        public static var soundPlaying: String { tr(zh: "音频输出中", en: "Playing", hant: "音訊輸出中") }
+        public static var pulseHoldStillTip: String { tr(zh: "保持手指静止，轻微按压无需过度用力", en: "Keep finger steady with gentle pressure", hant: "保持手指靜止，輕微按壓無需過度用力") }
+        public static var pulseAcquiring: String { tr(zh: "已贴合镜头，正在解算心率...", en: "Sensor covered, calculating BPM...", hant: "已貼合鏡頭，正在解算心率...") }
+        public static var blePeripheralsList: String { tr(zh: "周边广播外设", en: "Nearby Peripherals", hant: "周邊廣播外設") }
+        public static var noNearbyDevices: String { tr(zh: "未发现周边设备", en: "No Peripherals", hant: "未發現周邊設備") }
+        public static var bleScanning: String { tr(zh: "正在扫描广播帧...", en: "Scanning BLE Packets...", hant: "正在掃描廣播幀...") }
+        public static var blePaused: String { tr(zh: "扫描已就绪", en: "Scan Idle", hant: "掃描已就緒") }
+        public static var startBleRadarAction: String { tr(zh: "启动雷达寻向", en: "Start BLE Radar", hant: "啟動雷達尋向") }
+        public static var stopBleRadarAction: String { tr(zh: "停止雷达寻向", en: "Stop BLE Radar", hant: "停止雷達尋向") }
+        public static var speedElevation: String { tr(zh: "航速 / 标高", en: "Speed / Altitude", hant: "航速 / 標高") }
+        public static var wgs84Desc: String { tr(zh: "WGS-84 (标准大地基准 / GPS / 北斗)", en: "WGS-84 (Global Datum)", hant: "WGS-84 (標準大地基準 / GPS / 北斗)") }
+        public static var gcj02Desc: String { tr(zh: "GCJ-02 (国测局加偏基准 / 高德 / 腾讯)", en: "GCJ-02 (National Datum)", hant: "GCJ-02 (國測局加偏基準 / 高德 / 騰訊)") }
+        public static var bd09Desc: String { tr(zh: "BD-09 (百度二次加密基准)", en: "BD-09 (Baidu Datum)", hant: "BD-09 (百度二次加密基準)") }
+        public static var mgrsDesc: String { tr(zh: "MGRS (北约军用网格坐标)", en: "MGRS (Military Grid)", hant: "MGRS (北約軍用網格座標)") }
+        public static var dopTitle: String { tr(zh: "卫星几何发散度 (DOP)", en: "Geometric Dilution (DOP)", hant: "衛星幾何發散度 (DOP)") }
+        public static var benchmarksTitle: String { tr(zh: "照度推荐国家与工业标准 (CIE / GB)", en: "Illuminance Standards (CIE / GB)", hant: "照度推薦國家與工業標準 (CIE / GB)") }
+        public static var nightHallway: String { tr(zh: "夜间 / 走廊", en: "Night / Corridor", hant: "夜間 / 走廊") }
+        public static var indoorLiving: String { tr(zh: "客厅 / 室内漫射", en: "Living Room / Ambient", hant: "客廳 / 室內漫射") }
+        public static var officeReading: String { tr(zh: "办公工位 / 适读", en: "Office / Reading", hant: "辦工工位 / 適讀") }
+        public static var precisionInspect: String { tr(zh: "高精度绘图 / 质检", en: "Precision / QC", hant: "高精度繪圖 / 質檢") }
+        public static var daylightSunny: String { tr(zh: "阴天户外 / 晴天采光", en: "Outdoor / Sunlight", hant: "陰天戶外 / 晴天採光") }
+        public static var frameFrozen: String { tr(zh: "画面已定格", en: "Frame Frozen", hant: "畫面已定格") }
+        public static var macroIllumination: String { tr(zh: "LED 补光", en: "LED Torch", hant: "LED 補光") }
+
+        // Pulse Meter Detail
+        public static var coverCameraTip: String { tr(zh: "请将手指轻贴后置主镜头与补光灯", en: "Cover rear camera and torch gently", hant: "請將手指輕貼後置主鏡頭與補光燈") }
+        public static var measuringPulse: String { tr(zh: "脉搏采集中...", en: "Measuring...", hant: "脈搏採集中...") }
+        public static var fingerDetected: String { tr(zh: "手指贴合良好", en: "Finger Attached", hant: "手指貼合良好") }
+        public static var fingerNotDetected: String { tr(zh: "未检测到手指覆盖", en: "Cover Camera Lens", hant: "未檢測到手指覆蓋") }
+        public static var heartRateBpm: String { tr(zh: "实时心率", en: "Heart Rate", hant: "即時心率") }
+        public static var heartRateVariability: String { tr(zh: "心率变异性", en: "HRV (RMSSD)", hant: "心率變異性") }
+        public static var pulseWaveform: String { tr(zh: "容积脉搏波", en: "Pulse Waveform", hant: "容積脈搏波") }
+
+        // Seismometer Detail
+        public static var peakAcceleration: String { tr(zh: "峰值地动加速度", en: "Peak Acceleration", hant: "峰值地動加速度") }
+        public static var seismicIntensityTitle: String { tr(zh: "地震烈度等级", en: "Seismic Intensity", hant: "地震烈度等級") }
+        public static var vibrationFrequency: String { tr(zh: "主振频率", en: "Peak Frequency", hant: "主振頻率") }
+        public static var triaxialWaveform: String { tr(zh: "三轴加速度实时波形", en: "Tri-Axial Real-Time Waves", hant: "三軸加速度即時波形") }
+        public static var resetPeakLabel: String { tr(zh: "重置峰值", en: "Reset Peak", hant: "重設峰值") }
+
+        // Lux Meter Detail
+        public static var illuminanceTitle: String { tr(zh: "实时环境照度", en: "Illuminance", hant: "即時環境照度") }
+        public static var footCandlesTitle: String { tr(zh: "尺烛光", en: "Foot-Candles", hant: "尺燭光") }
+        public static var exposureValueTitle: String { tr(zh: "曝光值 (EV)", en: "Exposure Value (EV)", hant: "曝光值 (EV)") }
+        public static var luxTrend: String { tr(zh: "采光照度趋势", en: "Illuminance Trend", hant: "採光照度趨勢") }
+
+        // GNSS Hub Detail
+        public static var satelliteFixStatus: String { tr(zh: "卫星解算状态", en: "GNSS Solution", hant: "衛星解算狀態") }
+        public static var horizontalDop: String { tr(zh: "水平精度因子 (HDOP)", en: "HDOP (Horizontal)", hant: "水平精度因子 (HDOP)") }
+        public static var verticalDop: String { tr(zh: "垂直精度因子 (VDOP)", en: "VDOP (Vertical)", hant: "垂直精度因子 (VDOP)") }
+        public static var coordinateConversionTitle: String { tr(zh: "多制式坐标基准转换", en: "Coordinate Datums", hant: "多制式座標基準轉換") }
+        public static var copyCoordinate: String { tr(zh: "已复制坐标", en: "Copied", hant: "已複製座標") }
+
+        // BLE Radar Detail
+        public static var bleScanStatus: String { tr(zh: "BLE 设备雷达", en: "BLE Radar", hant: "BLE 設備雷達") }
+        public static var nearestDevice: String { tr(zh: "最近设备", en: "Nearest Device", hant: "最近設備") }
+        public static var signalStrengthRssi: String { tr(zh: "信号强度 (RSSI)", en: "Signal (RSSI)", hant: "信號強度 (RSSI)") }
+        public static var estimatedDistance: String { tr(zh: "预估测距", en: "Est. Distance", hant: "預估測距") }
+
+        // Microscope Detail
+        public static var macroMagnification: String { tr(zh: "放大倍率", en: "Magnification", hant: "放大倍率") }
+        public static var freezeFrame: String { tr(zh: "定格画面", en: "Freeze Frame", hant: "定格畫面") }
+        public static var resumePreview: String { tr(zh: "实时预览", en: "Live View", hant: "即時預覽") }
+        public static var filterSobel: String { tr(zh: "边缘探伤", en: "Edge Filter", hant: "邊緣探傷") }
+        public static var filterInvert: String { tr(zh: "高反差负片", en: "Invert Negative", hant: "高反差負片") }
+        public static var filterNormal: String { tr(zh: "原色成像", en: "Natural", hant: "原色成像") }
 
         // Workspace Actions & Common Labels
         public static var openWorkspace: String { tr(zh: "进入工作台", en: "Open Workspace", hant: "進入工作台") }

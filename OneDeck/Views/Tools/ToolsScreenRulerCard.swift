@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Screen Caliper Bento Launcher Card.
+//  Screen Caliper Bento Launcher Card - Clean 2-row Bento standard.
 //
 
 import SwiftUI
@@ -19,8 +19,7 @@ struct ToolsScreenRulerCard: View {
         NavigationLink(destination: ScreenRulerDetailView()) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
-                miniRulerPreview
-                footerInfoRow
+                middleStatusRow
             }
             .bentoCard(accent: appState.accentColor)
         }
@@ -51,51 +50,19 @@ struct ToolsScreenRulerCard: View {
         }
     }
 
-    // MARK: - Mini Ruler Preview
+    // MARK: - Middle Status Row
     @ViewBuilder
-    private var miniRulerPreview: some View {
-        ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
-                .frame(height: 36)
-
-            // Scaled Ticks
-            HStack(spacing: SpacingTheme.compact) {
-                ForEach(0..<18) { index in
-                    Rectangle()
-                        .fill(index % 5 == 0 ? appState.accentColor : Theme.textTertiary(for: colorScheme))
-                        .frame(width: 1, height: index % 5 == 0 ? 20 : 10)
-                }
-            }
-            .padding(.horizontal, SpacingTheme.standard)
-
-            // Caliper Jaw Indicators
-            HStack {
-                Rectangle()
-                    .fill(appState.accentColor)
-                    .frame(width: 2, height: 32)
-                Spacer()
-                Rectangle()
-                    .fill(appState.accentColor)
-                    .frame(width: 2, height: 32)
-            }
-            .padding(.horizontal, SpacingTheme.modalPadding)
-        }
-    }
-
-    // MARK: - Footer Info
-    @ViewBuilder
-    private var footerInfoRow: some View {
-        HStack {
+    private var middleStatusRow: some View {
+        HStack(spacing: SpacingTheme.standard) {
             Text(L10n.Tools.anchorTopJaw)
-                .font(Typography.caption)
-                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .font(Typography.captionMono)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
             Spacer()
 
-            Text(tools.caliperUnit.title)
-                .font(Typography.badgeTagMono)
-                .foregroundStyle(appState.accentColor)
+            Text("1:1 · \(tools.caliperUnit.title)")
+                .font(Typography.captionMono)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
         }
     }
 }

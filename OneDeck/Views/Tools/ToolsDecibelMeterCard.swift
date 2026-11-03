@@ -18,13 +18,10 @@ struct ToolsDecibelMeterCard: View {
     var body: some View {
         NavigationLink(destination: DecibelMeterDetailView()) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
-                // Top Header Row
                 headerRow
-
-                // Middle Metric & Waveform Preview
                 middleStatusRow
             }
-            .bentoCard(accent: appState.accentColor)
+            .bentoCard(accent: tools.decibelMeter.isRecording ? Color.green : appState.accentColor)
         }
         .buttonStyle(.plain)
     }
@@ -41,15 +38,11 @@ struct ToolsDecibelMeterCard: View {
 
             Spacer()
 
-            // Quick Toggle Button
-            Button {
-                tools.toggleDecibelMeter()
-            } label: {
-                Image(systemName: tools.decibelMeter.isRecording ? "stop.circle.fill" : "mic.circle.fill")
-                    .font(IconTheme.prominentAction)
-                    .foregroundStyle(tools.decibelMeter.isRecording ? Color.red : appState.accentColor)
-            }
-            .buttonStyle(.plain)
+            Text(tools.decibelMeter.isRecording ? String(format: "%.1f dB", tools.decibelMeter.currentDb) : L10n.Tools.ready)
+                .font(Typography.headlineValue)
+                .fontDesign(.monospaced)
+                .foregroundStyle(tools.decibelMeter.isRecording ? Color.green : Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
 
             Image(systemName: "chevron.right")
                 .font(IconTheme.badgeInline)
@@ -63,17 +56,17 @@ struct ToolsDecibelMeterCard: View {
         HStack(spacing: SpacingTheme.standard) {
             HStack(spacing: SpacingTheme.tight) {
                 Circle()
-                    .fill(tools.decibelMeter.isRecording ? Color.green : appState.accentColor)
+                    .fill(tools.decibelMeter.isRecording ? Color.green : Theme.textTertiary(for: colorScheme))
                     .frame(width: 6, height: 6)
 
-                Text(String(format: "%.1f dB SPL", tools.decibelMeter.currentDb))
+                Text(tools.decibelMeter.isRecording ? L10n.Tools.noiseLevelTitle(for: tools.decibelMeter.currentDb) : L10n.Tools.ready)
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
             }
 
             Spacer()
 
-            Text(L10n.Tools.noiseLevelTitle(for: tools.decibelMeter.currentDb))
+            Text(String(format: "%@: %.1f dB", L10n.Tools.peakNoise, tools.decibelMeter.peakDb))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
         }

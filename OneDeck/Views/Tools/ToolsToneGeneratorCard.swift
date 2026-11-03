@@ -38,15 +38,11 @@ struct ToolsToneGeneratorCard: View {
 
             Spacer()
 
-            // Quick Play/Stop Button
-            Button {
-                tools.toggleToneGenerator()
-            } label: {
-                Image(systemName: tools.toneGenerator.isPlaying ? "stop.circle.fill" : "play.circle.fill")
-                    .font(IconTheme.prominentAction)
-                    .foregroundStyle(tools.toneGenerator.isPlaying ? Color.red : appState.accentColor)
-            }
-            .buttonStyle(.plain)
+            Text("\(Int(tools.toneGenerator.frequencyHz)) Hz")
+                .font(Typography.headlineValue)
+                .fontDesign(.monospaced)
+                .foregroundStyle(tools.toneGenerator.isPlaying ? Color.red : appState.accentColor)
+                .lineLimit(1)
 
             Image(systemName: "chevron.right")
                 .font(IconTheme.badgeInline)
@@ -60,17 +56,17 @@ struct ToolsToneGeneratorCard: View {
         HStack(spacing: SpacingTheme.standard) {
             HStack(spacing: SpacingTheme.tight) {
                 Circle()
-                    .fill(tools.toneGenerator.isPlaying ? Color.red : appState.accentColor)
+                    .fill(tools.toneGenerator.isPlaying ? Color.red : Theme.textTertiary(for: colorScheme))
                     .frame(width: 6, height: 6)
 
-                Text("\(Int(tools.toneGenerator.frequencyHz)) Hz · \(L10n.Tools.waveformTitle(tools.toneGenerator.waveform))")
+                Text(L10n.Tools.waveformTitle(tools.toneGenerator.waveform))
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
             }
 
             Spacer()
 
-            Text(L10n.Tools.frequencyBandTitle(tools.toneGenerator.frequencyHz))
+            Text(tools.toneGenerator.isPlaying ? L10n.Tools.soundPlaying : L10n.Tools.frequencyBandTitle(tools.toneGenerator.frequencyHz))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
         }
@@ -82,4 +78,3 @@ struct ToolsToneGeneratorCard: View {
     ToolsToneGeneratorCard()
         .padding()
 }
-

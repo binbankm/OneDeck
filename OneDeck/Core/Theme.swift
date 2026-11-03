@@ -90,7 +90,7 @@ public enum Theme {
 
     // Card Surface
     public static func cardBackground(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "#121218").opacity(0.85) : Color.white
+        scheme == .dark ? Color(hex: "#13131A") : Color.white
     }
 
     // Card Subtle Border
@@ -104,11 +104,11 @@ public enum Theme {
     }
 
     public static func textSecondary(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "#A2A2B0") : Color(hex: "#54545F")
+        scheme == .dark ? Color(hex: "#B0B0BD") : Color(hex: "#54545F")
     }
 
     public static func textTertiary(for scheme: ColorScheme) -> Color {
-        scheme == .dark ? Color(hex: "#858594") : Color(hex: "#666672")
+        scheme == .dark ? Color(hex: "#8E8E9C") : Color(hex: "#666672")
     }
 
     // Dynamic Gradient Generator from any single Color
@@ -210,8 +210,8 @@ public enum CornerRadiusTheme {
 
 // MARK: - Icon Design System Tokens
 public enum IconTheme {
-    /// Section Header icon font size (inside 26x26 platter)
-    public static let sectionHeader: Font = .system(size: 13, weight: .bold)
+    /// Section Header icon font size (optical match with 14pt bold title)
+    public static let sectionHeader: Font = .system(size: 15, weight: .semibold)
     /// Bento Tile leading icon font size (optical 1:1 match with 11pt/12pt label)
     public static let tileLeading: Font = .system(size: 11, weight: .semibold)
     /// Inline badge icon font size (inside status pill)

@@ -18,11 +18,8 @@ struct ToolsHapticLabCard: View {
     var body: some View {
         NavigationLink(destination: HapticLabDetailView()) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
-                // Top Header Row
                 headerRow
-
-                // Middle Quick Trigger Pills
-                quickPillsRow
+                middleStatusRow
             }
             .bentoCard(accent: appState.accentColor)
         }
@@ -35,15 +32,17 @@ struct ToolsHapticLabCard: View {
         HStack(spacing: SpacingTheme.standard) {
             BentoSectionHeader(
                 title: L10n.Tools.hapticLab,
-                icon: "dot.radiowaves.left.and.right",
+                icon: "hand.tap.fill",
                 subtitle: L10n.Tools.hapticLabSub
             )
 
             Spacer()
 
             Text(L10n.Tools.ready)
-                .font(Typography.captionMono)
+                .font(Typography.headlineValue)
+                .fontDesign(.monospaced)
                 .foregroundStyle(appState.accentColor)
+                .lineLimit(1)
 
             Image(systemName: "chevron.right")
                 .font(IconTheme.badgeInline)
@@ -51,25 +50,19 @@ struct ToolsHapticLabCard: View {
         }
     }
 
-    // MARK: - Quick Pills Row
+    // MARK: - Middle Status Row
     @ViewBuilder
-    private var quickPillsRow: some View {
+    private var middleStatusRow: some View {
         HStack(spacing: SpacingTheme.standard) {
-            HStack(spacing: SpacingTheme.compact) {
-                Circle()
-                    .fill(appState.accentColor)
-                    .frame(width: 6, height: 6)
-
-                Text(L10n.Tools.impactFeedback)
-                    .font(Typography.captionMono)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
-            }
+            Text(L10n.Tools.impactFeedback)
+                .font(Typography.captionMono)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
             Spacer()
 
             Text(L10n.Tools.notificationFeedback)
                 .font(Typography.captionMono)
-                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
         }
     }
 }
@@ -79,4 +72,3 @@ struct ToolsHapticLabCard: View {
     ToolsHapticLabCard()
         .padding()
 }
-

@@ -69,6 +69,32 @@ public final class ToolsViewModel: Sendable {
         touchMatrixCells.filter { $0 }.count
     }
 
+    // MARK: - 13. Camera PPG Optical Pulse State
+    public var pulseMeter = PulseMeterData()
+
+    // MARK: - 14. Seismometer & Vibration Spectrum State
+    public var seismometer = SeismometerData()
+
+    // MARK: - 15. Ambient Lux Meter State
+    public var luxMeter = LuxMeterData()
+
+    // MARK: - 16. GNSS Hub & Coordinate Conversion State
+    public var gnssHub = GnssHubData()
+
+    // MARK: - 17. Bluetooth LE Radar State
+    public var bleRadar = BleRadarData()
+
+    // MARK: - 18. Industrial Microscope State
+    public var microscope = MicroscopeData()
+
+    // Hardware Probes
+    private let pulseProbe = PulseOpticalProbe.shared
+    private let seismicProbe = SeismicVibrationProbe.shared
+    private let luxProbe = AmbientLuxProbe.shared
+    private let gnssProbe = GnssSatelliteProbe.shared
+    private let bleProbe = BleScannerProbe.shared
+    private let microscopeProbe = MicroscopeCameraProbe.shared
+
     // MARK: - Lifecycle Tracking
     public var isToolsTabActive: Bool = false
     public var activeDetailCount: Int = 0
@@ -101,6 +127,37 @@ public final class ToolsViewModel: Sendable {
         startCompass(enableGpsLocation: false)
         startBarometer()
         startMagnetometer(interval: 1.0 / 10.0)
+        startSeismicMonitoring(interval: 1.0 / 10.0)
+        updateAmbientLuxPreview()
+        triggerBleDiscoveryPulse()
+    }
+
+    public func updateAmbientLuxPreview() {
+        let b = Double(UIScreen.main.brightness)
+        let lux = max(10.0, b * b * 750.0 + 25.0)
+        let fc = lux / 10.764
+        let ev = log2(max(1.0, lux) / 2.5)
+        self.luxMeter.currentLux = lux
+        self.luxMeter.currentFootCandles = fc
+        self.luxMeter.exposureValueEV = ev
+        self.luxMeter.environmentDescription = AmbientLuxProbe.shared.describeLux(lux)
+    }
+
+    public func triggerBleDiscoveryPulse() {
+        guard !bleRadar.isScanning else { return }
+        bleProbe.startScanning { [weak self] data in
+            guard let self = self else { return }
+            self.bleRadar = data
+        }
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await MainActor.run {
+                if self?.activeDetailCount == 0 {
+                    self?.bleProbe.stopScanning()
+                    self?.bleRadar.isScanning = false
+                }
+            }
+        }
     }
 
     public func onTabDisappear() {
@@ -119,6 +176,11 @@ public final class ToolsViewModel: Sendable {
         stopWaterEjection()
         stopToneGenerator()
         stopDecibelMeter()
+        stopPulseMeasurement()
+        stopSeismicMonitoring()
+        stopLuxSampling()
+        stopGnssTracking()
+        stopBleRadar()
         torchProbe.turnOff()
         torch.isTorchOn = false
     }
@@ -131,15 +193,16 @@ public final class ToolsViewModel: Sendable {
 
     public func enterDetailView() {
         activeDetailCount += 1
+        if activeDetailCount == 1 {
+            // Suspend background non-active tab preview polling to reduce CPU & thermal load
+            seismicProbe.stopSeismicMonitoring()
+        }
     }
 
     public func leaveDetailView() {
         activeDetailCount = max(0, activeDetailCount - 1)
         if activeDetailCount == 0 && isToolsTabActive {
-            // Restore power-saving preview rates
-            motionProbe.setMotionInterval(1.0 / 12.0)
-            motionProbe.setMagnetometerInterval(1.0 / 10.0)
-            motionProbe.setCompassGpsActive(false)
+            startTabTelemetrySensors()
         }
     }
 
@@ -581,6 +644,179 @@ public final class ToolsViewModel: Sendable {
 
     public func updateProximityState() {
         isProximityNear = UIDevice.current.proximityState
+    }
+
+    // MARK: - 14. Camera PPG Optical Pulse Actions
+    public func startPulseMeasurement() {
+        pulseMeter.isMeasuring = true
+        pulseProbe.startMeasurement { [weak self] bpm, hrv, pulse, isDetected in
+            guard let self = self else { return }
+            self.pulseMeter.isFingerDetected = isDetected
+            if bpm > 0 {
+                self.pulseMeter.bpm = bpm
+            }
+            if hrv > 0 {
+                self.pulseMeter.hrvMs = hrv
+            }
+            if isDetected {
+                let pt = MetricPoint(timestamp: Date(), value: pulse)
+                self.pulseMeter.waveformHistory.append(pt)
+                if self.pulseMeter.waveformHistory.count > 60 {
+                    self.pulseMeter.waveformHistory.removeFirst()
+                }
+            }
+        }
+    }
+
+    public func stopPulseMeasurement() {
+        pulseProbe.stopMeasurement()
+        pulseMeter.isMeasuring = false
+    }
+
+    public var isPulseTorchOn: Bool {
+        pulseProbe.isTorchOn
+    }
+
+    public func togglePulseTorch() {
+        pulseProbe.toggleTorch()
+    }
+
+    // MARK: - 15. Seismometer & Vibration Spectrum Actions
+    public func startSeismicMonitoring(interval: TimeInterval = 1.0 / 60.0) {
+        seismometer.isRecording = true
+        seismicProbe.startSeismicMonitoring(interval: interval) { [weak self] data in
+            guard let self = self else { return }
+            self.seismometer.accelX = data.accelX
+            self.seismometer.accelY = data.accelY
+            self.seismometer.accelZ = data.accelZ
+            self.seismometer.vectorMagnitudeGal = data.vectorMagnitudeGal
+            self.seismometer.peakGal = data.peakGal
+            self.seismometer.dominantFrequencyHz = data.dominantFrequencyHz
+            self.seismometer.intensity = data.intensity
+
+            let pt = MetricPoint(timestamp: Date(), value: data.vectorMagnitudeGal)
+            self.seismometer.historyMagnitude.append(pt)
+            if self.seismometer.historyMagnitude.count > 40 {
+                self.seismometer.historyMagnitude.removeFirst()
+            }
+        }
+    }
+
+    public func stopSeismicMonitoring() {
+        seismicProbe.stopSeismicMonitoring()
+        seismometer.isRecording = false
+    }
+
+    public func resetSeismicPeak() {
+        Haptics.impact(.light)
+        seismicProbe.resetPeak()
+        seismometer.peakGal = 0.0
+    }
+
+    // MARK: - 16. Ambient Lux Meter Actions
+    public func startLuxSampling() {
+        luxMeter.isSampling = true
+        luxProbe.startLuxSampling { [weak self] lux, fc, ev, env in
+            guard let self = self else { return }
+            self.luxMeter.currentLux = lux
+            self.luxMeter.currentFootCandles = fc
+            self.luxMeter.exposureValueEV = ev
+            self.luxMeter.environmentDescription = env
+
+            let pt = MetricPoint(timestamp: Date(), value: lux)
+            self.luxMeter.history.append(pt)
+            if self.luxMeter.history.count > 30 {
+                self.luxMeter.history.removeFirst()
+            }
+        }
+    }
+
+    public func stopLuxSampling() {
+        luxProbe.stopLuxSampling()
+        luxMeter.isSampling = false
+    }
+
+    // MARK: - 17. GNSS Hub Actions
+    public func startGnssTracking() {
+        gnssProbe.startTracking { [weak self] data in
+            guard let self = self else { return }
+            self.gnssHub = data
+        }
+    }
+
+    public func stopGnssTracking() {
+        gnssProbe.stopTracking()
+    }
+
+    // MARK: - 18. Bluetooth LE Radar Actions
+    public func startBleRadar() {
+        bleRadar.isScanning = true
+        bleProbe.startScanning { [weak self] data in
+            guard let self = self else { return }
+            self.bleRadar = data
+        }
+    }
+
+    public func stopBleRadar() {
+        bleProbe.stopScanning()
+        bleRadar.isScanning = false
+    }
+
+    // MARK: - 19. Industrial Microscope Actions
+    public func setMicroscopeZoom(_ factor: CGFloat) {
+        let clamped = max(1.0, min(15.0, factor))
+        microscope.zoomFactor = clamped
+        microscopeProbe.setZoomFactor(clamped)
+    }
+
+    public func toggleMicroscopeFreeze() {
+        Haptics.selection()
+        microscope.isFrozen.toggle()
+    }
+
+    public func setMicroscopeFilter(_ filter: MicroscopeFilterMode) {
+        Haptics.selection()
+        microscope.filterMode = filter
+    }
+
+    // Aliases & Convenience
+    public func startSeismometer() { startSeismicMonitoring() }
+    public func stopSeismometer() { stopSeismicMonitoring() }
+
+    public func startLuxMeter() { startLuxSampling() }
+    public func stopLuxMeter() { stopLuxSampling() }
+
+    public func startGnssHub() { startGnssTracking() }
+    public func stopGnssHub() { stopGnssTracking() }
+
+    public func startMicroscope() {
+        microscopeProbe.startSession()
+        microscopeProbe.setZoomFactor(microscope.zoomFactor)
+        if microscope.isTorchOn {
+            microscopeProbe.setTorchMode(isOn: true)
+        }
+    }
+
+    public func stopMicroscope() {
+        microscopeProbe.turnTorchOff()
+        microscopeProbe.stopSession()
+        microscope.isTorchOn = false
+        microscope.isFrozen = false
+    }
+
+    public func freezeMicroscopeFrame() { toggleMicroscopeFreeze() }
+
+    public func toggleMicroscopeTorch() {
+        Haptics.selection()
+        microscope.isTorchOn.toggle()
+        microscopeProbe.setTorchMode(isOn: microscope.isTorchOn)
+    }
+    public func cycleMicroscopeFilter() {
+        let all = MicroscopeFilterMode.allCases
+        if let idx = all.firstIndex(of: microscope.filterMode) {
+            let next = all[(idx + 1) % all.count]
+            setMicroscopeFilter(next)
+        }
     }
 }
 

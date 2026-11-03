@@ -29,9 +29,7 @@ struct OverviewSectionHeader: View {
             Image(systemName: icon)
                 .font(IconTheme.sectionHeader)
                 .foregroundStyle(activeAccent)
-                .frame(width: 26, height: 26)
-                .background(activeAccent.opacity(0.14))
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.platter, style: .continuous))
+                .frame(width: 20, height: 20, alignment: .center)
 
             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(title)

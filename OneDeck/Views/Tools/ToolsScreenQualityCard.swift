@@ -38,8 +38,9 @@ struct ToolsScreenQualityCard: View {
 
             Spacer()
 
-            Text("120Hz")
-                .font(Typography.captionMono)
+            Text("\(SystemViewModel.shared.hardwareSpecs.maxFps)Hz")
+                .font(Typography.headlineValue)
+                .fontDesign(.monospaced)
                 .foregroundStyle(appState.accentColor)
                 .lineLimit(1)
 

@@ -42,8 +42,10 @@ struct ToolsCompassCard: View {
             Spacer()
 
             Text("\(Int(tools.compass.trueHeading))° \(tools.compass.cardinalDirection)")
-                .font(Typography.captionMono)
+                .font(Typography.headlineValue)
+                .fontDesign(.monospaced)
                 .foregroundStyle(appState.accentColor)
+                .lineLimit(1)
 
             Image(systemName: "chevron.right")
                 .font(IconTheme.badgeInline)
@@ -55,21 +57,21 @@ struct ToolsCompassCard: View {
     @ViewBuilder
     private var middleStatusRow: some View {
         HStack(spacing: SpacingTheme.standard) {
-            HStack(spacing: SpacingTheme.compact) {
+            HStack(spacing: SpacingTheme.tight) {
                 Circle()
                     .fill(appState.accentColor)
                     .frame(width: 6, height: 6)
 
                 Text(String(format: "%@: %.1f°", L10n.Tools.magneticHeading, tools.compass.magneticHeading))
                     .font(Typography.captionMono)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
             }
 
             Spacer()
 
-            Text(String(format: "%.0f m", tools.compass.altitudeMeters))
+            Text(String(format: "%@: %.0f m", L10n.Tools.relativeElevation, tools.compass.altitudeMeters))
                 .font(Typography.captionMono)
-                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
         }
     }
 }

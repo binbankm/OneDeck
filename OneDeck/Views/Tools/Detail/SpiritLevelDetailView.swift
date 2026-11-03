@@ -79,6 +79,7 @@ struct SpiritLevelDetailView: View {
                 .font(Typography.badgeTagMono)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
 
             Text(value)
                 .font(Typography.headlineValue)

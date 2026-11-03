@@ -413,3 +413,288 @@ public enum SpeakerChannel: String, CaseIterable, Identifiable, Sendable {
     public var id: String { rawValue }
 }
 
+// MARK: - 13. Camera PPG Optical Pulse Meter Models
+public struct PulseMeterData: Sendable {
+    public var bpm: Int = 0
+    public var hrvMs: Double = 0.0
+    public var signalQuality: Double = 0.0
+    public var isFingerDetected: Bool = false
+    public var isMeasuring: Bool = false
+    public var waveformHistory: [MetricPoint] = []
+
+    public init(
+        bpm: Int = 0,
+        hrvMs: Double = 0.0,
+        signalQuality: Double = 0.0,
+        isFingerDetected: Bool = false,
+        isMeasuring: Bool = false,
+        waveformHistory: [MetricPoint] = []
+    ) {
+        self.bpm = bpm
+        self.hrvMs = hrvMs
+        self.signalQuality = signalQuality
+        self.isFingerDetected = isFingerDetected
+        self.isMeasuring = isMeasuring
+        self.waveformHistory = waveformHistory
+    }
+}
+
+// MARK: - 14. Seismometer & Vibration Spectrum Models
+public enum SeismicIntensity: String, CaseIterable, Identifiable, Sendable {
+    case instrumental // 0 ~ I (微震无感)
+    case weak         // II ~ III (轻微震颤)
+    case moderate     // IV (有感震动)
+    case strong       // V+ (较强震动)
+
+    public var id: String { rawValue }
+
+    public var labelZh: String { title }
+
+    public var title: String {
+        switch self {
+        case .instrumental: return L10n.tr(zh: "微震 (0-I度)", en: "Micro (0-I)", hant: "微震 (0-I度)")
+        case .weak: return L10n.tr(zh: "轻微 (II-III度)", en: "Minor (II-III)", hant: "輕微 (II-III度)")
+        case .moderate: return L10n.tr(zh: "中度 (IV度)", en: "Moderate (IV)", hant: "中度 (IV度)")
+        case .strong: return L10n.tr(zh: "较强 (V+度)", en: "Strong (V+)", hant: "較強 (V+度)")
+        }
+    }
+
+    public var titleZh: String { title }
+
+    public var shortCode: String {
+        switch self {
+        case .instrumental: return "I"
+        case .weak: return "II-III"
+        case .moderate: return "IV"
+        case .strong: return "V+"
+        }
+    }
+
+    public var maxGal: Double {
+        switch self {
+        case .instrumental: return 2.5
+        case .weak: return 10.0
+        case .moderate: return 25.0
+        case .strong: return 100.0
+        }
+    }
+
+    public var color: Color {
+        switch self {
+        case .instrumental: return Color.green
+        case .weak: return Color.blue
+        case .moderate: return Color.orange
+        case .strong: return Color.red
+        }
+    }
+}
+
+public struct SeismometerData: Sendable {
+    public var accelX: Double = 0.0
+    public var accelY: Double = 0.0
+    public var accelZ: Double = 0.0
+    public var vectorMagnitudeGal: Double = 0.0
+    public var peakGal: Double = 0.0
+    public var dominantFrequencyHz: Double = 0.0
+    public var intensity: SeismicIntensity = .instrumental
+    public var historyMagnitude: [MetricPoint] = []
+    public var isRecording: Bool = false
+
+    public var currentGal: Double { vectorMagnitudeGal }
+    public var waveform: [MetricPoint] { historyMagnitude }
+
+    public init(
+        accelX: Double = 0.0,
+        accelY: Double = 0.0,
+        accelZ: Double = 0.0,
+        vectorMagnitudeGal: Double = 0.0,
+        peakGal: Double = 0.0,
+        dominantFrequencyHz: Double = 0.0,
+        intensity: SeismicIntensity = .instrumental,
+        historyMagnitude: [MetricPoint] = [],
+        isRecording: Bool = false
+    ) {
+        self.accelX = accelX
+        self.accelY = accelY
+        self.accelZ = accelZ
+        self.vectorMagnitudeGal = vectorMagnitudeGal
+        self.peakGal = peakGal
+        self.dominantFrequencyHz = dominantFrequencyHz
+        self.intensity = intensity
+        self.historyMagnitude = historyMagnitude
+        self.isRecording = isRecording
+    }
+}
+
+// MARK: - 15. Ambient Lux Meter Models
+public struct LuxMeterData: Sendable {
+    public var currentLux: Double = 0.0
+    public var currentFootCandles: Double = 0.0
+    public var exposureValueEV: Double = 0.0
+    public var environmentDescription: String = ""
+    public var history: [MetricPoint] = []
+    public var isSampling: Bool = false
+
+    public var lux: Double { currentLux }
+    public var footCandles: Double { currentFootCandles }
+    public var ev: Double { exposureValueEV }
+
+    public init(
+        currentLux: Double = 0.0,
+        currentFootCandles: Double = 0.0,
+        exposureValueEV: Double = 0.0,
+        environmentDescription: String = "",
+        history: [MetricPoint] = [],
+        isSampling: Bool = false
+    ) {
+        self.currentLux = currentLux
+        self.currentFootCandles = currentFootCandles
+        self.exposureValueEV = exposureValueEV
+        self.environmentDescription = environmentDescription
+        self.history = history
+        self.isSampling = isSampling
+    }
+}
+
+// MARK: - 16. GNSS Hub & Coordinate Conversion Models
+public struct GnssHubData: Sendable {
+    public var latitude: Double = 0.0
+    public var longitude: Double = 0.0
+    public var altitudeAmsl: Double = 0.0
+    public var horizontalAccuracyM: Double = 0.0
+    public var verticalAccuracyM: Double = 0.0
+    public var speedKmh: Double = 0.0
+    public var courseDeg: Double = 0.0
+    public var hdop: Double = 1.0
+    public var vdop: Double = 1.0
+    public var wgs84Formatted: String = "--"
+    public var gcj02Formatted: String = "--"
+    public var bd09Formatted: String = "--"
+    public var mgrsFormatted: String = "--"
+    public var isFixAcquired: Bool = false
+
+    public var mgrsString: String { mgrsFormatted }
+    public var fixStatusText: String {
+        isFixAcquired
+            ? L10n.tr(zh: "3D 差分定位", en: "3D Differential Fix", hant: "3D 差分定位")
+            : L10n.tr(zh: "搜索卫星...", en: "Searching...", hant: "搜尋衛星...")
+    }
+    public var altitudeM: Double { altitudeAmsl }
+
+    public init(
+        latitude: Double = 0.0,
+        longitude: Double = 0.0,
+        altitudeAmsl: Double = 0.0,
+        horizontalAccuracyM: Double = 0.0,
+        verticalAccuracyM: Double = 0.0,
+        speedKmh: Double = 0.0,
+        courseDeg: Double = 0.0,
+        hdop: Double = 1.0,
+        vdop: Double = 1.0,
+        wgs84Formatted: String = "--",
+        gcj02Formatted: String = "--",
+        bd09Formatted: String = "--",
+        mgrsFormatted: String = "--",
+        isFixAcquired: Bool = false
+    ) {
+        self.latitude = latitude
+        self.longitude = longitude
+        self.altitudeAmsl = altitudeAmsl
+        self.horizontalAccuracyM = horizontalAccuracyM
+        self.verticalAccuracyM = verticalAccuracyM
+        self.speedKmh = speedKmh
+        self.courseDeg = courseDeg
+        self.hdop = hdop
+        self.vdop = vdop
+        self.wgs84Formatted = wgs84Formatted
+        self.gcj02Formatted = gcj02Formatted
+        self.bd09Formatted = bd09Formatted
+        self.mgrsFormatted = mgrsFormatted
+        self.isFixAcquired = isFixAcquired
+    }
+}
+
+// MARK: - 17. Bluetooth LE Radar Models
+public struct BleDeviceItem: Identifiable, Sendable {
+    public let id: UUID
+    public let name: String
+    public let rssi: Int
+    public let distanceEstimateM: Double
+    public let lastSeen: Date
+
+    public var estimatedDistanceMeters: Double { distanceEstimateM }
+
+    public init(id: UUID, name: String, rssi: Int, distanceEstimateM: Double, lastSeen: Date = Date()) {
+        self.id = id
+        self.name = name
+        self.rssi = rssi
+        self.distanceEstimateM = distanceEstimateM
+        self.lastSeen = lastSeen
+    }
+}
+
+public struct BleRadarData: Sendable {
+    public var discoveredDevices: [BleDeviceItem] = []
+    public var isScanning: Bool = false
+    public var nearestDeviceName: String = "--"
+    public var strongestRssi: Int = -100
+
+    public var devices: [BleDeviceItem] { discoveredDevices }
+    public var nearestDeviceRssi: Int { strongestRssi }
+    public var estimatedDistanceMeters: Double {
+        guard strongestRssi != -100 else { return 0.0 }
+        let ratio = Double(-59 - strongestRssi) / (10.0 * 2.5)
+        return pow(10.0, ratio)
+    }
+
+    public init(
+        discoveredDevices: [BleDeviceItem] = [],
+        isScanning: Bool = false,
+        nearestDeviceName: String = "--",
+        strongestRssi: Int = -100
+    ) {
+        self.discoveredDevices = discoveredDevices
+        self.isScanning = isScanning
+        self.nearestDeviceName = nearestDeviceName
+        self.strongestRssi = strongestRssi
+    }
+}
+
+// MARK: - 18. Industrial Microscope Models
+public enum MicroscopeFilterMode: String, CaseIterable, Identifiable, Sendable {
+    case normal
+    case inverted
+    case highContrast
+    case edgeDetection
+
+    public var id: String { rawValue }
+
+    public var title: String {
+        switch self {
+        case .normal: return L10n.Tools.filterNormal
+        case .inverted: return L10n.Tools.filterInvert
+        case .highContrast: return L10n.tr(zh: "高反差黑白", en: "High Contrast", hant: "高反差黑白")
+        case .edgeDetection: return L10n.Tools.filterSobel
+        }
+    }
+}
+
+public struct MicroscopeData: Sendable {
+    public var zoomFactor: CGFloat = 1.0
+    public var isTorchOn: Bool = true
+    public var isFrozen: Bool = false
+    public var filterMode: MicroscopeFilterMode = .normal
+
+    public init(
+        zoomFactor: CGFloat = 1.0,
+        isTorchOn: Bool = true,
+        isFrozen: Bool = false,
+        filterMode: MicroscopeFilterMode = .normal
+    ) {
+        self.zoomFactor = zoomFactor
+        self.isTorchOn = isTorchOn
+        self.isFrozen = isFrozen
+        self.filterMode = filterMode
+    }
+}
+

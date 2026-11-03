@@ -19,7 +19,7 @@ struct ToolsPrecisionTorchCard: View {
         NavigationLink(destination: PrecisionTorchDetailView()) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
                 headerRow
-                brightnessSliderRow
+                middleStatusRow
             }
             .bentoCard(accent: tools.torch.isTorchOn ? Color.orange : appState.accentColor)
         }
@@ -38,15 +38,11 @@ struct ToolsPrecisionTorchCard: View {
 
             Spacer()
 
-            // Quick Toggle Button
-            Button {
-                tools.toggleTorch()
-            } label: {
-                Image(systemName: tools.torch.isTorchOn ? "power.circle.fill" : "power.circle")
-                    .font(IconTheme.prominentAction)
-                    .foregroundStyle(tools.torch.isTorchOn ? Color.orange : appState.accentColor)
-            }
-            .buttonStyle(.plain)
+            Text(tools.torch.isTorchOn ? "\(Int(tools.torch.brightness * 100))%" : "OFF")
+                .font(Typography.headlineValue)
+                .fontDesign(.monospaced)
+                .foregroundStyle(tools.torch.isTorchOn ? Color.orange : Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
 
             Image(systemName: "chevron.right")
                 .font(IconTheme.badgeInline)
@@ -54,28 +50,25 @@ struct ToolsPrecisionTorchCard: View {
         }
     }
 
-    // MARK: - Brightness Slider Row
+    // MARK: - Middle Status Row
     @ViewBuilder
-    private var brightnessSliderRow: some View {
+    private var middleStatusRow: some View {
         HStack(spacing: SpacingTheme.standard) {
-            Image(systemName: "sun.min.fill")
-                .font(IconTheme.badgeInline)
-                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+            HStack(spacing: SpacingTheme.tight) {
+                Circle()
+                    .fill(tools.torch.isTorchOn ? Color.orange : Theme.textTertiary(for: colorScheme))
+                    .frame(width: 6, height: 6)
 
-            Slider(value: Binding(
-                get: { Double(tools.torch.brightness) },
-                set: { tools.setTorchBrightness(Float($0)) }
-            ), in: 0.01...1.0)
-            .tint(tools.torch.isTorchOn ? Color.orange : appState.accentColor)
+                Text(tools.torch.isTorchOn ? "LED ON" : L10n.Tools.ready)
+                    .font(Typography.captionMono)
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+            }
 
-            Image(systemName: "sun.max.fill")
-                .font(IconTheme.badgeInline)
-                .foregroundStyle(tools.torch.isTorchOn ? Color.orange : Theme.textTertiary(for: colorScheme))
+            Spacer()
 
-            Text("\(Int(tools.torch.brightness * 100))%")
+            Text(tools.torch.currentMode == .continuous ? L10n.Tools.dimMode : "\(Int(tools.torch.strobeFrequencyHz)) Hz")
                 .font(Typography.captionMono)
-                .foregroundStyle(tools.torch.isTorchOn ? Color.orange : Theme.textPrimary(for: colorScheme))
-                .frame(width: 36, alignment: .trailing)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
         }
     }
 }
@@ -85,4 +78,3 @@ struct ToolsPrecisionTorchCard: View {
     ToolsPrecisionTorchCard()
         .padding()
 }
-

@@ -75,15 +75,21 @@ struct ToolsMetalDetectorCard: View {
             .frame(height: 6)
 
             HStack {
-                Text("\(L10n.Tools.deltaLabel): +\(String(format: "%.0f", tools.metalDetector.deltaMicroTesla)) µT")
-                    .font(Typography.badgeTagMono)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                HStack(spacing: SpacingTheme.tight) {
+                    Circle()
+                        .fill(tools.metalDetector.deltaMicroTesla > 15.0 ? Color.orange : appState.accentColor)
+                        .frame(width: 6, height: 6)
+
+                    Text("\(L10n.Tools.deltaLabel): +\(String(format: "%.0f", tools.metalDetector.deltaMicroTesla)) µT")
+                        .font(Typography.captionMono)
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                }
 
                 Spacer()
 
                 Text(String(format: "%.0f µT", tools.metalDetector.totalMicroTesla))
-                    .font(Typography.badgeTagMono)
-                    .foregroundStyle(tools.metalDetector.deltaMicroTesla > 15.0 ? Color.orange : Theme.textTertiary(for: colorScheme))
+                    .font(Typography.captionMono)
+                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
         }
     }

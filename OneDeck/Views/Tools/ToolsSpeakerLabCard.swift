@@ -3,7 +3,7 @@
 //  OneDeck
 //
 //  Created for OneDeck - iOS 17.0+
-//  Bento Card launcher for Stereo Speaker & Audio Phase Diagnostics.
+//  Bento Card launcher for Stereo Acoustic Speaker Lab.
 //
 
 import SwiftUI
@@ -18,10 +18,7 @@ struct ToolsSpeakerLabCard: View {
     var body: some View {
         NavigationLink(destination: SpeakerLabDetailView()) {
             VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
-                // Top Header Row
                 headerRow
-
-                // Middle Status Row
                 middleStatusRow
             }
             .bentoCard(accent: appState.accentColor)
@@ -42,8 +39,10 @@ struct ToolsSpeakerLabCard: View {
             Spacer()
 
             Text(L10n.Tools.dualSpeaker)
-                .font(Typography.captionMono)
+                .font(Typography.headlineValue)
+                .fontDesign(.monospaced)
                 .foregroundStyle(appState.accentColor)
+                .lineLimit(1)
 
             Image(systemName: "chevron.right")
                 .font(IconTheme.badgeInline)
@@ -55,21 +54,15 @@ struct ToolsSpeakerLabCard: View {
     @ViewBuilder
     private var middleStatusRow: some View {
         HStack(spacing: SpacingTheme.standard) {
-            HStack(spacing: SpacingTheme.compact) {
-                Circle()
-                    .fill(appState.accentColor)
-                    .frame(width: 6, height: 6)
-
-                Text(L10n.Tools.stereoSeparation)
-                    .font(Typography.captionMono)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
-            }
+            Text(L10n.Tools.diaphragmResonance)
+                .font(Typography.captionMono)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
             Spacer()
 
-            Text(L10n.Tools.leftSpeaker + " · " + L10n.Tools.rightSpeaker)
+            Text(L10n.Tools.stereoDual)
                 .font(Typography.captionMono)
-                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
         }
     }
 }

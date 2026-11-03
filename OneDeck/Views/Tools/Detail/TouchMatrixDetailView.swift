@@ -25,7 +25,7 @@ struct TouchMatrixDetailView: View {
                 hudCard
 
                 // Interactive Capacitive Grid
-                interactiveMatrixGrid(width: max(0, geometry.size.width - 32), height: max(0, geometry.size.height - 140))
+                interactiveMatrixGrid(width: max(0, geometry.size.width - SpacingTheme.cardStack * 2), height: max(0, geometry.size.height - 140))
 
                 // Bottom Hint
                 Text(L10n.Tools.sweepAllCells)

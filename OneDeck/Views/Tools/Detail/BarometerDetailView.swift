@@ -17,24 +17,23 @@ struct BarometerDetailView: View {
 
     // MARK: - Body
     var body: some View {
-        VStack(spacing: SpacingTheme.cardStack) {
-            // Dual Top KPI Hero Cards
-            dualMetricsHero
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: SpacingTheme.cardStack) {
+                // Dual Top KPI Hero Cards
+                dualMetricsHero
 
-            // Rolling Atmospheric Pressure Trend Chart
-            pressureHistoryChart
+                // Rolling Atmospheric Pressure Trend Chart
+                pressureHistoryChart
 
-            // Environmental ISA Reference & Weather Estimation Card
-            isaAtmosphereCard
+                // Environmental ISA Reference & Weather Estimation Card
+                isaAtmosphereCard
 
-            Spacer()
-
-            // Bottom Reset Altitude Action Bar
-            bottomControlsBar
+                // Bottom Reset Altitude Action Bar
+                bottomControlsBar
+            }
+            .padding(.horizontal, SpacingTheme.cardStack)
+            .padding(.vertical, SpacingTheme.rowStandard)
         }
-        .padding(.horizontal, SpacingTheme.cardStack)
-        .padding(.vertical, SpacingTheme.rowStandard)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.barometer)
         .navigationBarTitleDisplayMode(.inline)
@@ -118,14 +117,14 @@ struct BarometerDetailView: View {
     private var pressureHistoryChart: some View {
         let history = tools.barometer.history
         let currentP = tools.barometer.pressureHpa
-        let values = history.map(\.value)
+        let values = history.isEmpty ? [currentP] : history.map(\.value)
         let minVal = values.min() ?? currentP
         let maxVal = values.max() ?? currentP
         // Minimum span of 1.8 hPa gives a clear, sensitive, responsive wave curve
         let span = max(1.8, maxVal - minVal)
         let mid = (minVal + maxVal) / 2.0
-        let yMin = mid - (span / 2.0) - 0.3
-        let yMax = mid + (span / 2.0) + 0.3
+        let yMin = mid - (span / 2.0)
+        let yMax = mid + (span / 2.0)
 
         VStack(alignment: .leading, spacing: SpacingTheme.standard) {
             HStack {
@@ -170,7 +169,7 @@ struct BarometerDetailView: View {
                 .chartXAxis(.hidden)
                 .chartYScale(domain: yMin...yMax)
                 .chartYAxis {
-                    AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { val in
+                    AxisMarks(position: .trailing, values: [yMin, mid, yMax]) { val in
                         AxisGridLine(stroke: ChartTheme.gridStroke)
                             .foregroundStyle(ChartTheme.gridColor(for: colorScheme))
                         AxisValueLabel {

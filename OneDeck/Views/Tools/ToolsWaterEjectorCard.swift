@@ -38,15 +38,11 @@ struct ToolsWaterEjectorCard: View {
 
             Spacer()
 
-            // Quick Toggle Trigger on Card
-            Button {
-                tools.toggleWaterEjector()
-            } label: {
-                Image(systemName: tools.waterEjector.isRunning ? "stop.circle.fill" : "play.circle.fill")
-                    .font(IconTheme.prominentAction)
-                    .foregroundStyle(tools.waterEjector.isRunning ? Color.red : appState.accentColor)
-            }
-            .buttonStyle(.plain)
+            Text(tools.waterEjector.isRunning ? "\(tools.waterEjector.remainingSeconds)s" : "\(Int(tools.waterEjector.selectedMode.targetFrequency)) Hz")
+                .font(Typography.headlineValue)
+                .fontDesign(.monospaced)
+                .foregroundStyle(tools.waterEjector.isRunning ? Color.cyan : appState.accentColor)
+                .lineLimit(1)
 
             Image(systemName: "chevron.right")
                 .font(IconTheme.badgeInline)
@@ -58,30 +54,21 @@ struct ToolsWaterEjectorCard: View {
     @ViewBuilder
     private var middleStatusRow: some View {
         HStack(spacing: SpacingTheme.standard) {
-            if tools.waterEjector.isRunning {
-                HStack(spacing: SpacingTheme.compact) {
-                    ProgressView(value: tools.waterEjector.progress)
-                        .tint(Color.cyan)
-                    Text("\(tools.waterEjector.remainingSeconds)s")
-                        .font(Typography.captionMono)
-                        .foregroundStyle(Color.cyan)
-                }
-            } else {
-                HStack(spacing: SpacingTheme.tight) {
-                    Circle()
-                        .fill(appState.accentColor)
-                        .frame(width: 6, height: 6)
-                    Text(L10n.Tools.waterEjectorSub)
-                        .font(Typography.captionMono)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                }
+            HStack(spacing: SpacingTheme.tight) {
+                Circle()
+                    .fill(tools.waterEjector.isRunning ? Color.cyan : Theme.textTertiary(for: colorScheme))
+                    .frame(width: 6, height: 6)
 
-                Spacer()
-
-                Text(tools.waterEjector.selectedMode == .deep165Hz ? L10n.Tools.deepEject165 : L10n.Tools.dustClear440)
-                    .font(Typography.badgeTagMono)
-                    .foregroundStyle(appState.accentColor)
+                Text(tools.waterEjector.isRunning ? L10n.Tools.ejecting : L10n.Tools.ready)
+                    .font(Typography.captionMono)
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
             }
+
+            Spacer()
+
+            Text(tools.waterEjector.selectedMode == .deep165Hz ? L10n.Tools.deepEject165 : L10n.Tools.dustClear440)
+                .font(Typography.captionMono)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
         }
     }
 }
@@ -91,4 +78,3 @@ struct ToolsWaterEjectorCard: View {
     ToolsWaterEjectorCard()
         .padding()
 }
-

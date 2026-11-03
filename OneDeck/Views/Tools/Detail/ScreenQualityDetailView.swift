@@ -42,7 +42,7 @@ struct ScreenQualityDetailView: View {
                 pixelInspectionCard
 
                 // Section 2: 120Hz Multi-Touch Canvas
-                touchDigitizerCanvas(width: max(0, geometry.size.width - 32))
+                touchDigitizerCanvas(width: max(0, geometry.size.width - SpacingTheme.cardStack * 2))
 
                 Spacer()
             }

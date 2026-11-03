@@ -79,6 +79,24 @@ struct ToolsView: View {
 
             // 13. Fullscreen Capacitive Touch Matrix Grid Test
             ToolsTouchMatrixCard()
+
+            // 14. Photoplethysmography (PPG) Optical Pulse & HRV
+            ToolsPulseMeterCard()
+
+            // 15. Tri-Axial Micro-Seismic Vibration & Seismic Intensity
+            ToolsSeismometerCard()
+
+            // 16. Photometric Ambient Illuminance & Foot-Candles
+            ToolsLuxMeterCard()
+
+            // 17. Multi-Constellation GNSS & Geodetic Datum Conversion
+            ToolsGnssHubCard()
+
+            // 18. Bluetooth Low Energy Proximity & Radar
+            ToolsBleRadarCard()
+
+            // 19. Industrial Macro Microscope & Edge Inspection
+            ToolsMicroscopeCard()
         }
     }
 }

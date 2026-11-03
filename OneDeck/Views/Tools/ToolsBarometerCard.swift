@@ -55,18 +55,18 @@ struct ToolsBarometerCard: View {
     private var middleMetricRow: some View {
         HStack(spacing: SpacingTheme.standard) {
             HStack(spacing: SpacingTheme.tight) {
-                Image(systemName: "mountain.2.fill")
-                    .font(IconTheme.tileLeading)
-                    .foregroundStyle(appState.accentColor)
+                Circle()
+                    .fill(appState.accentColor)
+                    .frame(width: 6, height: 6)
 
-                Text(String(format: "%+.1f m", tools.barometer.relativeAltitudeMeters))
+                Text(String(format: "%@: %+.1f m", L10n.Tools.relativeElevation, tools.barometer.relativeAltitudeMeters))
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
             }
 
             Spacer()
 
-            Text(String(format: "%+.1f m/s", tools.barometer.verticalSpeedMps))
+            Text(String(format: "%@: %+.1f m/s", L10n.Tools.verticalSpeed, tools.barometer.verticalSpeedMps))
                 .font(Typography.captionMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
         }
