@@ -219,26 +219,21 @@ struct BatteryHealthCycleCard: View {
 
     @ViewBuilder
     private var diagnosticsActionSection: some View {
-        HStack(spacing: SpacingTheme.standard) {
-            Button {
-                Haptics.impact(.medium)
-                showAnalyticsSheet = true
-            } label: {
+        if let record = battery.analyticsRecord {
+            HStack(spacing: SpacingTheme.standard) {
                 HStack(spacing: SpacingTheme.compact) {
-                    Image(systemName: battery.analyticsRecord != nil ? "checkmark.seal.fill" : "sparkles")
+                    Image(systemName: "checkmark.seal.fill")
                         .font(IconTheme.actionButton)
 
-                    Text(battery.analyticsRecord != nil ? L10n.Battery.importedSuccess : L10n.Battery.importLogButton)
+                    Text(L10n.Battery.importedSuccess)
                         .font(Typography.calloutBold)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
 
-                    if let record = battery.analyticsRecord {
-                        Spacer()
-                        Text(formatDate(record.logDate))
-                            .font(Typography.badgeTagMono)
-                            .foregroundStyle(appState.accentColor.opacity(0.8))
-                    }
+                    Spacer()
+                    Text(formatDate(record.logDate))
+                        .font(Typography.badgeTagMono)
+                        .foregroundStyle(appState.accentColor.opacity(0.8))
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 36)
@@ -250,9 +245,7 @@ struct BatteryHealthCycleCard: View {
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                         .stroke(appState.accentColor.opacity(0.25), lineWidth: 0.5)
                 )
-            }
 
-            if battery.analyticsRecord != nil {
                 Button {
                     Haptics.impact(.medium)
                     battery.clearAnalyticsRecord()
@@ -264,6 +257,7 @@ struct BatteryHealthCycleCard: View {
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 }
+                .buttonStyle(.plain)
             }
         }
     }
