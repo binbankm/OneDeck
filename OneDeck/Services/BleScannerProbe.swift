@@ -18,6 +18,7 @@ public final class BleScannerProbe: NSObject, CBCentralManagerDelegate, @uncheck
 
     private var trackedPeripherals: [UUID: BleDeviceItem] = [:]
     private var onUpdate: ((_ data: BleRadarData) -> Void)?
+    private var lastDispatchTime: Date = .distantPast
 
     override private init() {
         super.init()
@@ -28,6 +29,7 @@ public final class BleScannerProbe: NSObject, CBCentralManagerDelegate, @uncheck
         self.onUpdate = onUpdate
         self.isScanning = true
         self.trackedPeripherals.removeAll()
+        self.lastDispatchTime = .distantPast
 
         if centralManager == nil {
             centralManager = CBCentralManager(delegate: self, queue: bleQueue)
@@ -82,8 +84,13 @@ public final class BleScannerProbe: NSObject, CBCentralManagerDelegate, @uncheck
 
         trackedPeripherals[peripheral.identifier] = item
 
-        // Remove stale devices (> 8s without packets)
+        // Throttle sorting and MainActor UI updates to 8Hz to prevent thermal throttling and battery drain
         let now = Date()
+        let minInterval = AppState.shared.isSensorPowerSaving ? 0.30 : 0.12
+        guard now.timeIntervalSince(lastDispatchTime) >= minInterval else { return }
+        lastDispatchTime = now
+
+        // Remove stale devices (> 8s without packets)
         trackedPeripherals = trackedPeripherals.filter { now.timeIntervalSince($0.value.lastSeen) < 8.0 }
 
         let sorted = trackedPeripherals.values.sorted { $0.rssi > $1.rssi }

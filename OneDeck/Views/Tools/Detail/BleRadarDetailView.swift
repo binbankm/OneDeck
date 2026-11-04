@@ -43,6 +43,11 @@ struct BleRadarDetailView: View {
             tools.startBleRadar()
         }
         .onDisappear {
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                radarSweepAngle = 0.0
+            }
             tools.stopBleRadar()
             tools.leaveDetailView()
         }

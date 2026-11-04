@@ -227,6 +227,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         trafficTimer?.invalidate()
         trafficTimer = nil
         stopLanScan()
+        stopSpeedTest()
     }
 
     // MARK: - Path & Interface Resolver

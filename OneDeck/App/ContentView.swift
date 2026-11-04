@@ -29,25 +29,60 @@ struct ContentView: View {
         .tint(appState.accentColor)
         .preferredColorScheme(appState.resolvedColorScheme)
         .id(appState.language)
+        .onChange(of: appState.activeTab) { oldTab, newTab in
+            handleTabChange(from: oldTab, to: newTab)
+        }
         .onChange(of: scenePhase) { _, newPhase in
             handleScenePhaseChange(newPhase)
+        }
+    }
+
+    private func handleTabChange(from oldTab: AppTab, to newTab: AppTab) {
+        // Halt background polling and hardware telemetry of the inactive tab
+        switch oldTab {
+        case .overview:
+            system.stopMonitoring()
+        case .battery:
+            battery.stopMonitoring()
+        case .network:
+            net.stopMonitoring()
+        case .tools:
+            tools.onTabDisappear()
+        case .settings:
+            break
+        }
+
+        // Activate telemetry exclusively for the newly selected tab
+        guard scenePhase == .active else { return }
+        switch newTab {
+        case .overview:
+            system.startMonitoring()
+        case .battery:
+            battery.startMonitoring()
+        case .network:
+            net.startMonitoring()
+        case .tools:
+            tools.onTabAppear()
+        case .settings:
+            break
         }
     }
 
     private func handleScenePhaseChange(_ phase: ScenePhase) {
         switch phase {
         case .background:
-            // High-priority power saving: suspend all background timers, sensors, GPS & pings when app is sent to background
+            // High-priority power saving: release idle lock and suspend all background sensors & timers
+            UIApplication.shared.isIdleTimerDisabled = false
             tools.onAppBackground()
             system.stopMonitoring()
             battery.stopMonitoring()
             net.stopMonitoring()
         case .inactive:
-            // Transient interruption (permission dialogues, control center, notifications)
-            // Maintain active sensors and views in standby so they resume smoothly
+            // Transient interruption (permission prompts, control center, incoming calls)
             break
         case .active:
-            // Resume only the currently active tab
+            // Restore screen sleep preference and resume only the active tab
+            UIApplication.shared.isIdleTimerDisabled = appState.isKeepScreenAwake
             switch appState.activeTab {
             case .overview:
                 system.startMonitoring()

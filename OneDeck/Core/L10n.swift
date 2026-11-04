@@ -756,6 +756,40 @@ public enum L10n {
         public static var microscope: String { tr(zh: "工业微距", en: "Microscope", hant: "工業微距") }
         public static var microscopeSub: String { tr(zh: "微距放大与滤镜", en: "Macro Zoom & Filter", hant: "微距放大與濾鏡") }
 
+        // Category Badges
+        public static var filterAll: String { tr(zh: "全部", en: "All", hant: "全部") }
+        public static var catMotion: String { tr(zh: "空间姿态", en: "Motion", hant: "空間姿態") }
+        public static var catMeasurement: String { tr(zh: "物理尺寸", en: "Scale", hant: "物理尺寸") }
+        public static var catAcoustic: String { tr(zh: "声学实验", en: "Acoustic", hant: "聲學實驗") }
+        public static var catOptics: String { tr(zh: "光学照明", en: "Optics", hant: "光學照明") }
+        public static var catMagnetism: String { tr(zh: "磁场探测", en: "Magnetism", hant: "磁場探測") }
+        public static var catAtmosphere: String { tr(zh: "气象高程", en: "Atmosphere", hant: "氣象高程") }
+        public static var catDisplay: String { tr(zh: "屏幕测试", en: "Display", hant: "螢幕測試") }
+        public static var catHardware: String { tr(zh: "硬件驱动", en: "Hardware", hant: "硬體驅動") }
+        public static var catBiosensing: String { tr(zh: "生物传感", en: "Biosensing", hant: "生物傳感") }
+        public static var catWireless: String { tr(zh: "射频无线", en: "Wireless", hant: "射頻無線") }
+
+        // Comprehensive Descriptive Subtitles for Launcher Cards
+        public static var spiritLevelCardDesc: String { tr(zh: "高精度双轴水平泡与表面倾角测量", en: "Dual-axis surface bubble & inclination", hant: "高精度雙軸水平泡與表面傾角測量") }
+        public static var screenRulerCardDesc: String { tr(zh: "1:1 物理毫米/英寸游标卡尺与微距测量", en: "1:1 Hardware native millimeter caliper", hant: "1:1 物理毫米/英寸游標卡尺與微距測量") }
+        public static var waterEjectorCardDesc: String { tr(zh: "165Hz 声学低频共振排水与振膜除尘", en: "165Hz acoustic low-frequency water eject", hant: "165Hz 聲學低頻共振排水與振膜除塵") }
+        public static var torchLabCardDesc: String { tr(zh: "多档线性调光、频闪测速与高反差柔光箱", en: "Multi-level dimmer, strobe & softbox", hant: "多檔線性調光、頻閃測速與高反差柔光箱") }
+        public static var metalDetectorCardDesc: String { tr(zh: "三轴磁通密度与墙内强电/铁磁异物探测", en: "Tri-axial magnetic flux & stud/wire detector", hant: "三軸磁通密度與牆內強電/鐵磁異物探測") }
+        public static var barometerCardDesc: String { tr(zh: "实时高精度大气压强、相对高程与升降速率", en: "Atmospheric pressure, elevation & climb rate", hant: "即時高精度大氣壓強、相對高程與升降速率") }
+        public static var toneGeneratorCardDesc: String { tr(zh: "20Hz–20kHz 纯音频合成器与多波形发生器", en: "20Hz–20kHz pure tone synthesis & waveforms", hant: "20Hz–20kHz 純音訊合成器與多波形發生器") }
+        public static var screenQualityCardDesc: String { tr(zh: "全色域坏点排查、对比度渐变与漏光测试", en: "Dead pixel inspection, uniformity & gamut", hant: "全色域壞點排查、對比度漸變與漏光測試") }
+        public static var hapticLabCardDesc: String { tr(zh: "Taptic Engine 振动模式、阻尼与触觉反馈测试", en: "Apple Taptic Engine feedback diagnostics", hant: "Taptic Engine 振動模式、阻尼與觸覺反饋測試") }
+        public static var decibelMeterCardDesc: String { tr(zh: "高灵敏度麦克风声压级与环境噪音谱测量", en: "Microphone sound pressure level analyzer", hant: "高靈敏度麥克風聲壓級與環境噪音譜測量") }
+        public static var compassCardDesc: String { tr(zh: "3D 电子方位角、磁偏角补偿与航向指示", en: "3D electronic azimuth & true north", hant: "3D 電子方位角、磁偏角補償與航向指示") }
+        public static var speakerLabCardDesc: String { tr(zh: "双扬声器立体声分离度、相位与扫频测试", en: "Stereo separation, phase & sweep diagnostics", hant: "雙揚聲器立體聲分離度、相位與掃頻測試") }
+        public static var touchMatrixCardDesc: String { tr(zh: "全屏电容触控高频采样与盲区轨迹排查", en: "Capacitive touch digitizer & dead-zone scan", hant: "全螢幕電容觸控高頻採樣與盲區軌跡排查") }
+        public static var pulseMeterCardDesc: String { tr(zh: "镜头光电容积脉搏波分析与实时心率测算", en: "Camera optical PPG pulse & heart rate analysis", hant: "鏡頭光電容積脈搏波分析與即時心率測算") }
+        public static var seismometerCardDesc: String { tr(zh: "三轴加速度微震烈度监测与主频波形图", en: "Tri-axial PGA micro-seismic & vibration spectrum", hant: "三軸加速度微震烈度監測與主頻波形圖") }
+        public static var luxMeterCardDesc: String { tr(zh: "环境光学勒克斯、尺烛光与曝光 EV 计算", en: "Photometric illuminance, foot-candles & EV", hant: "環境光學勒克斯、尺燭光與曝光 EV 計算") }
+        public static var gnssHubCardDesc: String { tr(zh: "北斗/GPS 多星解算、精度因子与大地坐标", en: "Multi-GNSS constellation, DOP & datum", hant: "北斗/GPS 多星解算、精度因子與大地座標") }
+        public static var bleRadarCardDesc: String { tr(zh: "低功耗蓝牙信标探测、RSSI 强度与近场测距", en: "BLE beacon radar, RSSI signal & proximity", hant: "低功耗藍牙信標探測、RSSI 強度與近場測距") }
+        public static var microscopeCardDesc: String { tr(zh: "超微距光学放大、Sobel 边缘探伤与原色定格", en: "Macro zoom, Sobel edge filter & freeze frame", hant: "超微距光學放大、Sobel 邊緣探傷與原色定格") }
+
         // Additional Concise Terminology & Actions
         public static var pulseSteadyTip: String { tr(zh: "吸光周期稳定", en: "Pulse stable", hant: "吸光週期穩定") }
         public static var soundPlaying: String { tr(zh: "音频输出中", en: "Playing", hant: "音訊輸出中") }

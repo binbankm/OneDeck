@@ -169,6 +169,8 @@ public enum IconTheme {
     public static let chevronIndicator: Font = .system(size: 9, weight: .semibold)
     /// Prominent card control / action button icon font size
     public static let prominentAction: Font = .system(size: 24, weight: .semibold)
+    /// Tool launcher card 44x44 squircle platter icon size
+    public static let launcherIcon: Font = .system(size: 20, weight: .semibold)
     /// Hero avatar / Device preview icon font size
     public static let heroAvatar: Font = .system(size: 22, weight: .semibold)
     /// Empty state & device graphic icon font size
@@ -270,7 +272,22 @@ public struct BentoCardModifier: ViewModifier {
     public var padding: CGFloat
     public var cornerRadius: CGFloat
     public var isHighlighted: Bool
+    public var hasShadow: Bool
     public var accentColor: Color
+
+    public init(
+        padding: CGFloat,
+        cornerRadius: CGFloat,
+        isHighlighted: Bool = false,
+        hasShadow: Bool = true,
+        accentColor: Color
+    ) {
+        self.padding = padding
+        self.cornerRadius = cornerRadius
+        self.isHighlighted = isHighlighted
+        self.hasShadow = hasShadow
+        self.accentColor = accentColor
+    }
 
     public func body(content: Content) -> some View {
         content
@@ -289,10 +306,12 @@ public struct BentoCardModifier: ViewModifier {
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .shadow(
-                color: isHighlighted ? accentColor.opacity(0.12) : Color.black.opacity(colorScheme == .dark ? 0.3 : 0.04),
-                radius: isHighlighted ? 12 : 8,
+                color: (hasShadow && !isHighlighted)
+                    ? Color.black.opacity(colorScheme == .dark ? 0.3 : 0.04)
+                    : (isHighlighted ? accentColor.opacity(0.12) : .clear),
+                radius: hasShadow ? (isHighlighted ? 12 : 8) : 0,
                 x: 0,
-                y: 4
+                y: hasShadow ? 4 : 0
             )
             .frame(maxWidth: .infinity)
     }
@@ -303,14 +322,28 @@ extension View {
         padding: CGFloat = SpacingTheme.cardStack,
         cornerRadius: CGFloat = CornerRadiusTheme.card,
         isHighlighted: Bool = false,
+        hasShadow: Bool = true,
         accent: Color = .green
     ) -> some View {
         modifier(BentoCardModifier(
             padding: padding,
             cornerRadius: cornerRadius,
             isHighlighted: isHighlighted,
+            hasShadow: hasShadow,
             accentColor: accent
         ))
+    }
+}
+
+// MARK: - Bento Card Interactive Button Style
+public struct BentoCardButtonStyle: ButtonStyle {
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.88 : 1.0)
+            .animation(.spring(response: 0.22, dampingFraction: 0.75), value: configuration.isPressed)
     }
 }
 

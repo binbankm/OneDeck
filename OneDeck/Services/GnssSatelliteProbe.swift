@@ -26,8 +26,8 @@ public final class GnssSatelliteProbe: NSObject, CLLocationManagerDelegate, @unc
         self.isTracking = true
 
         let manager = CLLocationManager()
-        manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        manager.distanceFilter = kCLDistanceFilterNone
+        manager.desiredAccuracy = AppState.shared.isSensorPowerSaving ? kCLLocationAccuracyNearestTenMeters : kCLLocationAccuracyBest
+        manager.distanceFilter = AppState.shared.isSensorPowerSaving ? 5.0 : kCLDistanceFilterNone
         manager.delegate = self
         self.locationManager = manager
 
@@ -39,6 +39,7 @@ public final class GnssSatelliteProbe: NSObject, CLLocationManagerDelegate, @unc
         guard isTracking else { return }
         isTracking = false
         locationManager?.stopUpdatingLocation()
+        locationManager?.delegate = nil
         locationManager = nil
         onUpdate = nil
     }

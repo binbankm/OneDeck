@@ -122,58 +122,6 @@ public final class ToolsViewModel {
     // MARK: - Lifecycle Management (Smart Battery-Saving Guard)
     public func onTabAppear() {
         isToolsTabActive = true
-        if activeDetailCount == 0 {
-            startTabTelemetrySensors()
-        }
-    }
-
-    public func startTabTelemetrySensors() {
-        guard isToolsTabActive && activeDetailCount == 0 else { return }
-        // Run safe, non-permissioned preview sensors at power-efficient rates:
-        let isPowerSaving = AppState.shared.isSensorPowerSaving
-        let motionRate = isPowerSaving ? (1.0 / 6.0) : (1.0 / 12.0)
-        let magRate = isPowerSaving ? (1.0 / 5.0) : (1.0 / 10.0)
-
-        // Accelerometer & Magnetometer (zero permission popups, lightweight preview)
-        startMotionSensors(interval: motionRate)
-        startMagnetometer(interval: magRate)
-        updateAmbientLuxPreview()
-    }
-
-    public func stopTabTelemetrySensors() {
-        stopMotionSensors()
-        stopMagnetometer()
-        seismicProbe.stopSeismicMonitoring()
-        luxProbe.stopLuxSampling()
-        luxMeter.isSampling = false
-    }
-
-    public func updateAmbientLuxPreview() {
-        let b = Double(UIScreen.main.brightness)
-        let lux = max(10.0, b * b * 750.0 + 25.0)
-        let fc = lux / 10.764
-        let ev = log2(max(1.0, lux) / 2.5)
-        self.luxMeter.currentLux = lux
-        self.luxMeter.currentFootCandles = fc
-        self.luxMeter.exposureValueEV = ev
-        self.luxMeter.environmentDescription = AmbientLuxProbe.shared.describeLux(lux)
-    }
-
-    public func triggerBleDiscoveryPulse() {
-        guard !bleRadar.isScanning else { return }
-        bleProbe.startScanning { [weak self] data in
-            guard let self else { return }
-            self.bleRadar = data
-        }
-        Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            await MainActor.run {
-                if self?.activeDetailCount == 0 {
-                    self?.bleProbe.stopScanning()
-                    self?.bleRadar.isScanning = false
-                }
-            }
-        }
     }
 
     public func onTabDisappear() {
@@ -187,7 +135,8 @@ public final class ToolsViewModel {
     }
 
     public func onAppBackground() {
-        stopTabTelemetrySensors()
+        pauseActiveDetailTool()
+        stopAllSensors()
         stopWaterEjection()
         stopToneGenerator()
         torchProbe.turnOff()
@@ -195,11 +144,7 @@ public final class ToolsViewModel {
     }
 
     public func onAppForeground() {
-        if activeDetailCount == 0 {
-            if isToolsTabActive {
-                startTabTelemetrySensors()
-            }
-        } else {
+        if activeDetailCount > 0 {
             resumeActiveDetailTool()
         }
     }
@@ -207,19 +152,41 @@ public final class ToolsViewModel {
     public func enterDetailView(tool: ActiveDetailTool = .other) {
         activeDetailCount += 1
         currentActiveDetailTool = tool
-        if activeDetailCount == 1 {
-            // Suspend background non-active tab preview polling to reduce CPU & thermal load
-            stopTabTelemetrySensors()
-        }
     }
 
     public func leaveDetailView() {
         activeDetailCount = max(0, activeDetailCount - 1)
         if activeDetailCount == 0 {
             currentActiveDetailTool = .none
-            if isToolsTabActive {
-                startTabTelemetrySensors()
-            }
+        }
+    }
+
+    public func pauseActiveDetailTool() {
+        switch currentActiveDetailTool {
+        case .barometer:
+            stopBarometer()
+        case .seismometer:
+            stopSeismicMonitoring()
+        case .luxMeter:
+            stopLuxSampling()
+        case .decibelMeter:
+            stopDecibelMeter()
+        case .compass:
+            stopCompass()
+        case .gnss:
+            stopGnssTracking()
+        case .bleRadar:
+            stopBleRadar()
+        case .microscope:
+            stopMicroscope()
+        case .pulseMeter:
+            stopPulseMeasurement()
+        case .spiritLevel:
+            stopMotionSensors()
+        case .metalDetector:
+            stopMagnetometer()
+        case .none, .other:
+            break
         }
     }
 
@@ -610,6 +577,12 @@ public final class ToolsViewModel {
         stopCompass()
         stopSpeakerTest()
         stopLuxSampling()
+        stopSeismicMonitoring()
+        stopPulseMeasurement()
+        stopGnssTracking()
+        stopBleRadar()
+        stopMicroscope()
+        stopProximityMonitoring()
     }
 
     // MARK: - 9. Decibel Sound Meter Actions

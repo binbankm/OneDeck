@@ -88,6 +88,13 @@ struct BatteryThermalChassisCard: View {
         .onAppear {
             isBreathing = true
         }
+        .onDisappear {
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                isBreathing = false
+            }
+        }
     }
 
     // MARK: - 2. Thermal Spectrum Scale Bar with MAX / MIN Indicators

@@ -25,6 +25,103 @@ public enum ActiveDetailTool: String, Sendable {
     case other
 }
 
+// MARK: - Hardware Tool Registry
+public enum HardwareTool: String, CaseIterable, Identifiable, Hashable, Sendable {
+    case spiritLevel
+    case compass
+    case seismometer
+    case barometer
+    case luxMeter
+    case metalDetector
+    case decibelMeter
+    case waterEjector
+    case toneGenerator
+    case speakerLab
+    case screenRuler
+    case screenQuality
+    case touchMatrix
+    case hapticLab
+    case precisionTorch
+    case pulseMeter
+    case microscope
+    case gnssHub
+    case bleRadar
+
+    public var id: String { rawValue }
+
+    public var title: String {
+        switch self {
+        case .spiritLevel: return L10n.Tools.spiritLevel
+        case .compass: return L10n.Tools.compass
+        case .seismometer: return L10n.Tools.seismometer
+        case .barometer: return L10n.Tools.barometer
+        case .luxMeter: return L10n.Tools.luxMeter
+        case .metalDetector: return L10n.Tools.metalDetector
+        case .decibelMeter: return L10n.Tools.decibelMeter
+        case .waterEjector: return L10n.Tools.waterEjector
+        case .toneGenerator: return L10n.Tools.toneGenerator
+        case .speakerLab: return L10n.Tools.speakerLab
+        case .screenRuler: return L10n.Tools.screenRuler
+        case .screenQuality: return L10n.Tools.screenQuality
+        case .touchMatrix: return L10n.Tools.touchMatrix
+        case .hapticLab: return L10n.Tools.hapticLab
+        case .precisionTorch: return L10n.Tools.torchLab
+        case .pulseMeter: return L10n.Tools.pulseMeter
+        case .microscope: return L10n.Tools.microscope
+        case .gnssHub: return L10n.Tools.gnssHub
+        case .bleRadar: return L10n.Tools.bleRadar
+        }
+    }
+
+    public var subtitle: String {
+        switch self {
+        case .spiritLevel: return L10n.Tools.spiritLevelCardDesc
+        case .compass: return L10n.Tools.compassCardDesc
+        case .seismometer: return L10n.Tools.seismometerCardDesc
+        case .barometer: return L10n.Tools.barometerCardDesc
+        case .luxMeter: return L10n.Tools.luxMeterCardDesc
+        case .metalDetector: return L10n.Tools.metalDetectorCardDesc
+        case .decibelMeter: return L10n.Tools.decibelMeterCardDesc
+        case .waterEjector: return L10n.Tools.waterEjectorCardDesc
+        case .toneGenerator: return L10n.Tools.toneGeneratorCardDesc
+        case .speakerLab: return L10n.Tools.speakerLabCardDesc
+        case .screenRuler: return L10n.Tools.screenRulerCardDesc
+        case .screenQuality: return L10n.Tools.screenQualityCardDesc
+        case .touchMatrix: return L10n.Tools.touchMatrixCardDesc
+        case .hapticLab: return L10n.Tools.hapticLabCardDesc
+        case .precisionTorch: return L10n.Tools.torchLabCardDesc
+        case .pulseMeter: return L10n.Tools.pulseMeterCardDesc
+        case .microscope: return L10n.Tools.microscopeCardDesc
+        case .gnssHub: return L10n.Tools.gnssHubCardDesc
+        case .bleRadar: return L10n.Tools.bleRadarCardDesc
+        }
+    }
+
+    public var icon: String {
+        switch self {
+        case .spiritLevel: return "level.fill"
+        case .compass: return "location.north.line.fill"
+        case .seismometer: return "waveform.path.ecg.rectangle.fill"
+        case .barometer: return "gauge.with.needle.fill"
+        case .luxMeter: return "sun.max.fill"
+        case .metalDetector: return "sensor.fill"
+        case .decibelMeter: return "waveform"
+        case .waterEjector: return "drop.circle.fill"
+        case .toneGenerator: return "tuningfork"
+        case .speakerLab: return "speaker.wave.3.fill"
+        case .screenRuler: return "ruler.fill"
+        case .screenQuality: return "display"
+        case .touchMatrix: return "grid"
+        case .hapticLab: return "hand.tap.fill"
+        case .precisionTorch: return "flashlight.on.fill"
+        case .pulseMeter: return "heart.fill"
+        case .microscope: return "camera.macro"
+        case .gnssHub: return "location.north.circle.fill"
+        case .bleRadar: return "antenna.radiowaves.left.and.right"
+        }
+    }
+}
+
 // MARK: - 1. Spirit Level & Inclinometer Models
 public enum SpiritLevelOrientation: String, Sendable {
     case flat // Lying flat on table (2D circular bubble reticle)
