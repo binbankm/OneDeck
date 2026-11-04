@@ -168,7 +168,7 @@ struct SettingsSigningDetailSheet: View {
 
                 if let creation = probe.creationDate, let expiration = probe.expirationDate {
                     let durationDays = Int(expiration.timeIntervalSince(creation) / 86400.0)
-                    detailRow(title: L10n.Settings.certValiditySpan, value: L10n.Settings.certValiditySpanDays(days: durationDays))
+                    detailRow(title: L10n.Settings.certValiditySpan, value: L10n.Settings.certValiditySpanDays(days: durationDays), icon: "calendar.badge.clock")
                 }
             }
         }
@@ -204,11 +204,12 @@ struct SettingsSigningDetailSheet: View {
                         return L10n.Settings.certScopeSandbox
                     }
                 }()
-                detailRow(title: L10n.Settings.certDeviceCount, value: scopeText)
+                detailRow(title: L10n.Settings.certDeviceCount, value: scopeText, icon: "iphone.gen3")
 
                 detailRow(
                     title: L10n.Settings.certDebuggable,
-                    value: probe.isTaskAllowEnabled ? L10n.Settings.certDebuggableEnabled : L10n.Settings.certDebuggableStripped
+                    value: probe.isTaskAllowEnabled ? L10n.Settings.certDebuggableEnabled : L10n.Settings.certDebuggableStripped,
+                    icon: "ant.fill"
                 )
             }
         }
@@ -223,7 +224,7 @@ struct SettingsSigningDetailSheet: View {
 
             VStack(spacing: SpacingTheme.standard) {
                 blockCopyableRow(title: L10n.Settings.certAppId, value: probe.appIdentifier, key: "appId", isMono: true)
-                detailRow(title: L10n.Settings.certSandboxMode, value: L10n.Settings.certSandboxHardwareDesc)
+                detailRow(title: L10n.Settings.certSandboxMode, value: L10n.Settings.certSandboxHardwareDesc, icon: "shippingbox.fill")
 
                 if !probe.keychainAccessGroups.isEmpty {
                     blockCopyableRow(
@@ -301,8 +302,14 @@ struct SettingsSigningDetailSheet: View {
     }
 
     @ViewBuilder
-    private func detailRow(title: String, value: String) -> some View {
+    private func detailRow(title: String, value: String, icon: String? = nil) -> some View {
         HStack(alignment: .center, spacing: SpacingTheme.standard) {
+            if let icon {
+                Image(systemName: icon)
+                    .font(IconTheme.badgeInline)
+                    .foregroundStyle(appState.accentColor)
+            }
+
             Text(title)
                 .font(Typography.caption)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))

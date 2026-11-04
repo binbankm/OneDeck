@@ -522,14 +522,14 @@ public enum L10n {
         public static var baselineEstimated: String { tr(zh: "待校准", en: "Pending Calibration", hant: "待校準") }
         public static var calibrateViaLogPrompt: String { tr(zh: "导入日志校准真值", en: "Import Log to Calibrate", hant: "匯入日誌校準真值") }
         public static var baselineNotice: String { tr(
-            zh: "iOS 限制沙盒直接读取 BMS，需导入官方分析日志以解锁原厂真实数据与循环次数",
-            en: "iOS sandbox blocks direct BMS reads. Import Analytics Log to unlock exact battery health & cycles",
-            hant: "iOS 限制沙盒直接讀取 BMS，需匯入官方分析日誌以解鎖原廠真實數據與循環次數"
+            zh: "需导入官方分析日志以解锁原厂真实数据与循环次数",
+            en: "Import Analytics Log to unlock exact battery health & cycles",
+            hant: "需匯入官方分析日誌以解鎖原廠真實數據與循環次數"
         ) }
         public static var pendingImportNotice: String { tr(
-            zh: "iOS 限制沙盒直接读取 BMS，需导入官方分析日志以解锁原厂真实数据与循环次数",
-            en: "iOS sandbox blocks direct BMS reads. Import Analytics Log to unlock exact battery health & cycles",
-            hant: "iOS 限制沙盒直接讀取 BMS，需匯入官方分析日誌以解鎖原廠真實數據與循環次數"
+            zh: "需导入官方分析日志以解锁原厂真实数据与循环次数",
+            en: "Import Analytics Log to unlock exact battery health & cycles",
+            hant: "需匯入官方分析日誌以解鎖原廠真實數據與循環次數"
         ) }
         public static var flirMode: String { tr(zh: "红外热像", en: "FLIR IR", hant: "紅外熱像") }
         public static var xrayMode: String { tr(zh: "透视蓝图", en: "X-Ray", hant: "透視藍圖") }

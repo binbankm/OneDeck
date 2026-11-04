@@ -345,6 +345,7 @@ struct BatteryLongevityCard: View {
     }
 
     private var degradationRateText: String {
+        guard battery.hasRealTelemetry else { return "--" }
         let count = battery.cycleCountDisplay
         guard count > 0 else { return "0.000%" }
         let loss = max(0.0, 100.0 - battery.healthPercentDisplay)
@@ -353,6 +354,7 @@ struct BatteryLongevityCard: View {
     }
 
     private var degradationSubText: String {
+        guard battery.hasRealTelemetry else { return L10n.Battery.pendingImport }
         let count = battery.cycleCountDisplay
         if count < 500 { return L10n.Battery.cycleTierGolden }
         if count < 800 { return L10n.Battery.cycleTierAging }
@@ -360,11 +362,13 @@ struct BatteryLongevityCard: View {
     }
 
     private var serviceMarginText: String {
+        guard battery.hasRealTelemetry else { return "--" }
         let margin = max(0.0, battery.healthPercentDisplay - 80.0)
         return String(format: "+%.1f", margin)
     }
 
     private var serviceMarginSubText: String {
+        guard battery.hasRealTelemetry else { return L10n.Battery.pendingImport }
         let margin = max(0.0, battery.healthPercentDisplay - 80.0)
         if margin > 10.0 {
             return L10n.Battery.marginSafe

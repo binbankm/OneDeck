@@ -78,8 +78,7 @@ public final class BatteryViewModel {
         if let hwCycles = hardwareCycleCount, hwCycles > 0 {
             return hwCycles
         }
-        // Baseline estimate if no log imported
-        return estimatedCyclesFromMachine
+        return 0
     }
 
     public var healthPercentDisplay: Double {
@@ -93,8 +92,7 @@ public final class BatteryViewModel {
             let h = (Double(hwMax) / Double(effectiveDesignCapacityMah)) * 100.0
             return min(100.0, max(1.0, h))
         }
-        // Baseline estimate if no log imported
-        return min(100.0, estimatedHealthFromMachine)
+        return 0.0
     }
 
     public var actualMaxCapacityMahDisplay: Int {
@@ -104,7 +102,7 @@ public final class BatteryViewModel {
         if let hwMax = hardwareMaxCapacityMah, hwMax > 500 {
             return hwMax
         }
-        return Int(Double(effectiveDesignCapacityMah) * (healthPercentDisplay / 100.0))
+        return 0
     }
 
     // Power History Sparkline (Rolling 30s)

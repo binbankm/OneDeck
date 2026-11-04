@@ -38,6 +38,9 @@ struct ContentView: View {
     }
 
     private func handleTabChange(from oldTab: AppTab, to newTab: AppTab) {
+        guard oldTab != newTab else { return }
+        Haptics.selection()
+
         // Halt background polling and hardware telemetry of the inactive tab
         switch oldTab {
         case .overview:

@@ -112,21 +112,45 @@ struct BatteryHealthCycleCard: View {
 
     @ViewBuilder
     private var baselineNoticeSection: some View {
-        HStack(spacing: SpacingTheme.compact) {
-            Image(systemName: "info.circle.fill")
-                .font(IconTheme.tileLeading)
-                .foregroundStyle(.orange)
+        Button {
+            Haptics.impact(.medium)
+            showAnalyticsSheet = true
+        } label: {
+            HStack(spacing: SpacingTheme.compact) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(IconTheme.tileLeading)
+                    .foregroundStyle(.orange)
 
-            Text(L10n.Battery.pendingImportNotice)
-                .font(Typography.caption)
-                .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                .lineLimit(2)
+                VStack(alignment: .leading, spacing: SpacingTheme.micro) {
+                    Text(L10n.Battery.pendingImportNotice)
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+
+                    Text(L10n.Battery.calibrateViaLogPrompt)
+                        .font(Typography.microAxis)
+                        .foregroundStyle(.orange)
+                        .fontWeight(.semibold)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(IconTheme.badgeInline)
+                    .foregroundStyle(.orange.opacity(0.8))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, SpacingTheme.row)
+            .padding(.vertical, SpacingTheme.compact)
+            .background(Color.orange.opacity(colorScheme == .dark ? 0.12 : 0.08))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                    .stroke(Color.orange.opacity(0.25), lineWidth: 0.5)
+            )
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, SpacingTheme.row)
-        .padding(.vertical, SpacingTheme.compact)
-        .background(Color.orange.opacity(colorScheme == .dark ? 0.08 : 0.06))
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder

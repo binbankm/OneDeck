@@ -17,6 +17,7 @@ struct ToolsView: View {
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 cardStack
+                    .frame(maxWidth: 680)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, SpacingTheme.cardStack)
                     .padding(.vertical, SpacingTheme.rowStandard)
