@@ -118,18 +118,9 @@ struct SettingsSigningDetailSheet: View {
             // Visual Lifecycle Progress Bar
             if probe.hasProvisionProfile {
                 VStack(alignment: .leading, spacing: SpacingTheme.compact) {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Theme.cardBorder(for: colorScheme))
-                                .frame(height: 6)
-
-                            Capsule()
-                                .fill(statusColor)
-                                .frame(width: max(8, geo.size.width * CGFloat(probe.progressRatio)), height: 6)
-                        }
-                    }
-                    .frame(height: 6)
+                    ProgressView(value: min(1.0, max(0.0, probe.progressRatio)))
+                        .tint(statusColor)
+                        .scaleEffect(x: 1, y: 1.4, anchor: .center)
 
                     HStack {
                         Text("\(L10n.Settings.creationDateLabel): \(probe.creationDate?.formatted(date: .numeric, time: .omitted) ?? "N/A")")

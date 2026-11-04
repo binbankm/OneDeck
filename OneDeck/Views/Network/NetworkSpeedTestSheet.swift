@@ -110,7 +110,7 @@ struct NetworkSpeedTestSheet: View {
                 unit: "Mbps",
                 subtext: net.speedTestUploadPeakMbps > 0 ? L10n.Network.peakSpeedFormatted(mbps: net.speedTestUploadPeakMbps) : nil,
                 icon: "arrow.up.circle.fill",
-                color: Color.mint
+                color: ChartTheme.uploadColor
             )
 
             scorecardCell(
@@ -316,7 +316,7 @@ struct NetworkSpeedTestSheet: View {
 
                                 Text("↑\(String(format: "%.1f", item.uploadMbps))M")
                                     .font(Typography.calloutMono)
-                                    .foregroundStyle(Color.mint)
+                                    .foregroundStyle(ChartTheme.uploadColor)
 
                                 Text("\(String(format: "%.0f", item.pingMs))ms")
                                     .font(Typography.captionMono)

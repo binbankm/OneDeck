@@ -22,7 +22,7 @@ struct SettingsAppearanceCard: View {
 
             VStack(spacing: SpacingTheme.standard) {
                 appearanceModeRow
-                customPaletteRow
+                themePaletteTile
             }
         }
         .bentoCard(accent: appState.accentColor)
@@ -82,27 +82,65 @@ struct SettingsAppearanceCard: View {
         )
     }
 
-    private var customPaletteRow: some View {
-        // 2. Custom Color Palette Platter Tile
-        HStack(alignment: .center, spacing: SpacingTheme.standard) {
-            Image(systemName: "paintpalette.fill")
-                .font(IconTheme.tileLeading)
-                .foregroundStyle(appState.accentColor)
-                .frame(width: 20, height: 20, alignment: .center)
+    private var themePaletteTile: some View {
+        // 2. Curated theme color swatches & native custom picker platter tile
+        VStack(alignment: .leading, spacing: SpacingTheme.standard) {
+            HStack(alignment: .center, spacing: SpacingTheme.standard) {
+                Image(systemName: "paintpalette.fill")
+                    .font(IconTheme.tileLeading)
+                    .foregroundStyle(appState.accentColor)
+                    .frame(width: 20, height: 20, alignment: .center)
 
-            Text(L10n.Settings.customPalette)
-                .font(Typography.bodyValue.weight(.medium))
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .lineLimit(1)
+                Text(L10n.Settings.customPalette)
+                    .font(Typography.bodyValue.weight(.medium))
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .lineLimit(1)
 
-            Spacer(minLength: SpacingTheme.standard)
+                Spacer(minLength: SpacingTheme.standard)
 
-            ColorPicker("", selection: $customColor, supportsOpacity: false)
-                .labelsHidden()
-                .onChange(of: customColor) { _, newColor in
-                    let hex = newColor.toHex()
-                    appState.setThemeHex(hex)
+                let isDefault = appState.themeColorHex.caseInsensitiveCompare(ThemePreset.defaultPreset.hex) == .orderedSame
+
+                Button {
+                    Haptics.selection()
+                    appState.setThemeHex(ThemePreset.defaultPreset.hex)
+                    customColor = Color(hex: ThemePreset.defaultPreset.hex)
+                } label: {
+                    HStack(spacing: SpacingTheme.tight) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(IconTheme.badgeInline)
+                        Text(L10n.Common.reset)
+                            .font(Typography.badgeTag)
+                    }
+                    .foregroundStyle(isDefault ? Theme.textTertiary(for: colorScheme) : appState.accentColor)
+                    .padding(.horizontal, SpacingTheme.standard)
+                    .padding(.vertical, SpacingTheme.micro)
+                    .background(
+                        isDefault
+                            ? (colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
+                            : appState.accentColor.opacity(0.12)
+                    )
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(
+                                isDefault ? Color.clear : appState.accentColor.opacity(0.3),
+                                lineWidth: 0.8
+                            )
+                    )
                 }
+                .buttonStyle(.plain)
+                .disabled(isDefault)
+            }
+
+            HStack(spacing: 0) {
+                ForEach(ThemePreset.allPresets) { preset in
+                    presetSwatchButton(preset)
+                    Spacer(minLength: 0)
+                }
+
+                customColorPickerSwatch
+            }
+            .padding(.top, SpacingTheme.micro)
         }
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.standard)
@@ -110,6 +148,61 @@ struct SettingsAppearanceCard: View {
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         )
+    }
+
+    @ViewBuilder
+    private func presetSwatchButton(_ preset: ThemePreset) -> some View {
+        let isSelected = appState.themeColorHex.caseInsensitiveCompare(preset.hex) == .orderedSame
+
+        Button {
+            Haptics.selection()
+            appState.setThemeHex(preset.hex)
+            customColor = Color(hex: preset.hex)
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: preset.hex))
+                    .frame(width: 26, height: 26)
+
+                if isSelected {
+                    Circle()
+                        .strokeBorder(Theme.textPrimary(for: colorScheme), lineWidth: 2)
+                        .frame(width: 32, height: 32)
+
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.white)
+                        .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 1)
+                }
+            }
+            .frame(width: 32, height: 32)
+            .contentShape(Circle())
+        }
+        .buttonStyle(BentoCardButtonStyle())
+        .accessibilityLabel(preset.hex)
+    }
+
+    private var customColorPickerSwatch: some View {
+        let isCustomSelected = ThemePreset.allPresets.allSatisfy {
+            $0.hex.caseInsensitiveCompare(appState.themeColorHex) != .orderedSame
+        }
+
+        return ZStack {
+            if isCustomSelected {
+                Circle()
+                    .strokeBorder(Theme.textPrimary(for: colorScheme), lineWidth: 2)
+                    .frame(width: 32, height: 32)
+            }
+
+            ColorPicker("", selection: $customColor, supportsOpacity: false)
+                .labelsHidden()
+                .frame(width: 28, height: 28)
+        }
+        .frame(width: 32, height: 32)
+        .onChange(of: customColor) { _, newColor in
+            let hex = newColor.toHex()
+            appState.setThemeHex(hex)
+        }
     }
 }
 

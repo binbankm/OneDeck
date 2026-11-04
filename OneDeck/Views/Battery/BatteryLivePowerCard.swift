@@ -94,7 +94,7 @@ struct BatteryLivePowerCard: View {
                     .lineLimit(1)
             }
 
-            let maxObserved = battery.powerHistory.map(\.value).max() ?? 2.5
+            let maxObserved = battery.powerHistory.reduce(2.5) { max($0, $1.value) }
             let dynamicMaxY = max(2.5, maxObserved * 1.25)
             let topLabelText = String(format: dynamicMaxY >= 10 ? "%.0fW" : "%.1fW", dynamicMaxY)
             let midLabelText = String(format: (dynamicMaxY / 2.0) >= 10 ? "%.0fW" : "%.1fW", dynamicMaxY / 2.0)

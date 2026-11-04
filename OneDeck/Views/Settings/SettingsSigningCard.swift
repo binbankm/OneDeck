@@ -95,19 +95,10 @@ struct SettingsSigningCard: View {
 
             // Visual Lifecycle Bar (for 7-day or 365-day certificates)
             if probe.hasProvisionProfile {
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Theme.cardBorder(for: colorScheme))
-                            .frame(height: 5)
-
-                        Capsule()
-                            .fill(statusColor)
-                            .frame(width: max(8, geo.size.width * CGFloat(probe.progressRatio)), height: 6)
-                    }
-                }
-                .frame(height: 6)
-                .padding(.vertical, SpacingTheme.micro)
+                ProgressView(value: min(1.0, max(0.0, probe.progressRatio)))
+                    .tint(statusColor)
+                    .scaleEffect(x: 1, y: 1.4, anchor: .center)
+                    .padding(.vertical, SpacingTheme.micro)
             }
         }
         .padding(.horizontal, SpacingTheme.row)

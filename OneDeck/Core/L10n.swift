@@ -56,6 +56,16 @@ public enum L10n {
                 return (true, false)
             }
         }
+
+        // Region-based fallback for devices with English system UI located in Greater China
+        let region = Locale.current.region?.identifier.uppercased() ?? ""
+        if region == "CN" || Locale.current.identifier.uppercased().contains("_CN") {
+            return (true, false)
+        }
+        if region == "TW" || region == "HK" || region == "MO" {
+            return (true, true)
+        }
+
         return (false, false)
     }
 

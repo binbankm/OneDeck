@@ -76,7 +76,7 @@ struct OverviewNetworkCard: View {
                 rateValue: system.uploadRate.value,
                 rateUnit: system.uploadRate.unit,
                 history: system.uploadHistory,
-                color: Color(hex: "#00C9FF"),
+                color: ChartTheme.uploadColor,
                 sessionTotal: system.sessionUploadTotalFormatted
             )
         }

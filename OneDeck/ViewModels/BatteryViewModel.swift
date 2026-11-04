@@ -113,6 +113,7 @@ public final class BatteryViewModel {
     // MARK: - Private State
     private var timer: Timer?
     private var isMonitoring: Bool = false
+    private var samplingTask: Task<Void, Never>?
     private let userDefaultsKeys = (
         customEnabled: "onedeck_battery_custom_enabled",
         customCapacity: "onedeck_battery_custom_mah",
@@ -151,13 +152,11 @@ public final class BatteryViewModel {
             object: nil
         )
 
-        updateTelemetrySnapshot()
+        scheduleAsyncTelemetrySnapshot()
 
         let interval: TimeInterval = AppState.shared.isSensorPowerSaving ? 4.0 : 1.5
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.updateTelemetrySnapshot()
-            }
+            self?.scheduleAsyncTelemetrySnapshot()
         }
     }
 
@@ -166,87 +165,46 @@ public final class BatteryViewModel {
         isMonitoring = false
         timer?.invalidate()
         timer = nil
+        samplingTask?.cancel()
+        samplingTask = nil
         NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Telemetry Engine
     @MainActor
     @objc private func handleBatteryChange() {
-        updateTelemetrySnapshot()
+        scheduleAsyncTelemetrySnapshot()
     }
 
     @MainActor
     @objc private func handlePowerModeChange() {
         self.isLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
-    }
-
-    private static var didAttemptIOPS: Bool = false
-    private static var isIOPSAvailable: Bool = true
-
-    private static func readExactSystemBatteryPercentage() -> Int? {
-        guard isIOPSAvailable else { return nil }
-
-        guard let handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW) else {
-            isIOPSAvailable = false
-            return nil
-        }
-        defer { dlclose(handle) }
-
-        typealias CopyInfoFunc = @convention(c) () -> Unmanaged<CFTypeRef>?
-        typealias CopyListFunc = @convention(c) (CFTypeRef) -> Unmanaged<CFArray>?
-        typealias GetDescFunc = @convention(c) (CFTypeRef, CFTypeRef) -> Unmanaged<CFDictionary>?
-
-        guard let symCopyInfo = dlsym(handle, "IOPSCopyPowerSourcesInfo"),
-              let symCopyList = dlsym(handle, "IOPSCopyPowerSourcesList"),
-              let symGetDesc = dlsym(handle, "IOPSGetPowerSourceDescription") else {
-            isIOPSAvailable = false
-            return nil
-        }
-
-        let copyInfo = unsafeBitCast(symCopyInfo, to: CopyInfoFunc.self)
-        let copyList = unsafeBitCast(symCopyList, to: CopyListFunc.self)
-        let getDesc = unsafeBitCast(symGetDesc, to: GetDescFunc.self)
-
-        guard let infoUnmanaged = copyInfo() else {
-            isIOPSAvailable = false
-            return nil
-        }
-        let info = infoUnmanaged.takeRetainedValue()
-
-        guard let listUnmanaged = copyList(info) else {
-            isIOPSAvailable = false
-            return nil
-        }
-        let list = listUnmanaged.takeRetainedValue() as [AnyObject]
-
-        guard let firstSource = list.first else {
-            isIOPSAvailable = false
-            return nil
-        }
-        guard let descUnmanaged = getDesc(info, firstSource) else {
-            isIOPSAvailable = false
-            return nil
-        }
-        let desc = descUnmanaged.takeUnretainedValue() as NSDictionary
-
-        if let cur = desc["Current Capacity"] as? Int,
-           let max = desc["Max Capacity"] as? Int, max > 0 {
-            isIOPSAvailable = true
-            return Int(round((Double(cur) / Double(max)) * 100.0))
-        }
-        return nil
+        scheduleAsyncTelemetrySnapshot()
     }
 
     @MainActor
     public func updateTelemetrySnapshot() {
-        // 1. Query Hardware Telemetry via Private APIs (Watts, IOPS & AppleSmartBattery)
-        let hw = HardwareBatteryProbe.sample()
+        scheduleAsyncTelemetrySnapshot()
+    }
 
-        // 2. Battery Percentage
+    private func scheduleAsyncTelemetrySnapshot() {
+        guard isMonitoring else { return }
+        samplingTask?.cancel()
+        samplingTask = Task.detached(priority: .utility) { [weak self] in
+            let hw = HardwareBatteryProbe.sample()
+            if Task.isCancelled { return }
+            await MainActor.run { [weak self] in
+                guard let self, self.isMonitoring else { return }
+                self.applyTelemetrySnapshot(hw: hw)
+            }
+        }
+    }
+
+    @MainActor
+    private func applyTelemetrySnapshot(hw: HardwareBatteryTelemetry) {
+        // 1. Battery Percentage
         if let cur = hw.currentCapacityMah, let maxCap = hw.maxCapacityMah, maxCap > 0 {
             self.batteryLevel = min(1.0, max(0.0, Double(cur) / Double(maxCap)))
-        } else if let exactSysPercent = Self.readExactSystemBatteryPercentage() {
-            self.batteryLevel = Double(exactSysPercent) / 100.0
         } else {
             let rawLevel = UIDevice.current.batteryLevel
             if rawLevel >= 0 {

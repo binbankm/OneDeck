@@ -163,6 +163,7 @@ public final class SystemViewModel {
     private var previousNetworkTime: Date = .init()
     private var timer: Timer?
     private var isMonitoring: Bool = false
+    private var tickCount: Int = 0
     private let maxHistoryPoints: Int = 30
 
     // MARK: - Init
@@ -186,11 +187,12 @@ public final class SystemViewModel {
     public func startMonitoring() {
         guard !isMonitoring else { return }
         isMonitoring = true
-        refreshAll()
+        tickCount = 0
+        refreshAll(forceStorage: true)
         timer?.invalidate()
         let interval: TimeInterval = AppState.shared.isSensorPowerSaving ? 3.0 : 1.0
         timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            self?.refreshAll()
+            self?.tick()
         }
     }
 
@@ -200,12 +202,21 @@ public final class SystemViewModel {
         timer = nil
     }
 
+    private func tick() {
+        guard isMonitoring else { return }
+        tickCount += 1
+        let shouldRefreshStorage = (tickCount % 30 == 0)
+        refreshAll(forceStorage: shouldRefreshStorage)
+    }
+
     // MARK: - Refresh Trigger
-    public func refreshAll() {
+    public func refreshAll(forceStorage: Bool = true) {
         updateCpuUsage()
         updateNetworkBandwidth()
         updateMemoryUsage()
-        updateStorageUsage()
+        if forceStorage {
+            updateStorageUsage()
+        }
         updateUptime()
         updateThermals()
     }

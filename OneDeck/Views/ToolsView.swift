@@ -15,15 +15,13 @@ struct ToolsView: View {
     // MARK: - Body
     var body: some View {
         NavigationStack {
-            GeometryReader { geometry in
-                ScrollView(.vertical, showsIndicators: false) {
-                    cardStack
-                        .padding(.horizontal, SpacingTheme.cardStack)
-                        .padding(.vertical, SpacingTheme.rowStandard)
-                        .frame(width: geometry.size.width)
-                }
-                .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            ScrollView(.vertical, showsIndicators: false) {
+                cardStack
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, SpacingTheme.cardStack)
+                    .padding(.vertical, SpacingTheme.rowStandard)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Tools.title)
             .navigationDestination(for: HardwareTool.self) { tool in

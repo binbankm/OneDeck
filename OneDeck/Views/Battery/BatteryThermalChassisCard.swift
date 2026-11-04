@@ -269,10 +269,11 @@ struct BatteryThermalChassisCard: View {
 
             // Battery Thermal Dispersion
             RadialGradient(
-                colors: [
-                    bColor.opacity(isDark ? 0.70 : 0.55),
-                    bColor.opacity(isDark ? 0.35 : 0.20),
-                    Color.clear
+                stops: [
+                    .init(color: bColor.opacity(isDark ? 0.70 : 0.55), location: 0.0),
+                    .init(color: bColor.opacity(isDark ? 0.40 : 0.25), location: 0.35),
+                    .init(color: bColor.opacity(isDark ? 0.15 : 0.08), location: 0.70),
+                    .init(color: Color.clear, location: 1.0)
                 ],
                 center: .center,
                 startRadius: 5,
@@ -280,14 +281,14 @@ struct BatteryThermalChassisCard: View {
             )
             .frame(width: w * 0.75, height: h * 0.65)
             .offset(x: -w * 0.15, y: -h * 0.03)
-            .blur(radius: 8)
 
             // SoC Hotspot Thermal Radiation
             RadialGradient(
                 stops: [
                     .init(color: Color.white.opacity(0.85), location: 0.0),
-                    .init(color: socColor.opacity(isDark ? 0.85 : 0.75), location: 0.25),
-                    .init(color: socColor.opacity(isDark ? 0.45 : 0.30), location: 0.55),
+                    .init(color: socColor.opacity(isDark ? 0.85 : 0.75), location: 0.20),
+                    .init(color: socColor.opacity(isDark ? 0.40 : 0.28), location: 0.50),
+                    .init(color: socColor.opacity(isDark ? 0.12 : 0.06), location: 0.75),
                     .init(color: Color.clear, location: 1.0)
                 ],
                 center: .center,
@@ -296,14 +297,14 @@ struct BatteryThermalChassisCard: View {
             )
             .frame(width: w * 0.75, height: h * 0.48)
             .offset(x: w * 0.23, y: -h * 0.18)
-            .blur(radius: 7)
 
             // Wireless Induction Coil Thermal Center
             RadialGradient(
-                colors: [
-                    wColor.opacity(isDark ? 0.50 : 0.35),
-                    wColor.opacity(isDark ? 0.18 : 0.10),
-                    Color.clear
+                stops: [
+                    .init(color: wColor.opacity(isDark ? 0.50 : 0.35), location: 0.0),
+                    .init(color: wColor.opacity(isDark ? 0.22 : 0.14), location: 0.40),
+                    .init(color: wColor.opacity(isDark ? 0.08 : 0.04), location: 0.75),
+                    .init(color: Color.clear, location: 1.0)
                 ],
                 center: .center,
                 startRadius: 6,
@@ -311,14 +312,14 @@ struct BatteryThermalChassisCard: View {
             )
             .frame(width: w * 0.55, height: w * 0.55)
             .offset(x: 0, y: -h * 0.02)
-            .blur(radius: 6)
 
             // PMIC & Charging Dock Thermal Plume
             RadialGradient(
-                colors: [
-                    pColor.opacity(isDark ? 0.75 : 0.60),
-                    pColor.opacity(isDark ? 0.30 : 0.18),
-                    Color.clear
+                stops: [
+                    .init(color: pColor.opacity(isDark ? 0.75 : 0.60), location: 0.0),
+                    .init(color: pColor.opacity(isDark ? 0.35 : 0.22), location: 0.40),
+                    .init(color: pColor.opacity(isDark ? 0.10 : 0.05), location: 0.75),
+                    .init(color: Color.clear, location: 1.0)
                 ],
                 center: .center,
                 startRadius: 3,
@@ -326,7 +327,6 @@ struct BatteryThermalChassisCard: View {
             )
             .frame(width: w * 0.85, height: h * 0.28)
             .offset(x: 0, y: h * 0.35)
-            .blur(radius: 7)
         }
         .allowsHitTesting(false)
     }

@@ -158,8 +158,3 @@ struct SettingsLicensesCard: View {
 #Preview {
     SettingsLicensesCard()
 }
-
-// MARK: - Preview
-#Preview {
-    SettingsLicensesCard()
-}

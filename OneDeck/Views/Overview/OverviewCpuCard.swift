@@ -141,31 +141,30 @@ struct OverviewCpuCard: View {
                 let coreTag = isPCore ? "P\(index + 1)" : "E\(index - system.hardwareSpecs.pCores + 1)"
 
                 VStack(spacing: SpacingTheme.tight) {
-                    GeometryReader { geo in
-                        ZStack(alignment: .bottom) {
-                            // Background track
-                            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                                .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05))
+                    ZStack(alignment: .bottom) {
+                        // Background track
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                            // Dynamic level fill
-                            let fillH = max(4, geo.size.height * CGFloat(usage / 100.0))
-                            Rectangle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            usage > 85 ? Color.orange : appState.accentColor,
-                                            usage > 85 ? Color.orange.opacity(0.7) : appState.accentColor.opacity(0.6)
-                                        ],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
+                        // Dynamic level fill
+                        let fillH = max(4, 54.0 * CGFloat(usage / 100.0))
+                        Rectangle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        usage > 85 ? Color.orange : appState.accentColor,
+                                        usage > 85 ? Color.orange.opacity(0.7) : appState.accentColor.opacity(0.6)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
                                 )
-                                .frame(height: fillH)
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
-                        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: usage)
+                            )
+                            .frame(height: fillH)
                     }
                     .frame(height: 54)
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
+                    .animation(.spring(response: 0.35, dampingFraction: 0.75), value: usage)
 
                     Text(coreTag)
                         .font(Typography.badgeTag)

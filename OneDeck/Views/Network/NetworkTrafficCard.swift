@@ -85,8 +85,9 @@ struct NetworkTrafficCard: View {
                         .lineLimit(1)
                         .fixedSize()
 
-                    if !last.rating.isEmpty {
-                        Text(last.rating)
+                    let ratingText = L10n.Network.speedTestRatingText(for: last.downloadMbps)
+                    if !ratingText.isEmpty {
+                        Text(ratingText)
                             .font(Typography.badgeTag)
                             .foregroundStyle(appState.accentColor)
                             .lineLimit(1)
@@ -103,7 +104,7 @@ struct NetworkTrafficCard: View {
 
                         Text("↑\(String(format: "%.1f", last.uploadMbps))M")
                             .font(Typography.badgeTagMono)
-                            .foregroundStyle(Color.mint)
+                            .foregroundStyle(ChartTheme.uploadColor)
                             .lineLimit(1)
                             .fixedSize()
 
@@ -122,11 +123,11 @@ struct NetworkTrafficCard: View {
                 .padding(.vertical, SpacingTheme.standard)
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                        .fill(appState.accentColor.opacity(0.06))
+                        .fill(colorScheme == .dark ? appState.accentColor.opacity(0.08) : Theme.cardBackground(for: colorScheme).opacity(0.8))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                        .stroke(appState.accentColor.opacity(0.18), lineWidth: 0.8)
+                        .stroke(colorScheme == .dark ? appState.accentColor.opacity(0.2) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                 )
             }
             .buttonStyle(.plain)
@@ -148,7 +149,7 @@ struct NetworkTrafficCard: View {
             let up = formatRate(net.uploadSpeedBps)
             speedBlock(
                 direction: "arrow.up.circle.fill",
-                color: Color.mint,
+                color: ChartTheme.uploadColor,
                 label: L10n.Network.uploadSpeed,
                 value: up.value,
                 unit: up.unit
@@ -187,7 +188,7 @@ struct NetworkTrafficCard: View {
                             y: .value("Rate", pt.upBps / 1024.0),
                             series: .value("Direction", "Up")
                         )
-                        .foregroundStyle(Color.mint)
+                        .foregroundStyle(ChartTheme.uploadColor)
                         .lineStyle(StrokeStyle(lineWidth: ChartTheme.subLineWidth, lineCap: .round, lineJoin: .round))
                         .interpolationMethod(.monotone)
                     }
@@ -239,7 +240,7 @@ struct NetworkTrafficCard: View {
             HStack(spacing: SpacingTheme.compact) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(IconTheme.tileLeading)
-                    .foregroundStyle(Color.mint)
+                    .foregroundStyle(ChartTheme.uploadColor)
 
                 Text(L10n.Network.totalOut)
                     .font(Typography.caption)

@@ -150,8 +150,13 @@ public final class AppState {
         let savedAppModeRaw = UserDefaults.standard.string(forKey: Keys.appearance) ?? AppearanceMode.system.rawValue
         self.appearance = AppearanceMode(rawValue: savedAppModeRaw) ?? .system
 
-        let savedHex = UserDefaults.standard.string(forKey: Keys.themeHex) ?? ThemePreset.emerald.hex
-        self.themeColorHex = savedHex
+        let oldDefaultEmerald = "#00DC82"
+        let savedHex = UserDefaults.standard.string(forKey: Keys.themeHex)
+        if let hex = savedHex, hex.caseInsensitiveCompare(oldDefaultEmerald) != .orderedSame {
+            self.themeColorHex = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        } else {
+            self.themeColorHex = ThemePreset.defaultPreset.hex
+        }
 
         self.isHapticsEnabled = UserDefaults.standard.object(forKey: Keys.haptics) as? Bool ?? true
         self.isSoundEnabled = UserDefaults.standard.object(forKey: Keys.sound) as? Bool ?? true
@@ -163,7 +168,9 @@ public final class AppState {
 
     // MARK: - Mutators
     public func setThemeHex(_ hex: String) {
-        self.themeColorHex = hex
+        let normalized = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard normalized != themeColorHex else { return }
+        self.themeColorHex = normalized
         Haptics.selection()
     }
 

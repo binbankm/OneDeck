@@ -9,10 +9,29 @@
 import SwiftUI
 
 // MARK: - App Theme Preset
-public struct ThemePreset: Hashable {
+public struct ThemePreset: Hashable, Identifiable {
+    public var id: String { hex }
     public let hex: String
 
-    public static let emerald = ThemePreset(hex: "#00F5A0")
+    public static let emerald = ThemePreset(hex: "#00DC82")
+    public static let cyan = ThemePreset(hex: "#00D2FF")
+    public static let blue = ThemePreset(hex: "#3B82F6")
+    public static let purple = ThemePreset(hex: "#A855F7")
+    public static let crimson = ThemePreset(hex: "#F43F5E")
+    public static let orange = ThemePreset(hex: "#FF6B00")
+    public static let gold = ThemePreset(hex: "#EAB308")
+
+    public static let defaultPreset: ThemePreset = .blue
+
+    public static let allPresets: [ThemePreset] = [
+        .blue,
+        .cyan,
+        .emerald,
+        .purple,
+        .crimson,
+        .orange,
+        .gold
+    ]
 }
 
 // MARK: - Theme Manager
@@ -183,6 +202,8 @@ public enum ChartTheme {
     public static let lineWidth: CGFloat = 2.0
     public static let subLineWidth: CGFloat = 1.5
     public static let sparklineWidth: CGFloat = 1.8
+    /// Distinct secondary curve color for network uplink / uploads
+    public static let uploadColor = Color(hex: "#00C9FF")
     /// Chart trailing margin for right-aligned axis labels (32pt)
     public static let trailingMargin: CGFloat = 32.0
 
@@ -296,6 +317,14 @@ public struct BentoCardModifier: ViewModifier {
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(Theme.cardBackground(for: colorScheme))
+                    .shadow(
+                        color: (hasShadow && !isHighlighted)
+                            ? Color.black.opacity(colorScheme == .dark ? 0.3 : 0.04)
+                            : (isHighlighted ? accentColor.opacity(0.12) : .clear),
+                        radius: hasShadow ? (isHighlighted ? 12 : 8) : 0,
+                        x: 0,
+                        y: hasShadow ? 4 : 0
+                    )
             }
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -305,14 +334,6 @@ public struct BentoCardModifier: ViewModifier {
                     )
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .shadow(
-                color: (hasShadow && !isHighlighted)
-                    ? Color.black.opacity(colorScheme == .dark ? 0.3 : 0.04)
-                    : (isHighlighted ? accentColor.opacity(0.12) : .clear),
-                radius: hasShadow ? (isHighlighted ? 12 : 8) : 0,
-                x: 0,
-                y: hasShadow ? 4 : 0
-            )
             .frame(maxWidth: .infinity)
     }
 }
@@ -323,7 +344,7 @@ extension View {
         cornerRadius: CGFloat = CornerRadiusTheme.card,
         isHighlighted: Bool = false,
         hasShadow: Bool = true,
-        accent: Color = .green
+        accent: Color = .blue
     ) -> some View {
         modifier(BentoCardModifier(
             padding: padding,

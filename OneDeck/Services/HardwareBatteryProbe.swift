@@ -107,37 +107,110 @@ public enum HardwareBatteryProbe {
     private typealias IOHIDServiceClientCopyPropertyFunc = @convention(c) (CFTypeRef, CFString) -> Unmanaged<CFTypeRef>?
     private typealias IOHIDServiceClientCopyEventFunc = @convention(c) (CFTypeRef, Int64, Int32, Int64) -> Unmanaged<CFTypeRef>?
     private typealias IOHIDEventGetFloatValueFunc = @convention(c) (CFTypeRef, Int32) -> Double
+    private typealias MGCopyAnswerFunc = @convention(c) (CFString) -> Unmanaged<CFTypeRef>?
+
+    // MARK: - Thread-Safe Static Bridge Caches
+    private final class IOKitBridge: @unchecked Sendable {
+        nonisolated static let shared = IOKitBridge()
+
+        let isAvailable: Bool
+        let copyAdapterDetails: CopyAdapterDetailsFunc?
+        let copyInfo: CopyInfoFunc?
+        let copyList: CopyListFunc?
+        let getDesc: GetDescFunc?
+
+        let ioServiceMatching: IOServiceMatchingFunc?
+        let ioServiceGetMatchingService: IOServiceGetMatchingServiceFunc?
+        let ioRegistryEntryCreateCFProperties: IORegistryEntryCreateCFPropertiesFunc?
+        let ioObjectRelease: IOObjectReleaseFunc?
+
+        let hidCreate: IOHIDEventSystemClientCreateFunc?
+        let hidSetMatching: IOHIDEventSystemClientSetMatchingFunc?
+        let hidCopyServices: IOHIDEventSystemClientCopyServicesFunc?
+        let hidCopyProperty: IOHIDServiceClientCopyPropertyFunc?
+        let hidCopyEvent: IOHIDServiceClientCopyEventFunc?
+        let hidGetFloat: IOHIDEventGetFloatValueFunc?
+
+        private init() {
+            guard let handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW) else {
+                self.isAvailable = false
+                self.copyAdapterDetails = nil
+                self.copyInfo = nil
+                self.copyList = nil
+                self.getDesc = nil
+                self.ioServiceMatching = nil
+                self.ioServiceGetMatchingService = nil
+                self.ioRegistryEntryCreateCFProperties = nil
+                self.ioObjectRelease = nil
+                self.hidCreate = nil
+                self.hidSetMatching = nil
+                self.hidCopyServices = nil
+                self.hidCopyProperty = nil
+                self.hidCopyEvent = nil
+                self.hidGetFloat = nil
+                return
+            }
+
+            self.isAvailable = true
+
+            func resolve<T>(_ name: String, _ type: T.Type) -> T? {
+                dlsym(handle, name).map { unsafeBitCast($0, to: type) }
+            }
+
+            self.copyAdapterDetails = resolve("IOPSCopyExternalPowerAdapterDetails", CopyAdapterDetailsFunc.self)
+            self.copyInfo = resolve("IOPSCopyPowerSourcesInfo", CopyInfoFunc.self)
+            self.copyList = resolve("IOPSCopyPowerSourcesList", CopyListFunc.self)
+            self.getDesc = resolve("IOPSGetPowerSourceDescription", GetDescFunc.self)
+
+            self.ioServiceMatching = resolve("IOServiceMatching", IOServiceMatchingFunc.self)
+            self.ioServiceGetMatchingService = resolve("IOServiceGetMatchingService", IOServiceGetMatchingServiceFunc.self)
+            self.ioRegistryEntryCreateCFProperties = resolve("IORegistryEntryCreateCFProperties", IORegistryEntryCreateCFPropertiesFunc.self)
+            self.ioObjectRelease = resolve("IOObjectRelease", IOObjectReleaseFunc.self)
+
+            self.hidCreate = resolve("IOHIDEventSystemClientCreate", IOHIDEventSystemClientCreateFunc.self)
+            self.hidSetMatching = resolve("IOHIDEventSystemClientSetMatching", IOHIDEventSystemClientSetMatchingFunc.self)
+            self.hidCopyServices = resolve("IOHIDEventSystemClientCopyServices", IOHIDEventSystemClientCopyServicesFunc.self)
+            self.hidCopyProperty = resolve("IOHIDServiceClientCopyProperty", IOHIDServiceClientCopyPropertyFunc.self)
+            self.hidCopyEvent = resolve("IOHIDServiceClientCopyEvent", IOHIDServiceClientCopyEventFunc.self)
+            self.hidGetFloat = resolve("IOHIDEventGetFloatValue", IOHIDEventGetFloatValueFunc.self)
+        }
+    }
+
+    private final class MobileGestaltBridge: @unchecked Sendable {
+        nonisolated static let shared = MobileGestaltBridge()
+        let mgCopyAnswer: MGCopyAnswerFunc?
+
+        private init() {
+            if let handle = dlopen("/usr/lib/libMobileGestalt.dylib", RTLD_NOW),
+               let sym = dlsym(handle, "MGCopyAnswer") {
+                self.mgCopyAnswer = unsafeBitCast(sym, to: MGCopyAnswerFunc.self)
+            } else {
+                self.mgCopyAnswer = nil
+            }
+        }
+    }
 
     public nonisolated static func sample() -> HardwareBatteryTelemetry {
         var result = HardwareBatteryTelemetry()
-        guard let handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW) else {
-            return result
-        }
-        defer { dlclose(handle) }
+        let bridge = IOKitBridge.shared
+        guard bridge.isAvailable else { return result }
 
         // 1. Adapter Details via IOPSCopyExternalPowerAdapterDetails (Real Charger Watts & PD Profile)
-        if let symAdapter = dlsym(handle, "IOPSCopyExternalPowerAdapterDetails") {
-            let fn = unsafeBitCast(symAdapter, to: CopyAdapterDetailsFunc.self)
-            if let dictUnmanaged = fn() {
-                let dict = dictUnmanaged.takeRetainedValue() as NSDictionary
-                if let w = dict["Watts"] as? NSNumber { result.adapterWatts = w.intValue }
-                if let v = dict["Voltage"] as? NSNumber { result.adapterVoltageMv = v.intValue }
-                if let i = dict["Current"] as? NSNumber { result.adapterCurrentMa = i.intValue }
-                if let n = (dict["Description"] as? String) ?? (dict["Name"] as? String) { result.adapterName = n }
-                if let f = dict["FamilyCode"] as? NSNumber { result.adapterFamilyCode = f.intValue }
-                if let c = dict["IsCharging"] as? Bool { result.adapterIsCharging = c }
-                else if let cNum = dict["IsCharging"] as? NSNumber { result.adapterIsCharging = cNum.boolValue }
-            }
+        if let fn = bridge.copyAdapterDetails, let dictUnmanaged = fn() {
+            let dict = dictUnmanaged.takeRetainedValue() as NSDictionary
+            if let w = dict["Watts"] as? NSNumber { result.adapterWatts = w.intValue }
+            if let v = dict["Voltage"] as? NSNumber { result.adapterVoltageMv = v.intValue }
+            if let i = dict["Current"] as? NSNumber { result.adapterCurrentMa = i.intValue }
+            if let n = (dict["Description"] as? String) ?? (dict["Name"] as? String) { result.adapterName = n }
+            if let f = dict["FamilyCode"] as? NSNumber { result.adapterFamilyCode = f.intValue }
+            if let c = dict["IsCharging"] as? Bool { result.adapterIsCharging = c }
+            else if let cNum = dict["IsCharging"] as? NSNumber { result.adapterIsCharging = cNum.boolValue }
         }
 
         // 2. Power Sources Info via IOPS (Current, Voltage, Capacity)
-        if let symCopyInfo = dlsym(handle, "IOPSCopyPowerSourcesInfo"),
-           let symCopyList = dlsym(handle, "IOPSCopyPowerSourcesList"),
-           let symGetDesc = dlsym(handle, "IOPSGetPowerSourceDescription") {
-            let copyInfo = unsafeBitCast(symCopyInfo, to: CopyInfoFunc.self)
-            let copyList = unsafeBitCast(symCopyList, to: CopyListFunc.self)
-            let getDesc = unsafeBitCast(symGetDesc, to: GetDescFunc.self)
-
+        if let copyInfo = bridge.copyInfo,
+           let copyList = bridge.copyList,
+           let getDesc = bridge.getDesc {
             if let infoUnmanaged = copyInfo() {
                 let info = infoUnmanaged.takeRetainedValue()
                 if let listUnmanaged = copyList(info) {
@@ -182,15 +255,10 @@ public enum HardwareBatteryProbe {
         }
 
         // 3. AppleSmartBattery IORegistry Entry (CycleCount, Serial, CellVoltage)
-        if let symMatching = dlsym(handle, "IOServiceMatching"),
-           let symGetService = dlsym(handle, "IOServiceGetMatchingService"),
-           let symCreateProps = dlsym(handle, "IORegistryEntryCreateCFProperties"),
-           let symRelease = dlsym(handle, "IOObjectRelease") {
-            let ioServiceMatching = unsafeBitCast(symMatching, to: IOServiceMatchingFunc.self)
-            let ioServiceGetMatchingService = unsafeBitCast(symGetService, to: IOServiceGetMatchingServiceFunc.self)
-            let ioRegistryEntryCreateCFProperties = unsafeBitCast(symCreateProps, to: IORegistryEntryCreateCFPropertiesFunc.self)
-            let ioObjectRelease = unsafeBitCast(symRelease, to: IOObjectReleaseFunc.self)
-
+        if let ioServiceMatching = bridge.ioServiceMatching,
+           let ioServiceGetMatchingService = bridge.ioServiceGetMatchingService,
+           let ioRegistryEntryCreateCFProperties = bridge.ioRegistryEntryCreateCFProperties,
+           let ioObjectRelease = bridge.ioObjectRelease {
             if let dict = ioServiceMatching("AppleSmartBattery") {
                 let service = ioServiceGetMatchingService(0, dict)
                 if service != 0 {
@@ -274,20 +342,13 @@ public enum HardwareBatteryProbe {
         }
 
         // 4. IOHID Event System for PMU, Power & Thermal Sensors
-        readIOHIDSensors(into: &result, handle: handle)
+        readIOHIDSensors(into: &result, bridge: bridge)
 
         // 5. MobileGestalt Fallback for Battery Serial Number
-        if result.batterySerialNumber == nil {
-            typealias MGCopyAnswerFunc = @convention(c) (CFString) -> Unmanaged<CFTypeRef>?
-            if let mgHandle = dlopen("/usr/lib/libMobileGestalt.dylib", RTLD_NOW) {
-                defer { dlclose(mgHandle) }
-                if let sym = dlsym(mgHandle, "MGCopyAnswer") {
-                    let mgCopyAnswer = unsafeBitCast(sym, to: MGCopyAnswerFunc.self)
-                    if let ans = mgCopyAnswer("BatterySerialNumber" as CFString) {
-                        if let s = ans.takeRetainedValue() as? String, !s.isEmpty {
-                            result.batterySerialNumber = s
-                        }
-                    }
+        if result.batterySerialNumber == nil, let mgAnswer = MobileGestaltBridge.shared.mgCopyAnswer {
+            if let ans = mgAnswer("BatterySerialNumber" as CFString) {
+                if let s = ans.takeRetainedValue() as? String, !s.isEmpty {
+                    result.batterySerialNumber = s
                 }
             }
         }
@@ -295,16 +356,13 @@ public enum HardwareBatteryProbe {
         return result
     }
 
-    private nonisolated static func readIOHIDSensors(into result: inout HardwareBatteryTelemetry, handle: UnsafeMutableRawPointer) {
-        func sym<T>(_ name: String, _ type: T.Type) -> T? {
-            dlsym(handle, name).map { unsafeBitCast($0, to: type) }
-        }
-        guard let create = sym("IOHIDEventSystemClientCreate", IOHIDEventSystemClientCreateFunc.self),
-              let setMatching = sym("IOHIDEventSystemClientSetMatching", IOHIDEventSystemClientSetMatchingFunc.self),
-              let copyServices = sym("IOHIDEventSystemClientCopyServices", IOHIDEventSystemClientCopyServicesFunc.self),
-              let copyProperty = sym("IOHIDServiceClientCopyProperty", IOHIDServiceClientCopyPropertyFunc.self),
-              let copyEvent = sym("IOHIDServiceClientCopyEvent", IOHIDServiceClientCopyEventFunc.self),
-              let getFloat = sym("IOHIDEventGetFloatValue", IOHIDEventGetFloatValueFunc.self),
+    private nonisolated static func readIOHIDSensors(into result: inout HardwareBatteryTelemetry, bridge: IOKitBridge) {
+        guard let create = bridge.hidCreate,
+              let setMatching = bridge.hidSetMatching,
+              let copyServices = bridge.hidCopyServices,
+              let copyProperty = bridge.hidCopyProperty,
+              let copyEvent = bridge.hidCopyEvent,
+              let getFloat = bridge.hidGetFloat,
               let clientUnmanaged = create(kCFAllocatorDefault)
         else { return }
 
