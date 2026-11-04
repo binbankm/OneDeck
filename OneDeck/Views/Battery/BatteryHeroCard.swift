@@ -91,15 +91,12 @@ struct BatteryHeroCard: View {
                 }
             }
 
-            // Dynamic Smooth Capsule Gauge
-            GeometryReader { geo in
-                let w = geo.size.width
-                let fillW = max(10, w * CGFloat(battery.batteryLevel))
+            // Dynamic Smooth Capsule Gauge (GPU Accelerated Transform)
+            let clampedLevel = min(1.0, max(0.0, battery.batteryLevel.isFinite ? Double(battery.batteryLevel) : 0.0))
 
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
-
+            Capsule()
+                .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                .overlay(alignment: .leading) {
                     Capsule()
                         .fill(
                             LinearGradient(
@@ -111,15 +108,15 @@ struct BatteryHeroCard: View {
                                 endPoint: .trailing
                             )
                         )
-                        .frame(width: fillW)
                         .overlay(
                             Capsule()
                                 .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
                         )
+                        .scaleEffect(x: max(0.02, CGFloat(clampedLevel)), y: 1.0, anchor: .leading)
                 }
+                .clipShape(Capsule())
+                .frame(height: 18)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: battery.batteryLevel)
-            }
-            .frame(height: 18)
 
             // ETA & Live Power Sub-row
             HStack(spacing: SpacingTheme.tight) {

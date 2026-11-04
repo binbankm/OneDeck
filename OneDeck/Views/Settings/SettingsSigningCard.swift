@@ -95,7 +95,8 @@ struct SettingsSigningCard: View {
 
             // Visual Lifecycle Bar (for 7-day or 365-day certificates)
             if probe.hasProvisionProfile {
-                ProgressView(value: min(1.0, max(0.0, probe.progressRatio)))
+                let safeRatio = probe.progressRatio.isFinite ? min(1.0, max(0.0, probe.progressRatio)) : 0.0
+                ProgressView(value: safeRatio)
                     .tint(statusColor)
                     .scaleEffect(x: 1, y: 1.4, anchor: .center)
                     .padding(.vertical, SpacingTheme.micro)
@@ -121,7 +122,7 @@ struct SettingsSigningCard: View {
                     .frame(width: 20, height: 20, alignment: .center)
 
                 Text(L10n.Settings.certViewDetails)
-                    .font(Typography.bodyValue.weight(.medium))
+                    .font(Typography.bodyMedium)
                     .lineLimit(1)
 
                 Spacer()

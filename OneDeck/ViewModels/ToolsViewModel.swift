@@ -122,11 +122,14 @@ public final class ToolsViewModel {
     // MARK: - Lifecycle Management (Smart Battery-Saving Guard)
     public func onTabAppear() {
         isToolsTabActive = true
+        if activeDetailCount > 0 {
+            resumeActiveDetailTool()
+        }
     }
 
     public func onTabDisappear() {
-        guard activeDetailCount == 0 else { return }
         isToolsTabActive = false
+        pauseActiveDetailTool()
         stopAllSensors()
         stopWaterEjection()
         stopToneGenerator()
@@ -185,7 +188,18 @@ public final class ToolsViewModel {
             stopMotionSensors()
         case .metalDetector:
             stopMagnetometer()
-        case .none, .other:
+        case .torch:
+            torchProbe.turnOff()
+            torch.isTorchOn = false
+        case .waterEjector:
+            stopWaterEjection()
+        case .toneGenerator:
+            stopToneGenerator()
+        case .speakerLab:
+            audioProbe.stopTone()
+        case .screenQuality:
+            stopProximityMonitoring()
+        case .screenRuler, .touchMatrix, .hapticLab, .none, .other:
             break
         }
     }
@@ -214,7 +228,9 @@ public final class ToolsViewModel {
             startMotionSensors()
         case .metalDetector:
             startMagnetometer()
-        case .none, .other:
+        case .screenQuality:
+            startProximityMonitoring()
+        case .torch, .waterEjector, .toneGenerator, .speakerLab, .screenRuler, .touchMatrix, .hapticLab, .none, .other:
             break
         }
     }
@@ -365,6 +381,15 @@ public final class ToolsViewModel {
     }
 
     // MARK: - 4. Precision Torch & Strobe Actions
+    public var isTorchAvailable: Bool {
+        torchProbe.isHardwareTorchAvailable
+    }
+
+    public func turnOffTorch() {
+        torch.isTorchOn = false
+        torchProbe.turnOff()
+    }
+
     public func toggleTorch() {
         Haptics.impact(.medium)
         torch.isTorchOn.toggle()

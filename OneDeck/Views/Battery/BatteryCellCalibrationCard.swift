@@ -43,7 +43,7 @@ struct BatteryCellCalibrationCard: View {
         )) {
             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(L10n.Battery.isCustomToggle)
-                    .font(Typography.bodyValue)
+                    .font(Typography.bodyMedium)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
                 Text(L10n.Battery.calibrateDesc)
@@ -93,7 +93,7 @@ struct BatteryCellCalibrationCard: View {
                         battery.setCustomBattery(enabled: true, customMah: max(1000, battery.customCapacityMah - 50))
                     } label: {
                         Image(systemName: "minus.circle.fill")
-                            .font(Typography.title1)
+                            .font(IconTheme.launcherIcon)
                             .foregroundStyle(appState.accentColor)
                     }
 
@@ -102,7 +102,7 @@ struct BatteryCellCalibrationCard: View {
                         battery.setCustomBattery(enabled: true, customMah: min(12000, battery.customCapacityMah + 50))
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .font(Typography.title1)
+                            .font(IconTheme.launcherIcon)
                             .foregroundStyle(appState.accentColor)
                     }
                 }

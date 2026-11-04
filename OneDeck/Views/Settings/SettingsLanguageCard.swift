@@ -34,7 +34,7 @@ struct SettingsLanguageCard: View {
                 .frame(width: 20, height: 20, alignment: .center)
 
             Text(L10n.Settings.languageSelect)
-                .font(Typography.bodyValue.weight(.medium))
+                .font(Typography.bodyMedium)
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 .lineLimit(1)
 

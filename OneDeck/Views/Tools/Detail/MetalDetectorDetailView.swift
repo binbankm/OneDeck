@@ -7,6 +7,7 @@
 //
 
 import Charts
+import CoreMotion
 import SwiftUI
 
 struct MetalDetectorDetailView: View {
@@ -15,30 +16,36 @@ struct MetalDetectorDetailView: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
+    private var isMagnetometerAvailable: Bool {
+        CMMotionManager().isMagnetometerAvailable
+    }
+
     // MARK: - Body
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: SpacingTheme.cardStack) {
-                // Top Vector Readouts
-                vectorBreakdownRow
-
-                Spacer()
-
-                // Center Flux Meter Gauge
-                magneticFluxGauge(size: max(120, min(geometry.size.width - 48, 250)))
-
-                Spacer()
-
-                // Live Oscilloscope Waveform
-                fluxWaveformSection
-
-                // Bottom Action Controls
-                bottomControlsBar
+        VStack(spacing: SpacingTheme.cardStack) {
+            if !isMagnetometerAvailable {
+                hardwareUnavailableBanner
             }
-            .padding(.horizontal, SpacingTheme.cardStack)
-            .padding(.vertical, SpacingTheme.rowStandard)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Top Vector Readouts
+            vectorBreakdownRow
+
+            Spacer()
+
+            // Center Flux Meter Gauge
+            magneticFluxGauge(size: 230)
+
+            Spacer()
+
+            // Live Oscilloscope Waveform
+            fluxWaveformSection
+
+            // Bottom Action Controls
+            bottomControlsBar
         }
+        .padding(.horizontal, SpacingTheme.cardStack)
+        .padding(.vertical, SpacingTheme.rowStandard)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.metalDetector)
         .navigationBarTitleDisplayMode(.inline)
@@ -47,9 +54,30 @@ struct MetalDetectorDetailView: View {
             tools.startMagnetometer(interval: 1.0 / 30.0)
         }
         .onDisappear {
+            tools.stopMagnetometer()
             tools.leaveDetailView()
-            tools.startMagnetometer(interval: 1.0 / 10.0)
         }
+    }
+
+    @ViewBuilder
+    private var hardwareUnavailableBanner: some View {
+        HStack(spacing: SpacingTheme.tight) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.orange)
+            Text(L10n.Tools.magnetometerHardwareUnavailable)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .multilineTextAlignment(.leading)
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+        )
     }
 
     // MARK: - Vector Breakdown

@@ -6,6 +6,7 @@
 //  Acoustic sound pressure level (SPL) and noise spectrum workspace.
 //
 
+import AVFAudio
 import Charts
 import SwiftUI
 
@@ -15,30 +16,36 @@ struct DecibelMeterDetailView: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
+    private var isMicDenied: Bool {
+        AVAudioApplication.shared.recordPermission == .denied
+    }
+
     // MARK: - Body
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: SpacingTheme.cardStack) {
-                // Top KPI Summary Cards (Peak, Avg, Floor)
-                kpiSummaryRow
+        VStack(spacing: SpacingTheme.cardStack) {
+            // Top KPI Summary Cards (Peak, Avg, Floor)
+            kpiSummaryRow
 
-                Spacer()
-
-                // Center Decibel Circular Gauge
-                decibelGauge(size: max(120, min(geometry.size.width - 48, 250)))
-
-                Spacer()
-
-                // Rolling Sound History Chart
-                historyChart
-
-                // Master Start / Stop Button
-                primaryToggleButton
+            if isMicDenied {
+                micPermissionDeniedBanner
             }
-            .padding(.horizontal, SpacingTheme.cardStack)
-            .padding(.vertical, SpacingTheme.rowStandard)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Spacer()
+
+            // Center Decibel Circular Gauge
+            decibelGauge(size: 230)
+
+            Spacer()
+
+            // Rolling Sound History Chart
+            historyChart
+
+            // Master Start / Stop Button
+            primaryToggleButton
         }
+        .padding(.horizontal, SpacingTheme.cardStack)
+        .padding(.vertical, SpacingTheme.rowStandard)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.decibelMeter)
         .navigationBarTitleDisplayMode(.inline)
@@ -52,13 +59,53 @@ struct DecibelMeterDetailView: View {
         }
     }
 
+    @ViewBuilder
+    private var micPermissionDeniedBanner: some View {
+        VStack(spacing: SpacingTheme.compact) {
+            HStack(spacing: SpacingTheme.tight) {
+                Image(systemName: "mic.slash.fill")
+                    .foregroundStyle(Color.orange)
+                Text(L10n.Tools.micPermissionDenied)
+                    .font(Typography.caption)
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .multilineTextAlignment(.leading)
+            }
+
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                Text(L10n.Tools.openSettings)
+                    .font(Typography.captionBold)
+                    .padding(.horizontal, SpacingTheme.standard)
+                    .padding(.vertical, SpacingTheme.tight)
+                    .background(Color.orange)
+                    .foregroundStyle(Color.white)
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+        )
+    }
+
     // MARK: - KPI Summary Row
     @ViewBuilder
     private var kpiSummaryRow: some View {
         HStack(spacing: SpacingTheme.standard) {
-            metricTile(title: L10n.Tools.peakNoise, value: String(format: "%.1f", tools.decibelMeter.peakDb), color: Color.red)
-            metricTile(title: L10n.Tools.avgNoise, value: String(format: "%.1f", tools.decibelMeter.avgDb), color: appState.accentColor)
-            metricTile(title: L10n.Tools.minNoise, value: String(format: "%.1f", tools.decibelMeter.minDb), color: Color.green)
+            let safePeak = tools.decibelMeter.peakDb.isFinite ? tools.decibelMeter.peakDb : 0.0
+            let safeAvg = tools.decibelMeter.avgDb.isFinite ? tools.decibelMeter.avgDb : 0.0
+            let safeMin = tools.decibelMeter.minDb.isFinite ? tools.decibelMeter.minDb : 0.0
+            metricTile(title: L10n.Tools.peakNoise, value: String(format: "%.1f", safePeak), color: Color.red)
+            metricTile(title: L10n.Tools.avgNoise, value: String(format: "%.1f", safeAvg), color: appState.accentColor)
+            metricTile(title: L10n.Tools.minNoise, value: String(format: "%.1f", safeMin), color: Color.green)
         }
     }
 
@@ -93,7 +140,7 @@ struct DecibelMeterDetailView: View {
     // MARK: - Center Decibel Gauge
     @ViewBuilder
     private func decibelGauge(size: CGFloat) -> some View {
-        let db = tools.decibelMeter.currentDb
+        let db = tools.decibelMeter.currentDb.isFinite ? tools.decibelMeter.currentDb : 30.0
         let ratio = max(0.0, min(1.0, (db - 30.0) / 90.0))
         let activeColor = ratingColor(for: db)
 

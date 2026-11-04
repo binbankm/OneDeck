@@ -169,6 +169,9 @@ public final class CameraPreviewUIView: UIView {
     }
 
     public var videoPreviewLayer: AVCaptureVideoPreviewLayer {
-        (layer as? AVCaptureVideoPreviewLayer) ?? AVCaptureVideoPreviewLayer()
+        guard let previewLayer = layer as? AVCaptureVideoPreviewLayer else {
+            fatalError("CameraPreviewUIView layer must be AVCaptureVideoPreviewLayer")
+        }
+        return previewLayer
     }
 }

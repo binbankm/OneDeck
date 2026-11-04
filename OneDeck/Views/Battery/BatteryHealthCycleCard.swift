@@ -44,7 +44,7 @@ struct BatteryHealthCycleCard: View {
 
             let isDataActive = battery.hasRealTelemetry
             let badgeColor: Color = isDataActive ? .green : .orange
-            let badgeText: String = battery.hasImportedBMS ? L10n.Battery.bmsRaw : (battery.hasRealTelemetry ? L10n.Battery.hardwareDirectTag : L10n.Battery.baselineEstimated)
+            let badgeText: String = battery.hasImportedBMS ? L10n.Battery.bmsRaw : (battery.hasRealTelemetry ? L10n.Battery.hardwareDirectTag : L10n.Battery.pendingImport)
 
             HStack(spacing: SpacingTheme.tight) {
                 Circle()
@@ -72,18 +72,18 @@ struct BatteryHealthCycleCard: View {
                 healthTile(
                     icon: "arrow.triangle.2.circlepath",
                     label: L10n.Battery.cycleCount,
-                    value: "\(battery.cycleCountDisplay)",
-                    unit: L10n.Battery.cyclesUnit,
-                    status: isDataActive ? cycleTierText : L10n.Battery.baselineEstimated,
+                    value: isDataActive ? "\(battery.cycleCountDisplay)" : "--",
+                    unit: isDataActive ? L10n.Battery.cyclesUnit : "",
+                    status: isDataActive ? cycleTierText : L10n.Battery.pendingImport,
                     statusColor: isDataActive ? cycleTierColor : .orange
                 )
 
                 healthTile(
                     icon: "heart.fill",
                     label: L10n.Battery.health,
-                    value: String(format: "%.1f", battery.healthPercentDisplay),
-                    unit: "%",
-                    status: isDataActive ? healthTierText : L10n.Battery.baselineEstimated,
+                    value: isDataActive ? String(format: "%.1f", battery.healthPercentDisplay) : "--",
+                    unit: isDataActive ? "%" : "",
+                    status: isDataActive ? healthTierText : L10n.Battery.pendingImport,
                     statusColor: isDataActive ? healthTierColor : .orange
                 )
             }
@@ -92,9 +92,9 @@ struct BatteryHealthCycleCard: View {
                 healthTile(
                     icon: "battery.100.bolt",
                     label: L10n.Battery.currentMaxCapacity,
-                    value: "\(battery.actualMaxCapacityMahDisplay)",
-                    unit: "mAh",
-                    status: isDataActive ? L10n.Battery.effectiveCap : L10n.Battery.baselineEstimated,
+                    value: isDataActive ? "\(battery.actualMaxCapacityMahDisplay)" : "--",
+                    unit: isDataActive ? "mAh" : "",
+                    status: isDataActive ? L10n.Battery.effectiveCap : L10n.Battery.pendingImport,
                     statusColor: isDataActive ? appState.accentColor : .orange
                 )
 
@@ -117,7 +117,7 @@ struct BatteryHealthCycleCard: View {
                 .font(IconTheme.tileLeading)
                 .foregroundStyle(.orange)
 
-            Text(L10n.Battery.baselineNotice)
+            Text(L10n.Battery.pendingImportNotice)
                 .font(Typography.caption)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(2)
@@ -205,8 +205,7 @@ struct BatteryHealthCycleCard: View {
                         .font(IconTheme.actionButton)
 
                     Text(battery.analyticsRecord != nil ? L10n.Battery.importedSuccess : L10n.Battery.importLogButton)
-                        .font(Typography.calloutLabel)
-                        .fontWeight(.semibold)
+                        .font(Typography.calloutBold)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
 

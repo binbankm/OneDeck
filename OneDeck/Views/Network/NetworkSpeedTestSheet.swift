@@ -32,6 +32,9 @@ struct NetworkSpeedTestSheet: View {
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Network.speedTestTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .onDisappear {
+                net.stopSpeedTest()
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(L10n.Common.done) {
@@ -57,7 +60,8 @@ struct NetworkSpeedTestSheet: View {
                 .frame(width: 200, height: 160)
 
                 VStack(spacing: SpacingTheme.micro) {
-                    Text(String(format: "%.1f", net.speedTestCurrentMbps))
+                    let safeMbps = net.speedTestCurrentMbps.isFinite ? net.speedTestCurrentMbps : 0.0
+                    Text(String(format: "%.1f", safeMbps))
                         .font(Typography.displayHero)
                         .monospacedDigit()
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
@@ -426,7 +430,7 @@ private struct SpeedometerGaugeArc: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private var progressRatio: Double {
-        guard currentMbps > 0.05 else { return 0.0 }
+        guard currentMbps.isFinite, currentMbps > 0.05, maxScale > 0 else { return 0.0 }
         let linear = min(1.0, max(0.0, currentMbps / maxScale))
         return sqrt(linear)
     }

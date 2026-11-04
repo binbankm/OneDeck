@@ -41,7 +41,7 @@ struct SettingsAppearanceCard: View {
                 .frame(width: 20, height: 20, alignment: .center)
 
             Text(L10n.Settings.appearanceMode)
-                .font(Typography.bodyValue.weight(.medium))
+                .font(Typography.bodyMedium)
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 .lineLimit(1)
 
@@ -92,7 +92,7 @@ struct SettingsAppearanceCard: View {
                     .frame(width: 20, height: 20, alignment: .center)
 
                 Text(L10n.Settings.customPalette)
-                    .font(Typography.bodyValue.weight(.medium))
+                    .font(Typography.bodyMedium)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
 
@@ -170,7 +170,7 @@ struct SettingsAppearanceCard: View {
                         .frame(width: 32, height: 32)
 
                     Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(IconTheme.badgeInline)
                         .foregroundStyle(Color.white)
                         .shadow(color: Color.black.opacity(0.6), radius: 1, x: 0, y: 1)
                 }

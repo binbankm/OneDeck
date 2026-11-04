@@ -7,53 +7,7 @@
 //
 
 import SwiftUI
-import UIKit
 import UniformTypeIdentifiers
-
-// MARK: - Document Picker Coordinator
-final class DocumentPickerCoordinator: NSObject, UIDocumentPickerDelegate {
-    private let onPick: (URL) -> Void
-    private let onDismiss: (() -> Void)?
-
-    init(onPick: @escaping (URL) -> Void, onDismiss: (() -> Void)? = nil) {
-        self.onPick = onPick
-        self.onDismiss = onDismiss
-    }
-
-    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-        guard let url = urls.first else { return }
-        onPick(url)
-    }
-
-    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-        onDismiss?()
-    }
-}
-
-// MARK: - View Controller Presentation Helper
-extension UIApplication {
-    @MainActor
-    fileprivate func topMostViewController(base: UIViewController? = nil) -> UIViewController? {
-        let baseVC = base ?? connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first(where: \.isKeyWindow)?
-            .rootViewController
-
-        if let nav = baseVC as? UINavigationController {
-            return topMostViewController(base: nav.visibleViewController)
-        }
-        if let tab = baseVC as? UITabBarController {
-            if let selected = tab.selectedViewController {
-                return topMostViewController(base: selected)
-            }
-        }
-        if let presented = baseVC?.presentedViewController {
-            return topMostViewController(base: presented)
-        }
-        return baseVC
-    }
-}
 
 struct BatteryAnalyticsSheet: View {
     // MARK: - Dependencies & Environment
@@ -66,7 +20,7 @@ struct BatteryAnalyticsSheet: View {
     @State private var pastedText: String = ""
     @State private var errorMessage: String?
     @State private var successRecord: BatteryAnalyticsRecord?
-    @State private var pickerCoordinator: DocumentPickerCoordinator?
+    @State private var isShowingFilePicker: Bool = false
 
     // MARK: - Body
     var body: some View {
@@ -83,6 +37,27 @@ struct BatteryAnalyticsSheet: View {
             }
             .navigationTitle(L10n.Battery.guideTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $isShowingFilePicker) {
+                DocumentPickerRepresentable(
+                    allowedTypes: [
+                        .data,
+                        .text,
+                        .plainText,
+                        .json,
+                        UTType(filenameExtension: "ips") ?? .data,
+                        UTType(filenameExtension: "synced") ?? .data,
+                        UTType(filenameExtension: "ca") ?? .data,
+                        UTType(filenameExtension: "log") ?? .data
+                    ],
+                    onPick: { url in
+                        handleFileImport(url: url)
+                    },
+                    onCancel: {
+                        isShowingFilePicker = false
+                    }
+                )
+                .ignoresSafeArea()
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(L10n.Common.done) {
@@ -110,13 +85,13 @@ struct BatteryAnalyticsSheet: View {
 
             VStack(alignment: .leading, spacing: SpacingTheme.compact) {
                 Text(L10n.Battery.guideStep1)
-                    .font(Typography.calloutLabel)
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 Text(L10n.Battery.guideStep2)
-                    .font(Typography.calloutLabel)
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 Text(L10n.Battery.guideStep3)
-                    .font(Typography.calloutLabel)
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
         }
@@ -128,7 +103,8 @@ struct BatteryAnalyticsSheet: View {
     @ViewBuilder
     private var filePickerSection: some View {
         Button {
-            openFilePicker()
+            Haptics.impact(.medium)
+            isShowingFilePicker = true
         } label: {
             HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: "doc.fill.badge.plus")
@@ -243,7 +219,7 @@ struct BatteryAnalyticsSheet: View {
     private func statPill(label: String, val: String) -> some View {
         VStack(alignment: .leading, spacing: SpacingTheme.micro) {
             Text(label)
-                .font(Typography.badgeTagMedium)
+                .font(Typography.caption)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
             Text(val)
                 .font(Typography.bodyValue)
@@ -252,42 +228,7 @@ struct BatteryAnalyticsSheet: View {
     }
 
     // MARK: - Handlers
-    private func openFilePicker() {
-        Haptics.impact(.medium)
-
-        let types: [UTType] = [
-            .item,
-            .content,
-            .data,
-            .text,
-            .plainText,
-            .json,
-            UTType(filenameExtension: "ips") ?? .data,
-            UTType(filenameExtension: "synced") ?? .data,
-            UTType(filenameExtension: "ca") ?? .data,
-            UTType(filenameExtension: "log") ?? .data
-        ]
-
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: true)
-        picker.allowsMultipleSelection = false
-
-        let coordinator = DocumentPickerCoordinator(
-            onPick: { url in
-                handleFileImport(url: url)
-            },
-            onDismiss: {
-                self.pickerCoordinator = nil
-            }
-        )
-        self.pickerCoordinator = coordinator
-        picker.delegate = coordinator
-
-        guard let topVC = UIApplication.shared.topMostViewController() else { return }
-        topVC.present(picker, animated: true)
-    }
-
     private func handleFileImport(url: URL) {
-        self.pickerCoordinator = nil
         Task {
             let parseResult = await battery.parseAnalyticsFile(url: url)
             switch parseResult {
@@ -321,6 +262,43 @@ struct BatteryAnalyticsSheet: View {
         case let .failure(err):
             Haptics.error()
             self.errorMessage = err.localizedDescription
+        }
+    }
+}
+
+// MARK: - Native Document Picker Representable
+private struct DocumentPickerRepresentable: UIViewControllerRepresentable {
+    let allowedTypes: [UTType]
+    let onPick: (URL) -> Void
+    let onCancel: () -> Void
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: allowedTypes, asCopy: true)
+        picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = false
+        return picker
+    }
+
+    func updateUIViewController(_: UIDocumentPickerViewController, context _: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    final class Coordinator: NSObject, UIDocumentPickerDelegate {
+        let parent: DocumentPickerRepresentable
+
+        init(_ parent: DocumentPickerRepresentable) {
+            self.parent = parent
+        }
+
+        func documentPicker(_: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            parent.onPick(url)
+        }
+
+        func documentPickerWasCancelled(_: UIDocumentPickerViewController) {
+            parent.onCancel()
         }
     }
 }

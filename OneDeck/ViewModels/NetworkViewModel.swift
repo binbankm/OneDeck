@@ -228,6 +228,8 @@ public final class NetworkViewModel: @unchecked Sendable {
         trafficTimer = nil
         stopLanScan()
         stopSpeedTest()
+        isScanningPorts = false
+        isBenchmarkingDns = false
     }
 
     // MARK: - Path & Interface Resolver
@@ -967,6 +969,7 @@ public final class NetworkViewModel: @unchecked Sendable {
             var deviceMap: [String: DiscoveredDevice] = [:]
 
             for arp in arpDevices {
+                guard self.isScanningLan else { break }
                 let isGw = (arp.ip == currentGateway)
                 let name = isGw ? L10n.Network.deviceGateway : arp.vendor
                 let latency = Self.measureTcpConnectRTT(host: arp.ip, port: isGw ? 80 : 53, timeoutSec: 0.3)
@@ -1025,7 +1028,11 @@ public final class NetworkViewModel: @unchecked Sendable {
 
                 browser.start(queue: self.monitorQueue)
                 Task { @MainActor [weak self] in
-                    self?.lanBrowsers.append(browser)
+                    guard let self, self.isScanningLan else {
+                        browser.cancel()
+                        return
+                    }
+                    self.lanBrowsers.append(browser)
                 }
             }
         }
@@ -1183,7 +1190,7 @@ public final class NetworkViewModel: @unchecked Sendable {
 
             let sortedResults = results.sorted(by: { $0.latencyMs < $1.latencyMs })
             Task { @MainActor [weak self] in
-                guard let self else { return }
+                guard let self, self.isBenchmarkingDns else { return }
                 self.dnsBenchmarkResults = sortedResults
                 self.isBenchmarkingDns = false
                 Haptics.tick()
@@ -1232,7 +1239,7 @@ public final class NetworkViewModel: @unchecked Sendable {
             results.sort { $0.port < $1.port }
             let finalScanResults = results
             Task { @MainActor [weak self] in
-                guard let self else { return }
+                guard let self, self.isScanningPorts else { return }
                 self.portScanResults = finalScanResults
                 self.isScanningPorts = false
                 Haptics.tick()
@@ -1410,6 +1417,7 @@ public final class NetworkViewModel: @unchecked Sendable {
                         }
                     }
                 } catch {
+                    guard !Task.isCancelled else { return }
                     await MainActor.run {
                         let estUp = max(8.0, self.speedTestDownloadMbps * 0.30)
                         self.speedTestUploadMbps = estUp

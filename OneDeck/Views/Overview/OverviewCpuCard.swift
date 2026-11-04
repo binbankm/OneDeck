@@ -68,40 +68,33 @@ struct OverviewCpuCard: View {
 
             ZStack(alignment: .topLeading) {
                 // Layer 1: Dashed Grid Lines (Spanning full width) & Far-Right Aligned Labels
-                GeometryReader { geo in
-                    let w = geo.size.width
-                    let h = geo.size.height
-                    let labelWidth: CGFloat = 28
-                    let gridColor = ChartTheme.gridColor(for: colorScheme)
-                    let lineEndX = max(0, w - labelWidth - SpacingTheme.tight)
-                    let y100: CGFloat = 5
-                    let y50: CGFloat = h * 0.5
+                VStack(spacing: 0) {
+                    HStack(spacing: SpacingTheme.tight) {
+                        HorizontalDashedLine()
+                            .stroke(ChartTheme.gridColor(for: colorScheme), style: ChartTheme.gridStroke)
+                            .frame(height: 1)
 
-                    // 100% Horizontal Grid Line
-                    HorizontalDashedLine()
-                        .stroke(gridColor, style: ChartTheme.gridStroke)
-                        .frame(width: lineEndX, height: 1)
-                        .position(x: lineEndX / 2, y: y100)
+                        Text("100%")
+                            .font(ChartTheme.compactAxisLabelFont)
+                            .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
+                            .frame(width: 28, alignment: .trailing)
+                    }
+                    .padding(.top, 5)
 
-                    // 100% Percentage Label
-                    Text("100%")
-                        .font(ChartTheme.compactAxisLabelFont)
-                        .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
-                        .frame(width: labelWidth, alignment: .trailing)
-                        .position(x: w - labelWidth / 2, y: y100)
+                    Spacer()
 
-                    // 50% Horizontal Grid Line
-                    HorizontalDashedLine()
-                        .stroke(gridColor, style: ChartTheme.gridStroke)
-                        .frame(width: lineEndX, height: 1)
-                        .position(x: lineEndX / 2, y: y50)
+                    HStack(spacing: SpacingTheme.tight) {
+                        HorizontalDashedLine()
+                            .stroke(ChartTheme.gridColor(for: colorScheme), style: ChartTheme.gridStroke)
+                            .frame(height: 1)
 
-                    // 50% Percentage Label
-                    Text("50%")
-                        .font(ChartTheme.compactAxisLabelFont)
-                        .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
-                        .frame(width: labelWidth, alignment: .trailing)
-                        .position(x: w - labelWidth / 2, y: y50)
+                        Text("50%")
+                            .font(ChartTheme.compactAxisLabelFont)
+                            .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
+                            .frame(width: 28, alignment: .trailing)
+                    }
+
+                    Spacer()
                 }
 
                 // Layer 2: Real-time CPU Area & Line Waveform
@@ -139,6 +132,7 @@ struct OverviewCpuCard: View {
             ForEach(Array(system.coreUsages.enumerated()), id: \.offset) { index, usage in
                 let isPCore = index < system.hardwareSpecs.pCores
                 let coreTag = isPCore ? "P\(index + 1)" : "E\(index - system.hardwareSpecs.pCores + 1)"
+                let clampedUsage = min(100.0, max(0.0, usage.isFinite ? usage : 0.0))
 
                 VStack(spacing: SpacingTheme.tight) {
                     ZStack(alignment: .bottom) {
@@ -148,13 +142,13 @@ struct OverviewCpuCard: View {
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                         // Dynamic level fill
-                        let fillH = max(4, 54.0 * CGFloat(usage / 100.0))
+                        let fillH = max(4, 54.0 * CGFloat(clampedUsage / 100.0))
                         Rectangle()
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        usage > 85 ? Color.orange : appState.accentColor,
-                                        usage > 85 ? Color.orange.opacity(0.7) : appState.accentColor.opacity(0.6)
+                                        clampedUsage > 85 ? Color.orange : appState.accentColor,
+                                        clampedUsage > 85 ? Color.orange.opacity(0.7) : appState.accentColor.opacity(0.6)
                                     ],
                                     startPoint: .top,
                                     endPoint: .bottom
@@ -164,7 +158,7 @@ struct OverviewCpuCard: View {
                     }
                     .frame(height: 54)
                     .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
-                    .animation(.spring(response: 0.35, dampingFraction: 0.75), value: usage)
+                    .animation(.easeInOut(duration: 0.3), value: usage)
 
                     Text(coreTag)
                         .font(Typography.badgeTag)
@@ -172,11 +166,11 @@ struct OverviewCpuCard: View {
                         .foregroundStyle(isPCore ? appState.accentColor : Theme.textTertiary(for: colorScheme))
                         .lineLimit(1)
 
-                    Text(String(format: "%.0f%%", usage))
+                    Text(String(format: "%.0f%%", clampedUsage))
                         .font(Typography.badgeTag)
                         .monospacedDigit()
                         .lineLimit(1)
-                        .foregroundStyle(usage > 85 ? Color.orange : Theme.textSecondary(for: colorScheme))
+                        .foregroundStyle(clampedUsage > 85 ? Color.orange : Theme.textSecondary(for: colorScheme))
                 }
                 .frame(maxWidth: .infinity)
             }

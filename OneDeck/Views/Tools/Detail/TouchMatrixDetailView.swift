@@ -19,28 +19,28 @@ struct TouchMatrixDetailView: View {
 
     // MARK: - Body
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: SpacingTheme.standard) {
-                // Top Progress HUD
-                hudCard
+        VStack(spacing: SpacingTheme.standard) {
+            // Top Progress HUD
+            hudCard
 
-                // Interactive Capacitive Grid
-                interactiveMatrixGrid(width: max(0, geometry.size.width - SpacingTheme.cardStack * 2), height: max(0, geometry.size.height - 140))
-
-                // Bottom Hint
-                Text(L10n.Tools.sweepAllCells)
-                    .font(Typography.badgeTag)
-                    .foregroundStyle(Theme.textTertiary(for: colorScheme))
+            // Interactive Capacitive Grid
+            GeometryReader { geo in
+                interactiveMatrixGrid(width: geo.size.width, height: geo.size.height)
             }
-            .padding(.horizontal, SpacingTheme.cardStack)
-            .padding(.vertical, SpacingTheme.standard)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Bottom Hint
+            Text(L10n.Tools.sweepAllCells)
+                .font(Typography.badgeTag)
+                .foregroundStyle(Theme.textTertiary(for: colorScheme))
         }
+        .padding(.horizontal, SpacingTheme.cardStack)
+        .padding(.vertical, SpacingTheme.standard)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.touchMatrix)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .touchMatrix)
         }
         .onDisappear {
             tools.leaveDetailView()

@@ -124,7 +124,7 @@ struct ScreenRulerDetailView: View {
         .navigationTitle(L10n.Tools.screenRuler)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .screenRuler)
         }
         .onDisappear {
             tools.leaveDetailView()

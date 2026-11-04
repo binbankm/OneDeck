@@ -298,17 +298,12 @@ public final class BatteryViewModel {
                 self.isHardwareDirectWattage = false
             }
 
-            // Protocol Name formatting
+            // Protocol Name formatting: Keep stable to prevent pill jumping between ticks
             if let watts = hw.adapterWatts, watts > 0 {
-                let v = Double(hw.adapterVoltageMv ?? 0) / 1000.0
-                let a = Double(hw.adapterCurrentMa ?? 0) / 1000.0
                 if watts <= 6 {
                     self.chargingProtocolName = L10n.Battery.adapterTypeSlow
                 } else if let name = hw.adapterName, name.lowercased().contains("wireless") || name.lowercased().contains("magsafe") {
                     self.chargingProtocolName = L10n.Battery.adapterTypeWireless
-                } else if v > 4.5 && a > 0.5 {
-                    let baseName = L10n.Battery.protocolFastPD(watt: watts)
-                    self.chargingProtocolName = L10n.Battery.protocolWithNegotiation(name: baseName, volts: v, amps: a)
                 } else {
                     self.chargingProtocolName = L10n.Battery.protocolFastPD(watt: watts)
                 }

@@ -22,42 +22,38 @@ struct ToneGeneratorDetailView: View {
 
     // MARK: - Body
     var body: some View {
-        GeometryReader { _ in
-            VStack(spacing: SpacingTheme.cardStack) {
-                // Waveform Selector
-                waveformPickerBar
+        VStack(spacing: SpacingTheme.cardStack) {
+            // Waveform Selector
+            waveformPickerBar
 
-                Spacer()
+            Spacer()
 
-                // Center Frequency Wheel / Readout
-                frequencyCenterReadout
+            // Center Frequency Wheel / Readout
+            frequencyCenterReadout
 
-                Spacer()
+            Spacer()
 
-                // Frequency Slider & Steppers
-                frequencySliderSection
+            // Frequency Slider & Steppers
+            frequencySliderSection
 
-                // Quick Presets
-                presetsRow
+            // Quick Presets
+            presetsRow
 
-                // Master Play / Stop Button
-                playToggleButton
-            }
-            .padding(.horizontal, SpacingTheme.cardStack)
-            .padding(.vertical, SpacingTheme.rowStandard)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Master Play / Stop Button
+            playToggleButton
         }
+        .padding(.horizontal, SpacingTheme.cardStack)
+        .padding(.vertical, SpacingTheme.rowStandard)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.toneGenerator)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .toneGenerator)
         }
         .onDisappear {
+            tools.stopToneGenerator()
             tools.leaveDetailView()
-            if tools.toneGenerator.isPlaying {
-                tools.toggleToneGenerator()
-            }
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

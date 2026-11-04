@@ -129,9 +129,7 @@ struct NetworkPortScannerCard: View {
                     VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                         HStack(spacing: SpacingTheme.tight) {
                             Text(String(item.port))
-                                .font(Typography.calloutLabel)
-                                .fontDesign(.monospaced)
-                                .fontWeight(.bold)
+                                .font(Typography.calloutMono)
                                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
                             Text(item.serviceName)

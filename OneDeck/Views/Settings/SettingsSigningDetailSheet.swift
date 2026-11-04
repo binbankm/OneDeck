@@ -75,7 +75,7 @@ struct SettingsSigningDetailSheet: View {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: SpacingTheme.tight) {
                     Text(L10n.Settings.certCountdown)
-                        .font(Typography.calloutLabel)
+                        .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                     if probe.signingType == .trollStore {
@@ -106,7 +106,7 @@ struct SettingsSigningDetailSheet: View {
                         .frame(width: 8, height: 8)
 
                     Text(probe.statusText)
-                        .font(Typography.captionMono)
+                        .font(Typography.badgeTagMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 }
                 .padding(.horizontal, SpacingTheme.standard)
@@ -118,7 +118,8 @@ struct SettingsSigningDetailSheet: View {
             // Visual Lifecycle Progress Bar
             if probe.hasProvisionProfile {
                 VStack(alignment: .leading, spacing: SpacingTheme.compact) {
-                    ProgressView(value: min(1.0, max(0.0, probe.progressRatio)))
+                    let safeRatio = probe.progressRatio.isFinite ? min(1.0, max(0.0, probe.progressRatio)) : 0.0
+                    ProgressView(value: safeRatio)
                         .tint(statusColor)
                         .scaleEffect(x: 1, y: 1.4, anchor: .center)
 
@@ -301,17 +302,16 @@ struct SettingsSigningDetailSheet: View {
 
     @ViewBuilder
     private func detailRow(title: String, value: String) -> some View {
-        HStack(alignment: .top, spacing: SpacingTheme.standard) {
+        HStack(alignment: .center, spacing: SpacingTheme.standard) {
             Text(title)
-                .font(Typography.calloutLabel)
+                .font(Typography.caption)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .fixedSize(horizontal: true, vertical: false)
-                .frame(minHeight: 18, alignment: .leading)
 
             Spacer(minLength: SpacingTheme.standard)
 
             Text(value)
-                .font(Typography.calloutBold)
+                .font(Typography.bodyValue)
                 .monospacedDigit()
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 .multilineTextAlignment(.trailing)
@@ -335,7 +335,7 @@ struct SettingsSigningDetailSheet: View {
         VStack(alignment: .leading, spacing: SpacingTheme.tight) {
             HStack(alignment: .center) {
                 Text(title)
-                    .font(Typography.calloutLabel)
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                 Spacer()
@@ -379,7 +379,7 @@ struct SettingsSigningDetailSheet: View {
             }
 
             Text(displayValue)
-                .font((isHexHash || isMono) ? Typography.calloutMono : Typography.calloutBold)
+                .font((isHexHash || isMono) ? Typography.bodyValueMono : Typography.bodyValue)
                 .foregroundStyle(isCopied ? appState.accentColor : Theme.textPrimary(for: colorScheme))
                 .multilineTextAlignment(.leading)
                 .lineLimit(nil)

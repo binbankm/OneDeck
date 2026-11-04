@@ -118,22 +118,73 @@ public enum NetworkKernelProbe {
         return nil
     }
 
+    // MARK: - Thread-Safe Dynamic C Bridges
+    private final nonisolated class ResolvBridge: @unchecked Sendable {
+        static let shared = ResolvBridge()
+
+        let resInit: DarwinResInitFn?
+        let resSymbol: UnsafeMutableRawPointer?
+
+        private init() {
+            let handle = dlopen("/usr/lib/libresolv.9.dylib", RTLD_NOW)
+                ?? dlopen("/usr/lib/libresolv.dylib", RTLD_NOW)
+                ?? dlopen(nil, RTLD_NOW)
+
+            if let handle {
+                if let symInit = dlsym(handle, "res_9_init") ?? dlsym(handle, "res_init") {
+                    self.resInit = unsafeBitCast(symInit, to: DarwinResInitFn.self)
+                } else {
+                    self.resInit = nil
+                }
+                self.resSymbol = dlsym(handle, "_res")
+            } else {
+                self.resInit = nil
+                self.resSymbol = nil
+            }
+        }
+    }
+
+    private typealias Apple80211OpenFn = @convention(c) (UnsafeMutablePointer<UnsafeMutableRawPointer?>) -> Int32
+    private typealias Apple80211BindToInterfaceFn = @convention(c) (UnsafeMutableRawPointer, CFString) -> Int32
+    private typealias Apple80211CloseFn = @convention(c) (UnsafeMutableRawPointer) -> Int32
+    private typealias Apple80211GetInfoCopyFn = @convention(c) (UnsafeMutableRawPointer, UnsafeMutablePointer<Unmanaged<CFDictionary>?>) -> Int32
+
+    private final nonisolated class Apple80211Bridge: @unchecked Sendable {
+        static let shared = Apple80211Bridge()
+
+        let openFn: Apple80211OpenFn?
+        let bindFn: Apple80211BindToInterfaceFn?
+        let infoFn: Apple80211GetInfoCopyFn?
+        let closeFn: Apple80211CloseFn?
+
+        private init() {
+            guard let handle = dlopen("/System/Library/PrivateFrameworks/Apple80211.framework/Apple80211", RTLD_NOW) else {
+                self.openFn = nil
+                self.bindFn = nil
+                self.infoFn = nil
+                self.closeFn = nil
+                return
+            }
+
+            func resolve<T>(_ name: String, _ type: T.Type) -> T? {
+                dlsym(handle, name).map { unsafeBitCast($0, to: type) }
+            }
+
+            self.openFn = resolve("Apple80211Open", Apple80211OpenFn.self)
+            self.bindFn = resolve("Apple80211BindToInterface", Apple80211BindToInterfaceFn.self)
+            self.infoFn = resolve("Apple80211GetInfoCopy", Apple80211GetInfoCopyFn.self)
+            self.closeFn = resolve("Apple80211Close", Apple80211CloseFn.self)
+        }
+    }
+
     // MARK: - 2. Real System DNS Servers via Darwin libresolv (_res)
     public nonisolated static func queryDnsServers() -> [String] {
         var results: [String] = []
 
-        let resolvHandle = dlopen("/usr/lib/libresolv.9.dylib", RTLD_NOW)
-            ?? dlopen("/usr/lib/libresolv.dylib", RTLD_NOW)
-            ?? dlopen(nil, RTLD_NOW)
+        let bridge = ResolvBridge.shared
+        _ = bridge.resInit?()
 
-        if let handle = resolvHandle {
-            if let symInit = dlsym(handle, "res_9_init") ?? dlsym(handle, "res_init") {
-                let resInit = unsafeBitCast(symInit, to: DarwinResInitFn.self)
-                _ = resInit()
-            }
-        }
-
-        guard let sym = dlsym(resolvHandle, "_res") ?? dlsym(dlopen(nil, RTLD_NOW), "_res") else { return [] }
+        guard let sym = bridge.resSymbol else { return [] }
         let nscount = sym.advanced(by: 16).load(as: Int32.self)
         let listOffset = 20
 
@@ -246,28 +297,14 @@ public enum NetworkKernelProbe {
     }
 
     // MARK: - 5. Apple80211 Private Wi-Fi Link Telemetry (SSID, BSSID, RSSI, Channel, TxRate)
-    private typealias Apple80211OpenFn = @convention(c) (UnsafeMutablePointer<UnsafeMutableRawPointer?>) -> Int32
-    private typealias Apple80211BindToInterfaceFn = @convention(c) (UnsafeMutableRawPointer, CFString) -> Int32
-    private typealias Apple80211CloseFn = @convention(c) (UnsafeMutableRawPointer) -> Int32
-    private typealias Apple80211GetInfoCopyFn = @convention(c) (UnsafeMutableRawPointer, UnsafeMutablePointer<Unmanaged<CFDictionary>?>) -> Int32
-
     public nonisolated static func queryWifiTelemetry() -> WifiHardwareTelemetry? {
-        guard let handle = dlopen("/System/Library/PrivateFrameworks/Apple80211.framework/Apple80211", RTLD_NOW) else {
+        let bridge = Apple80211Bridge.shared
+        guard let openFn = bridge.openFn,
+              let bindFn = bridge.bindFn,
+              let infoFn = bridge.infoFn,
+              let closeFn = bridge.closeFn else {
             return nil
         }
-        defer { dlclose(handle) }
-
-        guard let symOpen = dlsym(handle, "Apple80211Open"),
-              let symBind = dlsym(handle, "Apple80211BindToInterface"),
-              let symInfo = dlsym(handle, "Apple80211GetInfoCopy"),
-              let symClose = dlsym(handle, "Apple80211Close") else {
-            return nil
-        }
-
-        let openFn = unsafeBitCast(symOpen, to: Apple80211OpenFn.self)
-        let bindFn = unsafeBitCast(symBind, to: Apple80211BindToInterfaceFn.self)
-        let infoFn = unsafeBitCast(symInfo, to: Apple80211GetInfoCopyFn.self)
-        let closeFn = unsafeBitCast(symClose, to: Apple80211CloseFn.self)
 
         var client: UnsafeMutableRawPointer? = nil
         guard openFn(&client) == 0, let c = client else { return nil }

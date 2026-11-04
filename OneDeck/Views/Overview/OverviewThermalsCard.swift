@@ -86,23 +86,10 @@ struct OverviewThermalsCard: View {
                     .lineLimit(1)
             }
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05))
-
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [thermalColor, thermalColor.opacity(0.7)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: max(8, geo.size.width * CGFloat(system.thermalPressurePercent) / 100.0))
-                }
-            }
-            .frame(height: 5)
+            ProgressView(value: min(1.0, max(0.0, Double(system.thermalPressurePercent) / 100.0)))
+                .tint(thermalColor)
+                .scaleEffect(x: 1, y: 1.25, anchor: .center)
+                .frame(height: 5)
         }
     }
 

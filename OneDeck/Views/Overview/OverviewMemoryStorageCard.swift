@@ -39,37 +39,44 @@ struct OverviewMemoryStorageCard: View {
                     .lineLimit(1)
             }
 
-            // Smooth Segmented Memory Capsule
-            GeometryReader { proxy in
+            // Smooth Segmented Memory Capsule (Single Canvas Draw)
+            Canvas { context, size in
                 let total = max(1, Double(system.totalPhysicalMemory))
-                let w = proxy.size.width
-                let activeW = max(2, CGFloat(Double(system.activeMemory) / total) * w)
-                let wiredW = max(2, CGFloat(Double(system.wiredMemory) / total) * w)
-                let compW = max(2, CGFloat(Double(system.compressedMemory) / total) * w)
-                let usedW = activeW + wiredW + compW
-                let freeW = max(2, w - usedW - 6)
+                let w = size.width
+                let h = size.height
+                let spacing: CGFloat = 2
+                let totalSpacing = spacing * 3
 
-                HStack(spacing: SpacingTheme.micro) {
-                    Rectangle()
-                        .fill(appState.accentColor)
-                        .frame(width: activeW)
+                let activeRatio = CGFloat(Double(system.activeMemory) / total)
+                let wiredRatio = CGFloat(Double(system.wiredMemory) / total)
+                let compRatio = CGFloat(Double(system.compressedMemory) / total)
 
-                    Rectangle()
-                        .fill(appState.accentColor.opacity(0.65))
-                        .frame(width: wiredW)
+                let availableW = max(0, w - totalSpacing)
+                let activeW = max(2, availableW * activeRatio)
+                let wiredW = max(2, availableW * wiredRatio)
+                let compW = max(2, availableW * compRatio)
 
-                    Rectangle()
-                        .fill(appState.accentColor.opacity(0.35))
-                        .frame(width: compW)
+                var currentX: CGFloat = 0
 
-                    Rectangle()
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08))
-                        .frame(width: freeW)
-                }
-                .clipShape(Capsule())
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: system.activeMemory)
+                // 1. Active Memory Segment
+                context.fill(Path(CGRect(x: currentX, y: 0, width: activeW, height: h)), with: .color(appState.accentColor))
+                currentX += activeW + spacing
+
+                // 2. Wired Memory Segment
+                context.fill(Path(CGRect(x: currentX, y: 0, width: wiredW, height: h)), with: .color(appState.accentColor.opacity(0.65)))
+                currentX += wiredW + spacing
+
+                // 3. Compressed Memory Segment
+                context.fill(Path(CGRect(x: currentX, y: 0, width: compW, height: h)), with: .color(appState.accentColor.opacity(0.35)))
+                currentX += compW + spacing
+
+                // 4. Free Memory Segment
+                let freeColor = colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
+                context.fill(Path(CGRect(x: currentX, y: 0, width: max(0, w - currentX), height: h)), with: .color(freeColor))
             }
+            .clipShape(Capsule())
             .frame(height: 8)
+            .animation(.easeInOut(duration: 0.25), value: system.activeMemory)
 
             // 2x2 Bento Stat Grid
             VStack(spacing: SpacingTheme.standard) {
@@ -119,27 +126,13 @@ struct OverviewMemoryStorageCard: View {
                     .lineLimit(1)
             }
 
-            // Storage Segmented Bar
-            GeometryReader { proxy in
-                let total = max(1, Double(system.totalDiskSpace))
-                let w = proxy.size.width
-                let used = max(0, Double(system.totalDiskSpace - system.availableDiskSpace))
-                let usedW = min(w - 4, max(2, CGFloat(used / total) * w))
-                let availW = max(2, w - usedW - 2)
-
-                HStack(spacing: SpacingTheme.micro) {
-                    Rectangle()
-                        .fill(appState.accentColor)
-                        .frame(width: usedW)
-
-                    Rectangle()
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08))
-                        .frame(width: availW)
-                }
-                .clipShape(Capsule())
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: system.availableDiskSpace)
-            }
-            .frame(height: 8)
+            // Storage Native Progress Bar
+            let totalDisk = Double(max(1, system.totalDiskSpace))
+            let usedDisk = Double(max(0, system.totalDiskSpace - system.availableDiskSpace))
+            ProgressView(value: min(1.0, max(0.0, usedDisk / totalDisk)))
+                .tint(appState.accentColor)
+                .scaleEffect(x: 1, y: 1.6, anchor: .center)
+                .frame(height: 8)
 
             // Used vs Available Metrics
             HStack {

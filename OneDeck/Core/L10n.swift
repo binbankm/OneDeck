@@ -335,6 +335,7 @@ public enum L10n {
     // MARK: - Battery
     public enum Battery {
         public static var title: String { tr(zh: "电池", en: "Battery", hant: "電池") }
+        public static var liveIndicator: String { tr(zh: "实时", en: "LIVE", hant: "即時") }
         public static var batteryStatus: String { tr(zh: "状态", en: "Status", hant: "狀態") }
         public static var healthTitle: String { tr(zh: "健康度", en: "Health", hant: "健康度") }
         public static var livePowerTitle: String { tr(zh: "功率", en: "Power", hant: "功率") }
@@ -517,18 +518,18 @@ public enum L10n {
 
         public static var bmsRaw: String { tr(zh: "BMS 真值", en: "BMS Raw", hant: "BMS 真值") }
         public static var estimated: String { tr(zh: "基准估算", en: "Estimated", hant: "基準估算") }
-        public static var pendingImport: String { tr(zh: "需导入日志", en: "Import Required", hant: "需匯入日誌") }
-        public static var baselineEstimated: String { tr(zh: "基准预估", en: "Estimated", hant: "基準預估") }
-        public static var calibrateViaLogPrompt: String { tr(zh: "导入日志校准", en: "Import Log", hant: "匯入日誌校準") }
+        public static var pendingImport: String { tr(zh: "待校准", en: "Pending Calibration", hant: "待校準") }
+        public static var baselineEstimated: String { tr(zh: "待校准", en: "Pending Calibration", hant: "待校準") }
+        public static var calibrateViaLogPrompt: String { tr(zh: "导入日志校准真值", en: "Import Log to Calibrate", hant: "匯入日誌校準真值") }
         public static var baselineNotice: String { tr(
-            zh: "基于机型出厂基准预估，导入官方日志可校准 100% 真实数据",
-            en: "Estimated baseline. Import Analytics Log to calibrate exact BMS values",
-            hant: "基於機型出廠基準預估，匯入官方日誌可校準 100% 原始資料"
+            zh: "iOS 限制沙盒直接读取 BMS，需导入官方分析日志以解锁原厂真实数据与循环次数",
+            en: "iOS sandbox blocks direct BMS reads. Import Analytics Log to unlock exact battery health & cycles",
+            hant: "iOS 限制沙盒直接讀取 BMS，需匯入官方分析日誌以解鎖原廠真實數據與循環次數"
         ) }
         public static var pendingImportNotice: String { tr(
-            zh: "未导入官方分析文件，需导入以解锁原厂真值",
-            en: "Official log not imported. Import to reveal BMS raw values",
-            hant: "未匯入官方分析檔案，需匯入以解鎖原廠真值"
+            zh: "iOS 限制沙盒直接读取 BMS，需导入官方分析日志以解锁原厂真实数据与循环次数",
+            en: "iOS sandbox blocks direct BMS reads. Import Analytics Log to unlock exact battery health & cycles",
+            hant: "iOS 限制沙盒直接讀取 BMS，需匯入官方分析日誌以解鎖原廠真實數據與循環次數"
         ) }
         public static var flirMode: String { tr(zh: "红外热像", en: "FLIR IR", hant: "紅外熱像") }
         public static var xrayMode: String { tr(zh: "透视蓝图", en: "X-Ray", hant: "透視藍圖") }
@@ -735,6 +736,7 @@ public enum L10n {
         public static var waterEjectorSub: String { tr(zh: "165Hz 声学排水", en: "165Hz Acoustic", hant: "165Hz 聲學排水") }
         public static var torchLab: String { tr(zh: "精细手电", en: "Precision Torch", hant: "精細手電") }
         public static var torchLabSub: String { tr(zh: "线性调光与频闪", en: "Dimmer & Strobe", hant: "線性調光與頻閃") }
+        public static var torchHardwareUnavailable: String { tr(zh: "当前设备未配备后置补光灯，可使用柔光箱功能", en: "No rear flash detected. Softbox mode available.", hant: "當前設備未配備後置補光燈，可使用柔光箱功能") }
         public static var metalDetector: String { tr(zh: "金属寻线", en: "Metal & EMF", hant: "金屬尋線") }
         public static var metalDetectorSub: String { tr(zh: "微特斯拉 (µT) 磁通", en: "Magnetic Flux", hant: "微特斯拉 (µT) 磁通") }
         public static var barometer: String { tr(zh: "气压海拔", en: "Barometer & Alt", hant: "氣壓海拔") }
@@ -868,6 +870,47 @@ public enum L10n {
         public static var filterSobel: String { tr(zh: "边缘探伤", en: "Edge Filter", hant: "邊緣探傷") }
         public static var filterInvert: String { tr(zh: "高反差负片", en: "Invert Negative", hant: "高反差負片") }
         public static var filterNormal: String { tr(zh: "原色成像", en: "Natural", hant: "原色成像") }
+        public static var cameraPermissionDenied: String { tr(
+            zh: "请在系统设置中允许 OneDeck 访问相机以启用微距显微镜",
+            en: "Please allow camera access in Settings to use the microscope",
+            hant: "請在系統設定中允許 OneDeck 訪問相機以啟用微距顯微鏡"
+        ) }
+        public static var micPermissionDenied: String { tr(
+            zh: "请在系统设置中允许 OneDeck 访问麦克风以启用分贝检测仪",
+            en: "Please allow microphone access in Settings to measure sound levels",
+            hant: "請在系統設定中允許 OneDeck 訪問麥克風以啟用分貝檢測儀"
+        ) }
+        public static var pulseCameraPermissionDenied: String { tr(
+            zh: "请在系统设置中允许 OneDeck 访问相机以启用脉搏心率检测",
+            en: "Please allow camera access in Settings to measure pulse rate",
+            hant: "請在系統設定中允許 OneDeck 訪問相機以啟用脈搏心率檢測"
+        ) }
+        public static var locationPermissionDenied: String { tr(
+            zh: "请在系统设置中允许 OneDeck 访问位置以启用电子罗盘与卫星定位",
+            en: "Please allow location access in Settings for compass & GPS positioning",
+            hant: "請在系統設定中允許 OneDeck 訪問位置以啟用電子羅盤與衛星定位"
+        ) }
+        public static var headingHardwareUnavailable: String { tr(
+            zh: "当前设备缺少电子罗盘硬件（模拟器或部分 iPad 暂不支持方向测量）",
+            en: "Compass hardware is unavailable on this device",
+            hant: "當前設備缺少電子羅盤硬件（模擬器或部分 iPad 暫不支援方向測量）"
+        ) }
+        public static var barometerHardwareUnavailable: String { tr(
+            zh: "当前设备缺少气压计传感器硬件（模拟器或部分 iPad 暂不支持气压高度测量）",
+            en: "Barometer altimeter sensor is unavailable on this device",
+            hant: "當前設備缺少氣壓計感測器硬件（模擬器或部分 iPad 暫不支援氣壓高度測量）"
+        ) }
+        public static var magnetometerHardwareUnavailable: String { tr(
+            zh: "当前设备缺少磁力计传感器硬件（模拟器暂不支持金属与磁场探测）",
+            en: "Magnetometer sensor is unavailable on this device",
+            hant: "當前設備缺少磁力計感測器硬件（模擬器暫不支援金屬與磁場探測）"
+        ) }
+        public static var hapticHardwareUnavailable: String { tr(
+            zh: "当前设备缺少触感马达硬件（模拟器或 iPad 暂不支持 Taptic Engine 振动）",
+            en: "Taptic Engine haptics hardware is unavailable on this device",
+            hant: "當前設備缺少觸感馬達硬件（模擬器或 iPad 暫不支援 Taptic Engine 震動）"
+        ) }
+        public static var openSettings: String { tr(zh: "前往系统设置", en: "Open Settings", hant: "前往系統設定") }
 
         // Workspace Actions & Common Labels
         public static var openWorkspace: String { tr(zh: "进入工作台", en: "Open Workspace", hant: "進入工作台") }

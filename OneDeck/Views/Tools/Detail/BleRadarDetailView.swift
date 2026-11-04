@@ -94,7 +94,8 @@ struct BleRadarDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                Text(tools.bleRadar.devices.isEmpty ? "--" : String(format: "~%.1f m", tools.bleRadar.estimatedDistanceMeters))
+                let safeDist = tools.bleRadar.estimatedDistanceMeters.isFinite ? tools.bleRadar.estimatedDistanceMeters : 0.0
+                Text(tools.bleRadar.devices.isEmpty ? "--" : String(format: "~%.1f m", safeDist))
                     .font(Typography.heroSubValueMono)
                     .foregroundStyle(Color.cyan)
                     .lineLimit(1)

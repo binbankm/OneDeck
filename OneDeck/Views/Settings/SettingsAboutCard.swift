@@ -96,7 +96,7 @@ struct SettingsAboutCard: View {
                     .frame(width: 20, height: 20, alignment: .center)
 
                 Text(L10n.Settings.repoLink)
-                    .font(Typography.bodyValue.weight(.medium))
+                    .font(Typography.bodyMedium)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
                 Spacer(minLength: SpacingTheme.standard)
@@ -157,7 +157,7 @@ struct SettingsAboutCard: View {
                 .frame(width: 20, height: 20, alignment: .center)
 
             Text(label)
-                .font(Typography.bodyValue.weight(.medium))
+                .font(Typography.bodyMedium)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)

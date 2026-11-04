@@ -297,14 +297,15 @@ struct NetworkTrafficCard: View {
     }
 
     private func formatRate(_ bps: Double) -> (value: String, unit: String) {
-        if bps >= 1024 * 1024 {
-            let mb = bps / (1024.0 * 1024.0)
+        let safeBps = (bps.isFinite && bps >= 0) ? bps : 0.0
+        if safeBps >= 1024 * 1024 {
+            let mb = safeBps / (1024.0 * 1024.0)
             return (String(format: "%.1f", mb), "MB/s")
-        } else if bps >= 1024 {
-            let kb = bps / 1024.0
+        } else if safeBps >= 1024 {
+            let kb = safeBps / 1024.0
             return (String(format: "%.0f", kb), "KB/s")
         } else {
-            return (String(format: "%.0f", max(0, bps)), "B/s")
+            return (String(format: "%.0f", safeBps), "B/s")
         }
     }
 

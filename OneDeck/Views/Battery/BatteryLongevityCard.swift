@@ -325,19 +325,19 @@ struct BatteryLongevityCard: View {
 
     // MARK: - Computed Properties
     private var gradeText: String {
-        let health = battery.healthPercentDisplay
-        let baseGrade: String = {
-            if health >= 85 { return L10n.Battery.gradeA }
-            if health >= 80 { return L10n.Battery.gradeB }
-            return L10n.Battery.gradeC
-        }()
         if !battery.hasRealTelemetry {
-            return "\(baseGrade) (\(L10n.Battery.baselineEstimated))"
+            return L10n.Battery.pendingImport
         }
-        return baseGrade
+        let health = battery.healthPercentDisplay
+        if health >= 85 { return L10n.Battery.gradeA }
+        if health >= 80 { return L10n.Battery.gradeB }
+        return L10n.Battery.gradeC
     }
 
     private var gradeColor: Color {
+        if !battery.hasRealTelemetry {
+            return .orange
+        }
         let health = battery.healthPercentDisplay
         if health >= 85 { return appState.accentColor }
         if health >= 80 { return .yellow }
@@ -400,9 +400,9 @@ struct BatteryLongevityCard: View {
         - \(L10n.Battery.cellVoltagesLabel): \(cellsFormatted)
         - \(L10n.Battery.reportFactoryDesignCap): \(battery.officialDesignCapacityMah) mAh
         - \(L10n.Battery.reportEffectiveDesignCap): \(battery.effectiveDesignCapacityMah) mAh
-        - \(L10n.Battery.reportActualMaxCap): \(battery.hasRealTelemetry ? "\(battery.actualMaxCapacityMahDisplay) mAh" : "\(battery.actualMaxCapacityMahDisplay) mAh (\(L10n.Battery.baselineEstimated))")
-        - \(L10n.Battery.reportCycleCount): \(battery.hasRealTelemetry ? "\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit)" : "\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit) (\(L10n.Battery.baselineEstimated))")
-        - \(L10n.Battery.reportHealth): \(battery.hasRealTelemetry ? String(format: "%.1f%%", battery.healthPercentDisplay) : "\(String(format: "%.1f%%", battery.healthPercentDisplay)) (\(L10n.Battery.baselineEstimated))")
+        - \(L10n.Battery.reportActualMaxCap): \(battery.hasRealTelemetry ? "\(battery.actualMaxCapacityMahDisplay) mAh" : "-- (\(L10n.Battery.pendingImport))")
+        - \(L10n.Battery.reportCycleCount): \(battery.hasRealTelemetry ? "\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit)" : "-- (\(L10n.Battery.pendingImport))")
+        - \(L10n.Battery.reportHealth): \(battery.hasRealTelemetry ? String(format: "%.1f%%", battery.healthPercentDisplay) : "-- (\(L10n.Battery.pendingImport))")
         - \(L10n.Battery.reportRemainingEnergy): \(battery.batteryLevelPercent)% (\(battery.currentRemainingMah) mAh)
         - \(L10n.Battery.reportCellTemp): \(String(format: "%.1f °C", battery.batteryTemperature))
         - \(L10n.Battery.reportPowerMode): \(battery.chargingProtocolName) (\(String(format: "%.1f W", abs(battery.liveWattage))))

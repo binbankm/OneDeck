@@ -6,6 +6,7 @@
 //  GNSS satellite constellation and geodetic coordinate workspace.
 //
 
+import CoreLocation
 import SwiftUI
 import UIKit
 
@@ -17,10 +18,19 @@ struct GnssHubDetailView: View {
 
     @State private var copiedDatum: String? = nil
 
+    private var isLocationDenied: Bool {
+        let auth = CLLocationManager().authorizationStatus
+        return auth == .denied || auth == .restricted
+    }
+
     // MARK: - Body
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: SpacingTheme.cardStack) {
+                if isLocationDenied {
+                    locationDeniedBanner
+                }
+
                 // Dual KPI Hero Cards
                 dualMetricsHero
 
@@ -87,12 +97,14 @@ struct GnssHubDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                Text(String(format: "%.1f", tools.gnssHub.speedKmh))
+                let safeSpeed = tools.gnssHub.speedKmh.isFinite ? tools.gnssHub.speedKmh : 0.0
+                Text(String(format: "%.1f", safeSpeed))
                     .font(Typography.heroSubValueMono)
                     .foregroundStyle(appState.accentColor)
                     .lineLimit(1)
 
-                Text(String(format: "%@: %.1f m", L10n.Tools.relativeElevation, tools.gnssHub.altitudeM))
+                let safeAlt = tools.gnssHub.altitudeM.isFinite ? tools.gnssHub.altitudeM : 0.0
+                Text(String(format: "%@: %.1f m", L10n.Tools.relativeElevation, safeAlt))
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
@@ -223,6 +235,43 @@ struct GnssHubDetailView: View {
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+        )
+    }
+
+    @ViewBuilder
+    private var locationDeniedBanner: some View {
+        VStack(spacing: SpacingTheme.compact) {
+            HStack(spacing: SpacingTheme.tight) {
+                Image(systemName: "location.slash.fill")
+                    .foregroundStyle(Color.orange)
+                Text(L10n.Tools.locationPermissionDenied)
+                    .font(Typography.caption)
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .multilineTextAlignment(.leading)
+            }
+
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                Text(L10n.Tools.openSettings)
+                    .font(Typography.captionBold)
+                    .padding(.horizontal, SpacingTheme.standard)
+                    .padding(.vertical, SpacingTheme.tight)
+                    .background(Color.orange)
+                    .foregroundStyle(Color.white)
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
         )
     }
 }

@@ -55,7 +55,7 @@ struct SettingsPreferencesCard: View {
                 .frame(width: 20, height: 20, alignment: .center)
 
             Text(title)
-                .font(Typography.bodyValue.weight(.medium))
+                .font(Typography.bodyMedium)
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 .lineLimit(1)
 

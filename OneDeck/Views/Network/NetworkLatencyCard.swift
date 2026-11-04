@@ -106,7 +106,8 @@ struct NetworkLatencyCard: View {
             // Hero Ping Metric & Jitter / Loss HUD
             HStack(alignment: .lastTextBaseline, spacing: SpacingTheme.cardStack) {
                 HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.tight) {
-                    Text(net.isConnected ? String(format: "%.0f", max(1.0, net.currentLatencyMs)) : "--")
+                    let safeLat = net.currentLatencyMs.isFinite ? max(1.0, net.currentLatencyMs) : 1.0
+                    Text(net.isConnected ? String(format: "%.0f", safeLat) : "--")
                         .font(Typography.displayHero)
                         .monospacedDigit()
                         .foregroundStyle(qualityBadge.color)
@@ -125,7 +126,8 @@ struct NetworkLatencyCard: View {
                             .font(Typography.caption)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-                        Text(net.isConnected ? String(format: "±%.1f ms", net.jitterMs) : "--")
+                        let safeJitter = net.jitterMs.isFinite ? net.jitterMs : 0.0
+                        Text(net.isConnected ? String(format: "±%.1f ms", safeJitter) : "--")
                             .font(Typography.bodyValueMono)
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
                             .lineLimit(1)
@@ -136,9 +138,10 @@ struct NetworkLatencyCard: View {
                             .font(Typography.caption)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-                        Text(net.isConnected ? String(format: "%.0f%%", net.packetLossPercent) : "100%")
+                        let safeLoss = net.packetLossPercent.isFinite ? net.packetLossPercent : 0.0
+                        Text(net.isConnected ? String(format: "%.0f%%", safeLoss) : "100%")
                             .font(Typography.bodyValueMono)
-                            .foregroundStyle(net.packetLossPercent > 0 ? Color.orange : Theme.textPrimary(for: colorScheme))
+                            .foregroundStyle(safeLoss > 0 ? Color.orange : Theme.textPrimary(for: colorScheme))
                             .lineLimit(1)
                     }
                 }

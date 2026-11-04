@@ -12,10 +12,7 @@ import Foundation
 public final class SeismicVibrationProbe: @unchecked Sendable {
     public static let shared = SeismicVibrationProbe()
 
-    @MainActor
-    private var motionManager: CMMotionManager {
-        MotionHardwareProbe.shared.motionManager
-    }
+    private let motionManager = CMMotionManager()
 
     private let motionQueue = OperationQueue()
     private var isRecording: Bool = false

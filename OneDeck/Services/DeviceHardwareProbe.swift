@@ -38,7 +38,13 @@ public enum DeviceHardwareProbe {
     private typealias IOObjectReleaseFunc = @convention(c) (mach_port_t) -> kern_return_t
     private typealias MGCopyAnswerFunc = @convention(c) (CFString) -> Unmanaged<CFTypeRef>?
 
+    public nonisolated static let current: DeviceIdentityHardwareTelemetry = computeHardwareIdentity()
+
     public nonisolated static func sample() -> DeviceIdentityHardwareTelemetry {
+        current
+    }
+
+    private nonisolated static func computeHardwareIdentity() -> DeviceIdentityHardwareTelemetry {
         var result = DeviceIdentityHardwareTelemetry()
 
         // 1. IOKit IOPlatformExpertDevice (Platform Serial, Board ID, Clock Frequency)
@@ -56,6 +62,7 @@ public enum DeviceHardwareProbe {
                 if let dict = ioServiceMatching("IOPlatformExpertDevice") {
                     let service = ioServiceGetMatchingService(0, dict)
                     if service != 0 {
+                        defer { _ = ioObjectRelease(service) }
                         // Serial Number
                         if let prop = ioRegistryEntryCreateCFProperty(service, "IOPlatformSerialNumber" as CFString, kCFAllocatorDefault, 0) {
                             let val = prop.takeRetainedValue()
@@ -95,8 +102,6 @@ public enum DeviceHardwareProbe {
                                 result.clockFrequencyHz = num.uint64Value
                             }
                         }
-
-                        _ = ioObjectRelease(service)
                     }
                 }
             }

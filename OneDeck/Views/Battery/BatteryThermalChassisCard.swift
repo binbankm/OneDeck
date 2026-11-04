@@ -151,38 +151,36 @@ struct BatteryThermalChassisCard: View {
 
     // MARK: - 3. Phone Thermal Chassis Viewport (Follows System Appearance & Real Device)
     private var phoneThermalChassis: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
+        let w: CGFloat = 118
+        let h: CGFloat = 218
 
-            ZStack {
-                // Layer 1: Chassis Background (Adapts dynamically to system Light / Dark mode)
-                chassisChamberBackground(w: w, h: h)
+        return ZStack {
+            // Layer 1: Chassis Background (Adapts dynamically to system Light / Dark mode)
+            chassisChamberBackground(w: w, h: h)
 
-                // Layer 2: FLIR Infrared Heat Cloud Dispersion (In FLIR Mode)
-                if viewMode == .flir {
-                    flirThermalFieldLayer(w: w, h: h)
-                }
-
-                // Layer 3: Hardware X-Ray Blueprint Overlay (Camera, PCB, L-Battery, Coil)
-                hardwareXRayBlueprint(w: w, h: h)
-
-                // Layer 4: Thermal Isotherms
-                if viewMode == .flir {
-                    thermalIsothermsLayer(w: w, h: h)
-                }
-
-                // Layer 5: FLIR Target Tracking Reticles (MAX spot, MIN spot, & Active Zone Selection)
-                flirTargetTrackingLayer(w: w, h: h)
-
-                // Layer 6: Engineering HUD Optics & Parameters
-                chassisHudOverlay(w: w, h: h)
-
-                // Layer 7: Screen Cutout (Dynamic Island for 14 Pro/15/16, Notch for X/XS/11/12/13/14)
-                deviceScreenCutout(w: w, h: h)
+            // Layer 2: FLIR Infrared Heat Cloud Dispersion (In FLIR Mode)
+            if viewMode == .flir {
+                flirThermalFieldLayer(w: w, h: h)
             }
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.card, style: .continuous))
+
+            // Layer 3: Hardware X-Ray Blueprint Overlay (Camera, PCB, L-Battery, Coil)
+            hardwareXRayBlueprint(w: w, h: h)
+
+            // Layer 4: Thermal Isotherms
+            if viewMode == .flir {
+                thermalIsothermsLayer(w: w, h: h)
+            }
+
+            // Layer 5: FLIR Target Tracking Reticles (MAX spot, MIN spot, & Active Zone Selection)
+            flirTargetTrackingLayer(w: w, h: h)
+
+            // Layer 6: Engineering HUD Optics & Parameters
+            chassisHudOverlay(w: w, h: h)
+
+            // Layer 7: Screen Cutout (Dynamic Island for 14 Pro/15/16, Notch for X/XS/11/12/13/14)
+            deviceScreenCutout(w: w, h: h)
         }
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.card, style: .continuous))
     }
 
     // MARK: - Layer 1: Adaptive Chassis Chamber Background
@@ -623,7 +621,7 @@ struct BatteryThermalChassisCard: View {
                     .font(Typography.microAxis)
                     .foregroundStyle(hudColor.opacity(isDark ? 0.35 : 0.55))
                 Spacer()
-                Text("LIVE")
+                Text(L10n.Battery.liveIndicator)
                     .font(Typography.microAxis)
                     .foregroundStyle(isDark ? Color.green.opacity(0.85) : Color(hex: "#15803D"))
             }

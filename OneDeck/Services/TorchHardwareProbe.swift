@@ -141,13 +141,15 @@ public final class TorchHardwareProbe {
             device.unlockForConfiguration()
         } catch { return }
 
-        try await Task.sleep(nanoseconds: nanos)
+        defer {
+            do {
+                try device.lockForConfiguration()
+                device.torchMode = .off
+                device.unlockForConfiguration()
+            } catch {}
+        }
 
-        do {
-            try device.lockForConfiguration()
-            device.torchMode = .off
-            device.unlockForConfiguration()
-        } catch { return }
+        try await Task.sleep(nanoseconds: nanos)
     }
 
     public func stopSpecialModes() {
@@ -155,6 +157,12 @@ public final class TorchHardwareProbe {
         strobeTask = nil
         morseTask?.cancel()
         morseTask = nil
+        guard let device, device.hasTorch else { return }
+        do {
+            try device.lockForConfiguration()
+            device.torchMode = .off
+            device.unlockForConfiguration()
+        } catch {}
     }
 
     // MARK: - Morse Code Converter

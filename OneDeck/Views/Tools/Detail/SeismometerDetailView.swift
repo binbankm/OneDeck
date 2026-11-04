@@ -59,12 +59,14 @@ struct SeismometerDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                Text(String(format: "%.1f", tools.seismometer.peakGal))
+                let safePeak = tools.seismometer.peakGal.isFinite ? tools.seismometer.peakGal : 0.0
+                Text(String(format: "%.1f", safePeak))
                     .font(Typography.heroSubValueMono)
                     .foregroundStyle(tools.seismometer.intensity.color)
                     .lineLimit(1)
 
-                Text(String(format: "Live: %.1f Gal", tools.seismometer.currentGal))
+                let safeLive = tools.seismometer.currentGal.isFinite ? tools.seismometer.currentGal : 0.0
+                Text(String(format: "Live: %.1f Gal", safeLive))
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)

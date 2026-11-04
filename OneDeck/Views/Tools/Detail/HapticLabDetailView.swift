@@ -6,6 +6,7 @@
 //  Taptic Engine actuator waveforms and haptic diagnostics workspace.
 //
 
+import CoreHaptics
 import SwiftUI
 import UIKit
 
@@ -14,6 +15,10 @@ struct HapticLabDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
+
+    private var isHapticsAvailable: Bool {
+        CHHapticEngine.capabilitiesForHardware().supportsHaptics
+    }
 
     // MARK: - State
     @State private var lastFeedbackName: String = ""
@@ -41,30 +46,32 @@ struct HapticLabDetailView: View {
 
     // MARK: - Body
     var body: some View {
-        GeometryReader { _ in
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: SpacingTheme.cardStack) {
-                    // Hero Motor Visualizer Card
-                    motorTelemetryHero
-
-                    // Section 1: Physical Impact Feedback
-                    impactFeedbackCard
-
-                    // Section 2: Notification Pulses
-                    notificationFeedbackCard
-
-                    // Section 3: Mechanical Selection Dial
-                    selectionDialCard
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: SpacingTheme.cardStack) {
+                if !isHapticsAvailable {
+                    hardwareUnavailableBanner
                 }
-                .padding(.horizontal, SpacingTheme.cardStack)
-                .padding(.vertical, SpacingTheme.rowStandard)
+
+                // Hero Motor Visualizer Card
+                motorTelemetryHero
+
+                // Section 1: Physical Impact Feedback
+                impactFeedbackCard
+
+                // Section 2: Notification Pulses
+                notificationFeedbackCard
+
+                // Section 3: Mechanical Selection Dial
+                selectionDialCard
             }
+            .padding(.horizontal, SpacingTheme.cardStack)
+            .padding(.vertical, SpacingTheme.rowStandard)
         }
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.hapticLab)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .hapticLab)
             if lastFeedbackName.isEmpty {
                 lastFeedbackName = L10n.Tools.ready
             }
@@ -212,6 +219,27 @@ struct HapticLabDetailView: View {
     }
 
     // Helpers
+    @ViewBuilder
+    private var hardwareUnavailableBanner: some View {
+        HStack(spacing: SpacingTheme.tight) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.orange)
+            Text(L10n.Tools.hapticHardwareUnavailable)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .multilineTextAlignment(.leading)
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+        )
+    }
+
     private func notificationIcon(for type: UINotificationFeedbackGenerator.FeedbackType) -> String {
         switch type {
         case .success: return "checkmark.circle.fill"

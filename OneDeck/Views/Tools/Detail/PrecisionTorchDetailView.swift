@@ -23,6 +23,25 @@ struct PrecisionTorchDetailView: View {
             // Mode Segmented Control
             modeSelectorBar
 
+            if !tools.isTorchAvailable && tools.torch.currentMode != .softbox {
+                HStack(spacing: SpacingTheme.compact) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(IconTheme.badgeInline)
+                        .foregroundStyle(Color.orange)
+
+                    Text(L10n.Tools.torchHardwareUnavailable)
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(2)
+                }
+                .padding(.horizontal, SpacingTheme.cardInternal)
+                .padding(.vertical, SpacingTheme.compact)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
+                        .fill(Color.orange.opacity(0.12))
+                )
+            }
+
             Spacer()
 
             // Mode-specific Work Area
@@ -48,13 +67,11 @@ struct PrecisionTorchDetailView: View {
         .navigationTitle(L10n.Tools.torchLab)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .torch)
         }
         .onDisappear {
+            tools.turnOffTorch()
             tools.leaveDetailView()
-            if tools.torch.isTorchOn {
-                tools.toggleTorch()
-            }
         }
         .fullScreenCover(isPresented: $isSoftboxFullscreen) {
             fullscreenSoftboxCover

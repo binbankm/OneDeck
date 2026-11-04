@@ -16,25 +16,23 @@ struct SpiritLevelDetailView: View {
 
     // MARK: - Body
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: SpacingTheme.cardStack) {
-                // Top Angle Metrics HUD
-                angleMetricsHud
+        VStack(spacing: SpacingTheme.cardStack) {
+            // Top Angle Metrics HUD
+            angleMetricsHud
 
-                Spacer()
+            Spacer()
 
-                // Center Bullseye Reticle / Bubble
-                centerBubbleReticle(size: max(120, min(geometry.size.width - 48, 280)))
+            // Center Bullseye Reticle / Bubble
+            centerBubbleReticle(size: 260)
 
-                Spacer()
+            Spacer()
 
-                // Bottom Controls (Lock, Beep, Orientation Mode)
-                bottomControlsBar
-            }
-            .padding(.horizontal, SpacingTheme.cardStack)
-            .padding(.vertical, SpacingTheme.rowStandard)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Bottom Controls (Lock, Beep, Orientation Mode)
+            bottomControlsBar
         }
+        .padding(.horizontal, SpacingTheme.cardStack)
+        .padding(.vertical, SpacingTheme.rowStandard)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.spiritLevel)
         .navigationBarTitleDisplayMode(.inline)
@@ -45,8 +43,8 @@ struct SpiritLevelDetailView: View {
         }
         .onDisappear {
             tools.isSpiritLevelDetailActive = false
+            tools.stopMotionSensors()
             tools.leaveDetailView()
-            tools.startMotionSensors(interval: 1.0 / 12.0)
         }
     }
 

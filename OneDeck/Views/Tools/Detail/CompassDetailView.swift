@@ -6,6 +6,7 @@
 //  3D electronic compass and magnetic heading workspace.
 //
 
+import CoreLocation
 import SwiftUI
 
 struct CompassDetailView: View {
@@ -14,27 +15,40 @@ struct CompassDetailView: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
+    private var isHeadingHardwareAvailable: Bool {
+        CLLocationManager.headingAvailable()
+    }
+
+    private var isLocationDenied: Bool {
+        let auth = CLLocationManager().authorizationStatus
+        return auth == .denied || auth == .restricted
+    }
+
     // MARK: - Body
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: SpacingTheme.cardStack) {
-                // Top Degree & Direction Readout
-                topHeadingHero
-
-                Spacer()
-
-                // Center Rotating Compass Rose
-                compassRoseDial(size: max(120, min(geometry.size.width - 48, 280)))
-
-                Spacer()
-
-                // Bottom Geographic Coordinates HUD
-                geographicLocationCard
+        VStack(spacing: SpacingTheme.cardStack) {
+            if !isHeadingHardwareAvailable {
+                hardwareUnavailableBanner
+            } else if isLocationDenied {
+                locationDeniedBanner
             }
-            .padding(.horizontal, SpacingTheme.cardStack)
-            .padding(.vertical, SpacingTheme.rowStandard)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Top Degree & Direction Readout
+            topHeadingHero
+
+            Spacer()
+
+            // Center Rotating Compass Rose
+            compassRoseDial(size: 250)
+
+            Spacer()
+
+            // Bottom Geographic Coordinates HUD
+            geographicLocationCard
         }
+        .padding(.horizontal, SpacingTheme.cardStack)
+        .padding(.vertical, SpacingTheme.rowStandard)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.compass)
         .navigationBarTitleDisplayMode(.inline)
@@ -43,9 +57,67 @@ struct CompassDetailView: View {
             tools.startCompass(enableGpsLocation: true)
         }
         .onDisappear {
+            tools.stopCompass()
             tools.leaveDetailView()
-            tools.startCompass(enableGpsLocation: false)
         }
+    }
+
+    @ViewBuilder
+    private var hardwareUnavailableBanner: some View {
+        HStack(spacing: SpacingTheme.tight) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.orange)
+            Text(L10n.Tools.headingHardwareUnavailable)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .multilineTextAlignment(.leading)
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+        )
+    }
+
+    @ViewBuilder
+    private var locationDeniedBanner: some View {
+        VStack(spacing: SpacingTheme.compact) {
+            HStack(spacing: SpacingTheme.tight) {
+                Image(systemName: "location.slash.fill")
+                    .foregroundStyle(Color.orange)
+                Text(L10n.Tools.locationPermissionDenied)
+                    .font(Typography.caption)
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .multilineTextAlignment(.leading)
+            }
+
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                Text(L10n.Tools.openSettings)
+                    .font(Typography.captionBold)
+                    .padding(.horizontal, SpacingTheme.standard)
+                    .padding(.vertical, SpacingTheme.tight)
+                    .background(Color.orange)
+                    .foregroundStyle(Color.white)
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+        )
     }
 
     // MARK: - Top Heading Hero

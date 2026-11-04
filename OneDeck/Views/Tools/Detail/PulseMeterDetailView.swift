@@ -6,6 +6,7 @@
 //  Camera optical PPG heart rate and pulse waveform workspace.
 //
 
+import AVFoundation
 import Charts
 import SwiftUI
 
@@ -14,8 +15,17 @@ struct PulseMeterDetailView: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
+    private var isCameraDenied: Bool {
+        let auth = AVCaptureDevice.authorizationStatus(for: .video)
+        return auth == .denied || auth == .restricted
+    }
+
     var body: some View {
         VStack(spacing: SpacingTheme.cardStack) {
+            if isCameraDenied {
+                cameraPermissionDeniedBanner
+            }
+
             // Dual Top KPI Hero Cards
             dualMetricsHero
 
@@ -225,6 +235,43 @@ struct PulseMeterDetailView: View {
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+        )
+    }
+
+    @ViewBuilder
+    private var cameraPermissionDeniedBanner: some View {
+        VStack(spacing: SpacingTheme.compact) {
+            HStack(spacing: SpacingTheme.tight) {
+                Image(systemName: "camera.fill")
+                    .foregroundStyle(Color.orange)
+                Text(L10n.Tools.pulseCameraPermissionDenied)
+                    .font(Typography.caption)
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .multilineTextAlignment(.leading)
+            }
+
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            } label: {
+                Text(L10n.Tools.openSettings)
+                    .font(Typography.captionBold)
+                    .padding(.horizontal, SpacingTheme.standard)
+                    .padding(.vertical, SpacingTheme.tight)
+                    .background(Color.orange)
+                    .foregroundStyle(Color.white)
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
         )
     }
 

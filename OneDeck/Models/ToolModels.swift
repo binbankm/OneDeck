@@ -22,6 +22,14 @@ public enum ActiveDetailTool: String, Sendable {
     case pulseMeter
     case spiritLevel
     case metalDetector
+    case torch
+    case waterEjector
+    case toneGenerator
+    case speakerLab
+    case screenQuality
+    case screenRuler
+    case touchMatrix
+    case hapticLab
     case other
 }
 

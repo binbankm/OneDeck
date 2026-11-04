@@ -31,34 +31,32 @@ struct SpeakerLabDetailView: View {
 
     // MARK: - Body
     var body: some View {
-        GeometryReader { _ in
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: SpacingTheme.cardStack) {
-                    // Visual Hardware Speaker Diagram
-                    speakerDiagramCard
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: SpacingTheme.cardStack) {
+                // Visual Hardware Speaker Diagram
+                speakerDiagramCard
 
-                    // Section 1: Channel Isolation Buttons
-                    channelIsolationSection
+                // Section 1: Channel Isolation Buttons
+                channelIsolationSection
 
-                    // Section 2: Frequency Selector
-                    frequencySelectorSection
+                // Section 2: Frequency Selector
+                frequencySelectorSection
 
-                    // Master Stop / Play Button
-                    primaryToggleButton
-                }
-                .padding(.horizontal, SpacingTheme.cardStack)
-                .padding(.vertical, SpacingTheme.rowStandard)
+                // Master Stop / Play Button
+                primaryToggleButton
             }
+            .padding(.horizontal, SpacingTheme.cardStack)
+            .padding(.vertical, SpacingTheme.rowStandard)
         }
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.speakerLab)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .speakerLab)
         }
         .onDisappear {
-            tools.leaveDetailView()
             stopAudio()
+            tools.leaveDetailView()
         }
     }
 

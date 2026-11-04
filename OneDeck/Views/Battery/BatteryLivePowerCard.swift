@@ -100,40 +100,34 @@ struct BatteryLivePowerCard: View {
             let midLabelText = String(format: (dynamicMaxY / 2.0) >= 10 ? "%.0fW" : "%.1fW", dynamicMaxY / 2.0)
 
             ZStack(alignment: .topLeading) {
-                GeometryReader { geo in
-                    let w = geo.size.width
-                    let h = geo.size.height
-                    let labelWidth: CGFloat = 28
-                    let gridColor = ChartTheme.gridColor(for: colorScheme)
-                    let lineEndX = max(0, w - labelWidth - SpacingTheme.tight)
-                    let y100: CGFloat = 5
-                    let y50: CGFloat = h * 0.5
+                // Dashed Grid Lines & Far-Right Aligned Labels
+                VStack(spacing: 0) {
+                    HStack(spacing: SpacingTheme.tight) {
+                        HorizontalDashedLine()
+                            .stroke(ChartTheme.gridColor(for: colorScheme), style: ChartTheme.gridStroke)
+                            .frame(height: 1)
 
-                    // Max Wattage Horizontal Grid Line
-                    HorizontalDashedLine()
-                        .stroke(gridColor, style: ChartTheme.gridStroke)
-                        .frame(width: lineEndX, height: 1)
-                        .position(x: lineEndX / 2, y: y100)
+                        Text(topLabelText)
+                            .font(ChartTheme.compactAxisLabelFont)
+                            .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
+                            .frame(width: 28, alignment: .trailing)
+                    }
+                    .padding(.top, 5)
 
-                    // Max Wattage Label
-                    Text(topLabelText)
-                        .font(ChartTheme.compactAxisLabelFont)
-                        .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
-                        .frame(width: labelWidth, alignment: .trailing)
-                        .position(x: w - labelWidth / 2, y: y100)
+                    Spacer()
 
-                    // Mid Wattage Horizontal Grid Line
-                    HorizontalDashedLine()
-                        .stroke(gridColor, style: ChartTheme.gridStroke)
-                        .frame(width: lineEndX, height: 1)
-                        .position(x: lineEndX / 2, y: y50)
+                    HStack(spacing: SpacingTheme.tight) {
+                        HorizontalDashedLine()
+                            .stroke(ChartTheme.gridColor(for: colorScheme), style: ChartTheme.gridStroke)
+                            .frame(height: 1)
 
-                    // Mid Wattage Label
-                    Text(midLabelText)
-                        .font(ChartTheme.compactAxisLabelFont)
-                        .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
-                        .frame(width: labelWidth, alignment: .trailing)
-                        .position(x: w - labelWidth / 2, y: y50)
+                        Text(midLabelText)
+                            .font(ChartTheme.compactAxisLabelFont)
+                            .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
+                            .frame(width: 28, alignment: .trailing)
+                    }
+
+                    Spacer()
                 }
 
                 // Power Waveform Chart

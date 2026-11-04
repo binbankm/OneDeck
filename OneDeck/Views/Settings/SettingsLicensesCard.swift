@@ -45,7 +45,7 @@ struct SettingsLicensesCard: View {
                     .frame(width: 20, height: 20, alignment: .center)
 
                 Text(L10n.Settings.licenseTitle)
-                    .font(Typography.bodyValue.weight(.medium))
+                    .font(Typography.bodyMedium)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
 
@@ -80,7 +80,7 @@ struct SettingsLicensesCard: View {
                 .frame(width: 20, height: 20, alignment: .center)
 
             Text(L10n.Settings.thirdPartyLicenses)
-                .font(Typography.bodyValue.weight(.medium))
+                .font(Typography.bodyMedium)
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 .lineLimit(1)
 

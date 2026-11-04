@@ -36,30 +36,28 @@ struct ScreenQualityDetailView: View {
 
     // MARK: - Body
     var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: SpacingTheme.cardStack) {
-                // Section 1: Fullscreen Dead Pixel & Uniformity Test Launcher
-                pixelInspectionCard
+        VStack(spacing: SpacingTheme.cardStack) {
+            // Section 1: Fullscreen Dead Pixel & Uniformity Test Launcher
+            pixelInspectionCard
 
-                // Section 2: 120Hz Multi-Touch Canvas
-                touchDigitizerCanvas(width: max(0, geometry.size.width - SpacingTheme.cardStack * 2))
+            // Section 2: 120Hz Multi-Touch Canvas
+            touchDigitizerCanvas
 
-                Spacer()
-            }
-            .padding(.horizontal, SpacingTheme.cardStack)
-            .padding(.vertical, SpacingTheme.rowStandard)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Spacer()
         }
+        .padding(.horizontal, SpacingTheme.cardStack)
+        .padding(.vertical, SpacingTheme.rowStandard)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.screenQuality)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .screenQuality)
             tools.startProximityMonitoring()
         }
         .onDisappear {
-            tools.leaveDetailView()
             tools.stopProximityMonitoring()
+            tools.leaveDetailView()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.proximityStateDidChangeNotification)) { _ in
             tools.updateProximityState()
@@ -130,7 +128,7 @@ struct ScreenQualityDetailView: View {
 
     // MARK: - Touch Digitizer Canvas
     @ViewBuilder
-    private func touchDigitizerCanvas(width: CGFloat) -> some View {
+    private var touchDigitizerCanvas: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.standard) {
             HStack {
                 BentoSectionHeader(

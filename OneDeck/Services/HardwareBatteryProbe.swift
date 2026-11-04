@@ -262,6 +262,7 @@ public enum HardwareBatteryProbe {
             if let dict = ioServiceMatching("AppleSmartBattery") {
                 let service = ioServiceGetMatchingService(0, dict)
                 if service != 0 {
+                    defer { _ = ioObjectRelease(service) }
                     var propsUnmanaged: Unmanaged<CFMutableDictionary>?
                     let kr = ioRegistryEntryCreateCFProperties(service, &propsUnmanaged, kCFAllocatorDefault, 0)
                     if kr == KERN_SUCCESS, let props = propsUnmanaged?.takeRetainedValue() as NSDictionary? {
@@ -336,7 +337,6 @@ public enum HardwareBatteryProbe {
                             }
                         }
                     }
-                    _ = ioObjectRelease(service)
                 }
             }
         }

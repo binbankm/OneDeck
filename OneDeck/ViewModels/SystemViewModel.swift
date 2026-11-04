@@ -227,8 +227,11 @@ public final class SystemViewModel {
         var processorInfo: processor_info_array_t?
         var processorInfoCount: mach_msg_type_number_t = 0
 
+        let host = mach_host_self()
+        defer { mach_port_deallocate(mach_task_self_, host) }
+
         let result = host_processor_info(
-            mach_host_self(),
+            host,
             PROCESSOR_CPU_LOAD_INFO,
             &processorCount,
             &processorInfo,
@@ -291,9 +294,10 @@ public final class SystemViewModel {
         self.coreCount = count
         if totalAllTicks > 0 {
             let calculatedTotal = Double(totalActiveTicks) / Double(totalAllTicks) * 100.0
-            self.totalCpuUsage = calculatedTotal
+            let clampedTotal = min(100.0, max(0.0, calculatedTotal.isFinite ? calculatedTotal : 0.0))
+            self.totalCpuUsage = clampedTotal
 
-            let point = MetricPoint(timestamp: Date(), value: calculatedTotal)
+            let point = MetricPoint(timestamp: Date(), value: clampedTotal)
             self.cpuHistory.append(point)
             if self.cpuHistory.count > maxHistoryPoints {
                 self.cpuHistory.removeFirst(self.cpuHistory.count - maxHistoryPoints)
@@ -394,9 +398,12 @@ public final class SystemViewModel {
         var vmStats = vm_statistics64()
         var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
 
+        let host = mach_host_self()
+        defer { mach_port_deallocate(mach_task_self_, host) }
+
         let result = withUnsafeMutablePointer(to: &vmStats) {
             $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+                host_statistics64(host, HOST_VM_INFO64, $0, &count)
             }
         }
 
@@ -769,8 +776,6 @@ public final class SystemViewModel {
         // Apply physical reading or realistic smooth thermal model
         if let bTemp = hw.temperatureCelsius {
             self.batteryTemperature = bTemp
-        } else if let physicalBatteryTemp = Self.readPhysicalBatteryTemperature() {
-            self.batteryTemperature = physicalBatteryTemp
         } else {
             let target = baseTemp + (Double(totalCpuUsage) / 100.0) * 2.5
             self.batteryTemperature = self.batteryTemperature * 0.85 + target * 0.15
@@ -785,69 +790,6 @@ public final class SystemViewModel {
         }
 
         self.thermalPressurePercent = min(100, max(5, pressure + Int(totalCpuUsage * 0.2)))
-    }
-
-    private static var didAttemptIOKitBattery: Bool = false
-    private static var isIOKitBatteryAvailable: Bool = false
-
-    private static func readPhysicalBatteryTemperature() -> Double? {
-        if didAttemptIOKitBattery && !isIOKitBatteryAvailable {
-            return nil
-        }
-        didAttemptIOKitBattery = true
-
-        guard let handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW) else {
-            isIOKitBatteryAvailable = false
-            return nil
-        }
-        defer { dlclose(handle) }
-
-        typealias IOServiceMatchingFunc = @convention(c) (UnsafePointer<CChar>) -> CFMutableDictionary?
-        typealias IOServiceGetMatchingServiceFunc = @convention(c) (mach_port_t, CFDictionary) -> mach_port_t
-        typealias IORegistryEntryCreateCFPropertyFunc = @convention(c) (mach_port_t, CFString, CFAllocator?, UInt32) -> Unmanaged<CFTypeRef>?
-        typealias IOObjectReleaseFunc = @convention(c) (mach_port_t) -> kern_return_t
-
-        guard let symMatching = dlsym(handle, "IOServiceMatching"),
-              let symGetService = dlsym(handle, "IOServiceGetMatchingService"),
-              let symCreateProperty = dlsym(handle, "IORegistryEntryCreateCFProperty"),
-              let symRelease = dlsym(handle, "IOObjectRelease") else {
-            isIOKitBatteryAvailable = false
-            return nil
-        }
-
-        let ioServiceMatching = unsafeBitCast(symMatching, to: IOServiceMatchingFunc.self)
-        let ioServiceGetMatchingService = unsafeBitCast(symGetService, to: IOServiceGetMatchingServiceFunc.self)
-        let ioRegistryEntryCreateCFProperty = unsafeBitCast(symCreateProperty, to: IORegistryEntryCreateCFPropertyFunc.self)
-        let ioObjectRelease = unsafeBitCast(symRelease, to: IOObjectReleaseFunc.self)
-
-        guard let dict = ioServiceMatching("AppleSmartBattery") else {
-            isIOKitBatteryAvailable = false
-            return nil
-        }
-        let service = ioServiceGetMatchingService(0, dict)
-        guard service != 0 else {
-            isIOKitBatteryAvailable = false
-            return nil
-        }
-        isIOKitBatteryAvailable = true
-        defer { _ = ioObjectRelease(service) }
-
-        if let prop = ioRegistryEntryCreateCFProperty(service, "Temperature" as CFString, kCFAllocatorDefault, 0) {
-            let val = prop.takeRetainedValue()
-            if let num = val as? NSNumber {
-                let raw = num.doubleValue
-                if raw > 2000 && raw < 4000 {
-                    let c = (raw / 10.0) - 273.15
-                    if c > 0 && c < 90 { return c }
-                } else if raw > 1000 && raw < 10000 {
-                    let c = raw / 100.0
-                    if c > 0 && c < 90 { return c }
-                } else if raw > 15 && raw < 80 {
-                    return raw
-                }
-            }
-        }
-        return nil
     }
 
     // MARK: - Device Database Lookup

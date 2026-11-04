@@ -19,39 +19,35 @@ struct WaterEjectorDetailView: View {
 
     // MARK: - Body
     var body: some View {
-        GeometryReader { geometry in
-            let ringSize = min(220, max(160, geometry.size.width * 0.52))
+        VStack(spacing: SpacingTheme.cardStack) {
+            // Mode Switcher Bar
+            modeSelectorBar
 
-            VStack(spacing: SpacingTheme.cardStack) {
-                // Mode Switcher Bar
-                modeSelectorBar
+            Spacer()
 
-                Spacer()
+            // Center Acoustic Ring & Countdown (Clean single ring)
+            acousticPulsingRing(size: 200)
 
-                // Center Acoustic Ring & Countdown (Clean single ring)
-                acousticPulsingRing(size: ringSize)
+            Spacer()
 
-                Spacer()
+            // Instruction & Safety Notice
+            engineeringAdviceCard
 
-                // Instruction & Safety Notice
-                engineeringAdviceCard
-
-                // Prominent Play / Stop Button
-                actionButton
-            }
-            .padding(.horizontal, SpacingTheme.cardStack)
-            .padding(.vertical, SpacingTheme.rowStandard)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Prominent Play / Stop Button
+            actionButton
         }
+        .padding(.horizontal, SpacingTheme.cardStack)
+        .padding(.vertical, SpacingTheme.rowStandard)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.waterEjector)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            tools.enterDetailView()
+            tools.enterDetailView(tool: .waterEjector)
         }
         .onDisappear {
-            tools.leaveDetailView()
             tools.stopWaterEjection()
+            tools.leaveDetailView()
         }
     }
 

@@ -15,6 +15,12 @@ struct MicroscopeDetailView: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
+    // MARK: - State & Permissions
+    private var isCameraDenied: Bool {
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        return status == .denied || status == .restricted
+    }
+
     // MARK: - Body
     var body: some View {
         VStack(spacing: SpacingTheme.cardStack) {
@@ -46,81 +52,109 @@ struct MicroscopeDetailView: View {
     // MARK: - Viewfinder Container
     @ViewBuilder
     private var viewfinderContainer: some View {
-        GeometryReader { geo in
-            ZStack {
-                // Background Viewfinder Area
-                Color.black
+        ZStack {
+            // Background Viewfinder Area
+            Color.black
 
-                // Macro Optical Camera Hardware Live Feed
-                CameraPreviewRepresentable(session: MicroscopeCameraProbe.shared.captureSession)
-                    .clipped()
+            // Macro Optical Camera Hardware Live Feed
+            CameraPreviewRepresentable(session: MicroscopeCameraProbe.shared.captureSession)
+                .clipped()
 
-                // High-precision Measuring Reticle (Crosshairs & 0.1mm Graticule)
-                reticleOverlay(size: geo.size)
+            // High-precision Measuring Reticle (Crosshairs & 0.1mm Graticule)
+            reticleOverlay
 
-                // Filter Overlay Visual Effect
-                if tools.microscope.filterMode == .inverted {
-                    Color.white.opacity(0.1)
-                        .blendMode(.difference)
-                } else if tools.microscope.filterMode == .edgeDetection {
-                    Color.cyan.opacity(0.12)
-                }
+            // Filter Overlay Visual Effect
+            if tools.microscope.filterMode == .inverted {
+                Color.white.opacity(0.1)
+                    .blendMode(.difference)
+            } else if tools.microscope.filterMode == .edgeDetection {
+                Color.cyan.opacity(0.12)
+            }
 
-                // HUD Top Badges
-                VStack {
-                    HStack {
-                        // Current Filter Badge
-                        HStack(spacing: SpacingTheme.tight) {
-                            Circle()
-                                .fill(appState.accentColor)
-                                .frame(width: 6, height: 6)
-                            Text(tools.microscope.filterMode.title)
-                                .font(Typography.captionMono)
-                                .foregroundStyle(Color.white)
-                        }
+            // HUD Top Badges
+            VStack {
+                HStack {
+                    // Current Filter Badge
+                    HStack(spacing: SpacingTheme.tight) {
+                        Circle()
+                            .fill(appState.accentColor)
+                            .frame(width: 6, height: 6)
+                        Text(tools.microscope.filterMode.title)
+                            .font(Typography.captionMono)
+                            .foregroundStyle(Color.white)
+                    }
+                    .padding(.horizontal, SpacingTheme.standard)
+                    .padding(.vertical, SpacingTheme.micro)
+                    .background(Color.black.opacity(0.6))
+                    .clipShape(Capsule())
+
+                    Spacer()
+
+                    // Zoom Badge
+                    Text(String(format: "%.1fx", tools.microscope.zoomFactor))
+                        .font(Typography.captionMono)
+                        .foregroundStyle(appState.accentColor)
                         .padding(.horizontal, SpacingTheme.standard)
                         .padding(.vertical, SpacingTheme.micro)
                         .background(Color.black.opacity(0.6))
                         .clipShape(Capsule())
+                }
+                .padding(SpacingTheme.standard)
 
-                        Spacer()
+                Spacer()
 
-                        // Zoom Badge
-                        Text(String(format: "%.1fx", tools.microscope.zoomFactor))
-                            .font(Typography.captionMono)
-                            .foregroundStyle(appState.accentColor)
-                            .padding(.horizontal, SpacingTheme.standard)
-                            .padding(.vertical, SpacingTheme.micro)
-                            .background(Color.black.opacity(0.6))
-                            .clipShape(Capsule())
-                    }
-                    .padding(SpacingTheme.standard)
-
-                    Spacer()
-
-                    if tools.microscope.isFrozen {
-                        Text("\(L10n.Tools.frameFrozen) (HOLD)")
-                            .font(Typography.captionBold)
-                            .foregroundStyle(Color.yellow)
-                            .padding(.horizontal, SpacingTheme.rowStandard)
-                            .padding(.vertical, SpacingTheme.tight)
-                            .background(Color.black.opacity(0.75))
-                            .clipShape(Capsule())
-                            .padding(.bottom, SpacingTheme.standard)
-                    }
+                if tools.microscope.isFrozen {
+                    Text("\(L10n.Tools.frameFrozen) (HOLD)")
+                        .font(Typography.captionBold)
+                        .foregroundStyle(Color.yellow)
+                        .padding(.horizontal, SpacingTheme.rowStandard)
+                        .padding(.vertical, SpacingTheme.tight)
+                        .background(Color.black.opacity(0.75))
+                        .clipShape(Capsule())
+                        .padding(.bottom, SpacingTheme.standard)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
-            )
+
+            if isCameraDenied {
+                VStack(spacing: SpacingTheme.standard) {
+                    Image(systemName: "camera.fill")
+                        .font(Typography.displayHero)
+                        .foregroundStyle(Color.orange)
+
+                    Text(L10n.Tools.cameraPermissionDenied)
+                        .font(Typography.caption)
+                        .foregroundStyle(Color.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, SpacingTheme.cardStack)
+
+                    Button {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        Text(L10n.Tools.openSettings)
+                            .font(Typography.captionBold)
+                            .foregroundStyle(Color.black)
+                            .padding(.horizontal, SpacingTheme.rowStandard)
+                            .padding(.vertical, SpacingTheme.compact)
+                            .background(appState.accentColor)
+                            .clipShape(Capsule())
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.black.opacity(0.88))
+            }
         }
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+        )
     }
 
     // MARK: - Reticle Overlay
     @ViewBuilder
-    private func reticleOverlay(size: CGSize) -> some View {
+    private var reticleOverlay: some View {
         ZStack {
             // Center Ring
             Circle()
@@ -133,13 +167,15 @@ struct MicroscopeDetailView: View {
                 .frame(width: 180, height: 180)
 
             // Crosshair Lines
-            Path { p in
-                p.move(to: CGPoint(x: size.width / 2, y: 0))
-                p.addLine(to: CGPoint(x: size.width / 2, y: size.height))
-                p.move(to: CGPoint(x: 0, y: size.height / 2))
-                p.addLine(to: CGPoint(x: size.width, y: size.height / 2))
-            }
-            .stroke(appState.accentColor.opacity(0.25), lineWidth: 0.6)
+            Rectangle()
+                .fill(appState.accentColor.opacity(0.25))
+                .frame(width: 0.6)
+                .frame(maxHeight: .infinity)
+
+            Rectangle()
+                .fill(appState.accentColor.opacity(0.25))
+                .frame(height: 0.6)
+                .frame(maxWidth: .infinity)
 
             // Graticule Tick Marks
             ForEach(-4 ... 4, id: \.self) { i in

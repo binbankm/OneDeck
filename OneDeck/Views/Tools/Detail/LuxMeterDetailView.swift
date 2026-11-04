@@ -56,12 +56,14 @@ struct LuxMeterDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                Text(String(format: "%.0f", tools.luxMeter.lux))
+                let safeLux = tools.luxMeter.lux.isFinite ? tools.luxMeter.lux : 0.0
+                Text(String(format: "%.0f", safeLux))
                     .font(Typography.heroSubValueMono)
                     .foregroundStyle(Color.yellow)
                     .lineLimit(1)
 
-                Text(String(format: "%@: %.1f", L10n.Tools.exposureValueTitle, tools.luxMeter.ev))
+                let safeEv = tools.luxMeter.ev.isFinite ? tools.luxMeter.ev : 0.0
+                Text(String(format: "%@: %.1f", L10n.Tools.exposureValueTitle, safeEv))
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
@@ -86,7 +88,8 @@ struct LuxMeterDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                Text(String(format: "%.1f", tools.luxMeter.footCandles))
+                let safeFc = tools.luxMeter.footCandles.isFinite ? tools.luxMeter.footCandles : 0.0
+                Text(String(format: "%.1f", safeFc))
                     .font(Typography.heroSubValueMono)
                     .foregroundStyle(Color.yellow)
                     .lineLimit(1)

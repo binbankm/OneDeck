@@ -7,6 +7,7 @@
 //
 
 import Charts
+import CoreMotion
 import SwiftUI
 
 struct BarometerDetailView: View {
@@ -15,10 +16,18 @@ struct BarometerDetailView: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
+    private var isBarometerAvailable: Bool {
+        CMAltimeter.isRelativeAltitudeAvailable()
+    }
+
     // MARK: - Body
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: SpacingTheme.cardStack) {
+                if !isBarometerAvailable {
+                    hardwareUnavailableBanner
+                }
+
                 // Dual Top KPI Hero Cards
                 dualMetricsHero
 
@@ -59,7 +68,8 @@ struct BarometerDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                Text(String(format: "%.1f", tools.barometer.pressureHpa))
+                let safePressure = tools.barometer.pressureHpa.isFinite ? tools.barometer.pressureHpa : 1013.25
+                Text(String(format: "%.1f", safePressure))
                     .font(Typography.heroSubValueMono)
                     .foregroundStyle(appState.accentColor)
                     .lineLimit(1)
@@ -88,12 +98,14 @@ struct BarometerDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                Text(String(format: "%+.1f m", tools.barometer.relativeAltitudeMeters))
+                let safeAlt = tools.barometer.relativeAltitudeMeters.isFinite ? tools.barometer.relativeAltitudeMeters : 0.0
+                let safeVSpd = tools.barometer.verticalSpeedMps.isFinite ? tools.barometer.verticalSpeedMps : 0.0
+                Text(String(format: "%+.1f m", safeAlt))
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(tools.barometer.relativeAltitudeMeters >= 0 ? Color.green : Color.orange)
+                    .foregroundStyle(safeAlt >= 0 ? Color.green : Color.orange)
                     .lineLimit(1)
 
-                Text(String(format: "%@: %+.1f m/s", L10n.Tools.verticalSpeed, tools.barometer.verticalSpeedMps))
+                Text(String(format: "%@: %+.1f m/s", L10n.Tools.verticalSpeed, safeVSpd))
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
@@ -290,6 +302,27 @@ struct BarometerDetailView: View {
         case .falling:
             return L10n.Tools.pressureFallingDesc
         }
+    }
+
+    @ViewBuilder
+    private var hardwareUnavailableBanner: some View {
+        HStack(spacing: SpacingTheme.tight) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.orange)
+            Text(L10n.Tools.barometerHardwareUnavailable)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .multilineTextAlignment(.leading)
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+        )
     }
 }
 

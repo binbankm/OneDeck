@@ -14,7 +14,6 @@ public final class BleScannerProbe: NSObject, CBCentralManagerDelegate, @uncheck
 
     private var centralManager: CBCentralManager?
     private var isScanning: Bool = false
-    private let bleQueue = DispatchQueue(label: "com.onedeck.ble.queue")
 
     private var trackedPeripherals: [UUID: BleDeviceItem] = [:]
     private var onUpdate: ((_ data: BleRadarData) -> Void)?
@@ -28,11 +27,11 @@ public final class BleScannerProbe: NSObject, CBCentralManagerDelegate, @uncheck
         guard !isScanning else { return }
         self.onUpdate = onUpdate
         self.isScanning = true
-        self.trackedPeripherals.removeAll()
         self.lastDispatchTime = .distantPast
+        self.trackedPeripherals.removeAll()
 
         if centralManager == nil {
-            centralManager = CBCentralManager(delegate: self, queue: bleQueue)
+            centralManager = CBCentralManager(delegate: self, queue: nil)
         } else if centralManager?.state == .poweredOn {
             centralManager?.scanForPeripherals(
                 withServices: nil,
@@ -44,8 +43,9 @@ public final class BleScannerProbe: NSObject, CBCentralManagerDelegate, @uncheck
     public func stopScanning() {
         guard isScanning else { return }
         isScanning = false
-        centralManager?.stopScan()
         onUpdate = nil
+        centralManager?.stopScan()
+        trackedPeripherals.removeAll()
     }
 
     // MARK: - CBCentralManagerDelegate
@@ -103,9 +103,6 @@ public final class BleScannerProbe: NSObject, CBCentralManagerDelegate, @uncheck
             strongestRssi: nearest?.rssi ?? -100
         )
 
-        Task { @MainActor [weak self] in
-            guard let self, self.isScanning else { return }
-            self.onUpdate?(result)
-        }
+        onUpdate?(result)
     }
 }
