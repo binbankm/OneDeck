@@ -12,8 +12,13 @@ import SwiftUI
 struct SettingsLicensesCard: View {
     // MARK: - Properties & State
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @State private var showLicenseSheet = false
+
+    private var readableAccent: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     // MARK: - Body
     var body: some View {
@@ -27,27 +32,30 @@ struct SettingsLicensesCard: View {
         }
         .bentoCard(accent: appState.accentColor)
         .sheet(isPresented: $showLicenseSheet) {
-            licenseDetailSheet
+            LicenseDetailSheetView()
         }
     }
 
     // MARK: - Subviews
     private var mitLicenseTile: some View {
-        // 1. MIT License Platter Button
-        Button {
+        let accent = readableAccent
+
+        return Button {
             Haptics.selection()
             showLicenseSheet = true
         } label: {
             HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(IconTheme.tileLeading)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(accent)
                     .frame(width: 20, height: 20, alignment: .center)
+                    .accessibilityHidden(true)
 
                 Text(L10n.Settings.licenseTitle)
                     .font(Typography.bodyMedium)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
                 Spacer(minLength: SpacingTheme.standard)
 
@@ -55,64 +63,117 @@ struct SettingsLicensesCard: View {
                     Text(L10n.Settings.licenseDesc)
                         .font(Typography.caption)
                         .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                        .lineLimit(1)
 
                     Image(systemName: "chevron.right")
                         .font(IconTheme.copyIndicator)
                         .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                        .accessibilityHidden(true)
                 }
             }
+            .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
             .padding(.horizontal, SpacingTheme.row)
-            .padding(.vertical, SpacingTheme.standard)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                    .fill(Theme.tileBackground(for: colorScheme))
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
+        .accessibilityLabel(L10n.Settings.licenseTitle)
+        .accessibilityValue(L10n.Settings.licenseDesc)
     }
 
     private var nativeFrameworksTile: some View {
-        // 2. Native Apple Frameworks Platter Tile
-        HStack(spacing: SpacingTheme.standard) {
-            Image(systemName: "apple.logo")
-                .font(IconTheme.tileLeading)
-                .foregroundStyle(appState.accentColor)
-                .frame(width: 20, height: 20, alignment: .center)
+        let accent = readableAccent
 
-            Text(L10n.Settings.thirdPartyLicenses)
-                .font(Typography.bodyMedium)
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .lineLimit(1)
+        return Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+                    HStack(spacing: SpacingTheme.standard) {
+                        Image(systemName: "apple.logo")
+                            .font(IconTheme.tileLeading)
+                            .foregroundStyle(accent)
+                            .frame(width: 20, height: 20, alignment: .center)
+                            .accessibilityHidden(true)
 
-            Spacer(minLength: SpacingTheme.standard)
+                        Text(L10n.Settings.thirdPartyLicenses)
+                            .font(Typography.bodyMedium)
+                            .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
 
-            Text(L10n.Settings.frameworksList)
-                .font(Typography.captionMono)
-                .foregroundStyle(appState.accentColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                    Text(L10n.Settings.frameworksList)
+                        .font(Typography.captionMono)
+                        .foregroundStyle(accent)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(spacing: SpacingTheme.standard) {
+                    Image(systemName: "apple.logo")
+                        .font(IconTheme.tileLeading)
+                        .foregroundStyle(accent)
+                        .frame(width: 20, height: 20, alignment: .center)
+                        .accessibilityHidden(true)
+
+                    Text(L10n.Settings.thirdPartyLicenses)
+                        .font(Typography.bodyMedium)
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+
+                    Spacer(minLength: SpacingTheme.standard)
+
+                    Text(L10n.Settings.frameworksList)
+                        .font(Typography.captionMono)
+                        .foregroundStyle(accent)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
         }
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.standard)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                .fill(Theme.tileBackground(for: colorScheme))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L10n.Settings.thirdPartyLicenses)
+        .accessibilityValue(L10n.Settings.frameworksList)
     }
+}
 
-    private var licenseDetailSheet: some View {
+private struct LicenseDetailSheetView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @Bindable private var appState = AppState.shared
+
+    var body: some View {
+        let accent = Theme.readableAccent(appState.accentColor, for: colorScheme)
+
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: SpacingTheme.rowStandard) {
                     Text("MIT License")
                         .font(Typography.title2)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .accessibilityAddTraits(.isHeader)
 
                     Text("Copyright (c) 2026 OneDeck Contributors")
                         .font(Typography.calloutLabel)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-                    Divider().padding(.vertical, SpacingTheme.tight)
+                    BentoHairlineDivider()
 
                     Text("""
                     Permission is hereby granted, free of charge, to any person obtaining a copy \
@@ -136,22 +197,28 @@ struct SettingsLicensesCard: View {
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineSpacing(4)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
+                .bentoCard(accent: appState.accentColor)
+                .frame(maxWidth: LayoutTheme.maxContentWidth)
+                .frame(maxWidth: .infinity)
                 .padding(SpacingTheme.cardStack)
             }
+            .scrollBounceBehavior(.basedOnSize)
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Settings.licensesSection)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(L10n.Common.done) {
-                        showLicenseSheet = false
+                        dismiss()
                     }
                     .font(Typography.calloutBold)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(accent)
                 }
             }
         }
+        .presentationDragIndicator(.visible)
     }
 }
 

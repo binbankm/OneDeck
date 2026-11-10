@@ -42,32 +42,37 @@ struct ToolLauncherCard: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
     @Bindable private var appState = AppState.shared
+    @ScaledMetric(relativeTo: .subheadline) private var iconSize: CGFloat = 22
 
     // MARK: - Properties
     let tool: HardwareTool
 
     // MARK: - Body
     var body: some View {
+        let accentFg = Theme.readableAccent(appState.accentColor, for: colorScheme)
+
         NavigationLink(value: tool) {
             HStack(spacing: SpacingTheme.cardInternal) {
-                // Leading Icon - Optically Matched to Global Section Header Standard (22x22)
+                // Leading Icon - Optically Matched to Global Section Header Standard
                 Image(systemName: tool.icon)
                     .font(IconTheme.sectionHeader)
-                    .foregroundStyle(appState.accentColor)
-                    .frame(width: 22, height: 22, alignment: .center)
+                    .foregroundStyle(accentFg)
+                    .frame(width: iconSize, height: iconSize, alignment: .center)
+                    .accessibilityHidden(true)
 
                 // Center Title & Auxiliary Description
                 VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                     Text(tool.title)
                         .font(Typography.sectionHeader)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                        .lineLimit(1)
+                        .lineLimit(2)
                         .minimumScaleFactor(0.9)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(tool.subtitle)
                         .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                        .lineLimit(2)
+                        .lineLimit(3)
                         .lineSpacing(1.5)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -79,7 +84,9 @@ struct ToolLauncherCard: View {
                 Image(systemName: "chevron.right")
                     .font(IconTheme.copyIndicator)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                    .accessibilityHidden(true)
             }
+            .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget, alignment: .leading)
             .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.card, style: .continuous))
             .bentoCard(
                 padding: SpacingTheme.cardInternal,
@@ -88,6 +95,9 @@ struct ToolLauncherCard: View {
             )
         }
         .buttonStyle(BentoCardButtonStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(tool.title)
+        .accessibilityHint(tool.subtitle)
     }
 }
 

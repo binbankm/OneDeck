@@ -184,8 +184,15 @@ public enum L10n {
         }
 
         // HUD & Status
+        public static var hudCpu: String { tr(zh: "CPU", en: "CPU", hant: "CPU") }
         public static var hudStorageAvailable: String { tr(zh: "存储", en: "Disk", hant: "儲存") }
         public static var hudCoresSuffix: String { tr(zh: "核", en: "Cores", hant: "核") }
+        public static func hudCores(count: Int) -> String {
+            tr(zh: "\(count) 核", en: "\(count) Cores", hant: "\(count) 核")
+        }
+        public static var chartTimeAxis: String { tr(zh: "时间", en: "Time", hant: "時間") }
+        public static var chartLoadAxis: String { tr(zh: "负载", en: "Load", hant: "負載") }
+        public static var chartSpeedAxis: String { tr(zh: "速率", en: "Speed", hant: "速率") }
         public static var hudRamActive: String { tr(zh: "已用", en: "Active", hant: "已用") }
         public static var hudDiskFree: String { tr(zh: "可用", en: "Free", hant: "可用") }
         public static var live30s: String { tr(zh: "30s 刷新", en: "30s Rolling", hant: "30s 重新整理") }
@@ -565,6 +572,15 @@ public enum L10n {
         public static var unavailableReading: String { tr(zh: "暂不可用", en: "Unavailable", hant: "暫無法取得") }
         public static var thermalModelBadge: String { tr(zh: "热力学模型", en: "Thermal Model", hant: "熱力學模型") }
         public static var thermalZoneEstimatedNote: String { tr(zh: "次级温区基于整机热状态估算", en: "Secondary zones estimated from thermal state", hant: "次級溫區依整機熱狀態估算") }
+        public static func capacityAdjustMinus(_ delta: Int) -> String {
+            tr(zh: "减少 \(delta) mAh", en: "Decrease by \(delta) mAh", hant: "減少 \(delta) mAh")
+        }
+        public static func capacityAdjustPlus(_ delta: Int) -> String {
+            tr(zh: "增加 \(delta) mAh", en: "Increase by \(delta) mAh", hant: "增加 \(delta) mAh")
+        }
+        public static var waitingForPowerSample: String {
+            tr(zh: "正在采集实时功率样本...", en: "Sampling live power telemetry...", hant: "正在採集即時功率樣本...")
+        }
     }
 
     // MARK: - Network
@@ -729,6 +745,21 @@ public enum L10n {
         public static var speedTestUploadUnavailable: String { tr(zh: "上行不可用", en: "Upload Unavailable", hant: "上行無法測量") }
         public static var speedTestFailed: String { tr(zh: "测速连接失败", en: "Connection Failed", hant: "測速連線失敗") }
         public static var idleStatus: String { tr(zh: "待测", en: "Idle", hant: "待測") }
+        public static var wolSocketFailed: String { tr(zh: "UDP 套接字创建失败", en: "Socket Creation Failed", hant: "UDP 通訊端建立失敗") }
+        public static var wolInvalidBroadcast: String { tr(zh: "广播地址无效", en: "Invalid Broadcast Address", hant: "廣播位址無效") }
+        public static var wolDispatchError: String { tr(zh: "UDP 数据包发送失败", en: "UDP Dispatch Error", hant: "UDP 封包發送失敗") }
+        public static var airPlayAudio: String { tr(zh: "隔空播放音频", en: "AirPlay Audio", hant: "AirPlay 音訊") }
+        public static var portScanEmptyHint: String { tr(zh: "输入主机 IP 或域名并点击扫描端口", en: "Enter host IP or domain to scan ports", hant: "輸入主機 IP 或網域並點擊掃描埠") }
+        public static var portHostResolveFailed: String { tr(zh: "目标主机无效或无法解析", en: "Target host unavailable or unreachable", hant: "目標主機無效或無法解析") }
+        public static var dnsEmptyHint: String { tr(zh: "输入域名或点选预设开始 POSIX 解析", en: "Enter a domain or tap a preset to resolve", hant: "輸入網域或點選預設開始 POSIX 解析") }
+        public static var dnsNoRecordsFound: String { tr(zh: "未解析到 A 或 AAAA 记录", en: "No A or AAAA records returned", hant: "未解析到 A 或 AAAA 記錄") }
+        public static var clipboardEmpty: String { tr(zh: "剪贴板为空", en: "Clipboard is empty", hant: "剪貼簿為空") }
+        public static var chartTimeAxis: String { tr(zh: "时间", en: "Time", hant: "時間") }
+        public static var chartLatencyAxis: String { tr(zh: "延迟", en: "Latency", hant: "延遲") }
+        public static var chartBaselineAxis: String { tr(zh: "基线", en: "Baseline", hant: "基準線") }
+        public static var chartRateAxis: String { tr(zh: "速率", en: "Rate", hant: "速率") }
+        public static var chartDirectionAxis: String { tr(zh: "方向", en: "Direction", hant: "方向") }
+        public static var waitingForSamples: String { tr(zh: "正在采样数据...", en: "Sampling telemetry...", hant: "正在採樣數據...") }
         public static func vendorText(key: String) -> String {
             switch key {
             case "apple": return tr(zh: "Apple 设备", en: "Apple Device", hant: "Apple 裝置")
@@ -1179,6 +1210,28 @@ public enum L10n {
             en: "Camera hardware is unavailable on this device",
             hant: "目前裝置缺少可用的相機硬體（模擬器或部分裝置暫不支援）"
         ) }
+        public static var gnss3dFix: String { tr(zh: "3D 定位", en: "3D FIX", hant: "3D 定位") }
+        public static var gnssSearching: String { tr(zh: "搜星中", en: "SEARCH", hant: "搜尋中") }
+        public static var gnssSpeedUnit: String { tr(zh: "km/h", en: "km/h", hant: "km/h") }
+        public static func stepAdjustHz(_ delta: Int) -> String {
+            delta >= 0
+                ? tr(zh: "增加 \(delta) Hz", en: "Increase by \(delta) Hz", hant: "增加 \(delta) Hz")
+                : tr(zh: "减少 \(-delta) Hz", en: "Decrease by \(-delta) Hz", hant: "減少 \(-delta) Hz")
+        }
+        public static var rulerNanoSim: String { tr(zh: "Nano SIM", en: "Nano SIM", hant: "Nano SIM") }
+        public static var rulerTypeC: String { tr(zh: "Type-C 口", en: "Type-C", hant: "Type-C 埠") }
+        public static func rulerPpiBadge(_ ppi: Int) -> String {
+            tr(zh: "1:1 像素密度: \(ppi)", en: "1:1 PPI: \(ppi)", hant: "1:1 像素密度: \(ppi)")
+        }
+        public static var chartTimeAxis: String { tr(zh: "时间", en: "Time", hant: "時間") }
+        public static var chartBaselineAxis: String { tr(zh: "基线", en: "Baseline", hant: "基準線") }
+        public static var chartAbsorptionAxis: String { tr(zh: "吸收值", en: "Absorption", hant: "吸收值") }
+        public static var chartFluxAxis: String { tr(zh: "磁通", en: "Flux", hant: "磁通") }
+        public static var chartPressureAxis: String { tr(zh: "气压 (hPa)", en: "hPa", hant: "氣壓 (hPa)") }
+        public static var chartDecibelAxis: String { tr(zh: "声压 (dB)", en: "dB", hant: "聲壓 (dB)") }
+        public static var chartLuxAxis: String { tr(zh: "照度 (Lux)", en: "Lux", hant: "照度 (Lux)") }
+        public static var chartSeismicAxis: String { tr(zh: "加速度 (Gal)", en: "Gal", hant: "加速度 (Gal)") }
+        public static var waitingForSamples: String { tr(zh: "正在采集传感器数据...", en: "Sampling sensor telemetry...", hant: "正在採集感測器數據...") }
     }
 
     // MARK: - Settings
@@ -1317,5 +1370,20 @@ public enum L10n {
         public static var aboutChip: String { tr(zh: "芯片", en: "Processor", hant: "晶片") }
         public static var aboutSystem: String { tr(zh: "系统", en: "OS", hant: "系統") }
         public static var repoLink: String { tr(zh: "GitHub", en: "GitHub", hant: "GitHub") }
+        public static var certAppleSystem: String { tr(zh: "Apple 系统内置签名", en: "Apple OS Software Provisioning", hant: "Apple 系統內建簽章") }
+        public static var defaultGroup: String { tr(zh: "默认组", en: "Default", hant: "預設群組") }
+        public static var customAccentColor: String { tr(zh: "自定义强调色", en: "Custom Accent Color", hant: "自訂強調色") }
+        public static func accentPresetName(hex: String) -> String {
+            switch hex.uppercased() {
+            case ThemePreset.blue.hex: return tr(zh: "科技蓝", en: "Blue", hant: "科技藍")
+            case ThemePreset.cyan.hex: return tr(zh: "冰川青", en: "Cyan", hant: "冰川青")
+            case ThemePreset.emerald.hex: return tr(zh: "翡翠绿", en: "Emerald", hant: "翡翠綠")
+            case ThemePreset.purple.hex: return tr(zh: "极光紫", en: "Purple", hant: "極光紫")
+            case ThemePreset.crimson.hex: return tr(zh: "绯红", en: "Crimson", hant: "緋紅")
+            case ThemePreset.orange.hex: return tr(zh: "活力橙", en: "Orange", hant: "活力橙")
+            case ThemePreset.gold.hex: return tr(zh: "琥珀金", en: "Gold", hant: "琥珀金")
+            default: return hex
+            }
+        }
     }
 }

@@ -14,28 +14,38 @@ struct WaterEjectorDetailView: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
+    private var accentFg: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
+
     // MARK: - Body
     var body: some View {
-        VStack(spacing: SpacingTheme.cardStack) {
-            // Mode Switcher Bar
-            modeSelectorBar
+        GeometryReader { geo in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: SpacingTheme.cardStack) {
+                    // Mode Switcher Bar
+                    modeSelectorBar
 
-            Spacer()
+                    Spacer(minLength: SpacingTheme.standard)
 
-            // Center Acoustic Ring & Countdown (Clean single ring)
-            acousticPulsingRing(size: 200)
+                    // Center Acoustic Ring & Countdown (Clean single ring)
+                    acousticPulsingRing(size: 200)
 
-            Spacer()
+                    Spacer(minLength: SpacingTheme.standard)
 
-            // Instruction & Safety Notice
-            engineeringAdviceCard
+                    // Instruction & Safety Notice
+                    engineeringAdviceCard
 
-            // Prominent Play / Stop Button
-            actionButton
+                    // Prominent Play / Stop Button
+                    actionButton
+                }
+                .padding(.horizontal, SpacingTheme.cardStack)
+                .padding(.vertical, SpacingTheme.rowStandard)
+                .frame(maxWidth: LayoutTheme.maxContentWidth)
+                .frame(maxWidth: .infinity, minHeight: geo.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         }
-        .padding(.horizontal, SpacingTheme.cardStack)
-        .padding(.vertical, SpacingTheme.rowStandard)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.waterEjector)
         .navigationBarTitleDisplayMode(.inline)
@@ -57,25 +67,35 @@ struct WaterEjectorDetailView: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
+        .accessibilityLabel(L10n.Tools.waterEjectMode)
         .disabled(tools.waterEjector.isRunning)
+        .onChange(of: tools.waterEjector.selectedMode) { _, _ in
+            Haptics.selection()
+        }
     }
 
     // MARK: - Center Acoustic Ring & Countdown (Single Clean Ring)
     @ViewBuilder
     private func acousticPulsingRing(size: CGFloat) -> some View {
         let isRunning = tools.waterEjector.isRunning
-        let activeColor = isRunning ? Theme.readableCyan(for: colorScheme) : appState.accentColor
+        let activeColor = isRunning ? Theme.readableCyan(for: colorScheme) : accentFg
         let safeProgress = tools.waterEjector.progress.isFinite ? min(1.0, max(0.0, tools.waterEjector.progress)) : 0.0
+        let statusLabel = isRunning
+            ? (tools.waterEjector.selectedMode == .deep165Hz ? L10n.Tools.ejecting : L10n.Tools.clearing)
+            : L10n.Tools.ready
+        let primaryReadout = isRunning
+            ? "\(tools.waterEjector.remainingSeconds)s"
+            : "\(Int(tools.waterEjector.selectedMode.targetFrequency)) Hz"
 
         ZStack {
             // Soft Background Disc strictly inside the circle
             Circle()
-                .fill(activeColor.opacity(isRunning ? 0.06 : 0.02))
+                .fill(activeColor.opacity(isRunning ? 0.08 : 0.03))
                 .frame(width: size, height: size)
 
             // Outer Base Track Ring
             Circle()
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 6)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 6)
                 .frame(width: size, height: size)
 
             // Active Progress Trim on the Ring
@@ -98,24 +118,30 @@ struct WaterEjectorDetailView: View {
                     .font(IconTheme.emptyState)
                     .foregroundStyle(activeColor)
                     .symbolEffect(.pulse, isActive: isRunning)
+                    .accessibilityHidden(true)
 
                 if isRunning {
-                    Text("\(tools.waterEjector.remainingSeconds)s")
+                    Text(primaryReadout)
                         .font(Typography.displayHero)
                         .monospacedDigit()
+                        .contentTransition(.numericText())
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 } else {
-                    Text("\(Int(tools.waterEjector.selectedMode.targetFrequency)) Hz")
+                    Text(primaryReadout)
                         .font(Typography.title1)
+                        .monospacedDigit()
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 }
 
-                Text(isRunning ? (tools.waterEjector.selectedMode == .deep165Hz ? L10n.Tools.ejecting : L10n.Tools.clearing) : L10n.Tools.ready)
+                Text(statusLabel)
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
         }
         .frame(width: size, height: size)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.Tools.waterEjector)
+        .accessibilityValue("\(statusLabel), \(primaryReadout)")
     }
 
     // MARK: - Advice Card
@@ -124,7 +150,8 @@ struct WaterEjectorDetailView: View {
         HStack(spacing: SpacingTheme.standard) {
             Image(systemName: "speaker.wave.3.fill")
                 .font(IconTheme.actionButton)
-                .foregroundStyle(appState.accentColor)
+                .foregroundStyle(accentFg)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(L10n.Tools.waterEjectorSub)
@@ -134,46 +161,55 @@ struct WaterEjectorDetailView: View {
                 Text(L10n.Tools.waterEjectAdvice)
                     .font(Typography.badgeTag)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, SpacingTheme.rowStandard)
         .padding(.vertical, SpacingTheme.row)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.tileBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
         )
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Prominent Action Button
     @ViewBuilder
     private var actionButton: some View {
         let isRunning = tools.waterEjector.isRunning
+        let buttonBg = isRunning ? Theme.readableRed(for: colorScheme) : appState.accentColor
 
         Button {
+            if isRunning {
+                Haptics.selection()
+            }
             tools.toggleWaterEjector()
         } label: {
             HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: isRunning ? "stop.fill" : "play.fill")
                     .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
                 Text(isRunning ? L10n.Tools.stopEject : L10n.Tools.startEject)
                     .font(Typography.headlineValue)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
-            .foregroundStyle(isRunning ? Color.white : Theme.contrastingForeground(for: appState.accentColor))
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .foregroundStyle(Theme.contrastingForeground(for: buttonBg))
+            .frame(maxWidth: .infinity, minHeight: 50)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                    .fill(isRunning ? Color.red : appState.accentColor)
+                    .fill(buttonBg)
             )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
     }
 }
 

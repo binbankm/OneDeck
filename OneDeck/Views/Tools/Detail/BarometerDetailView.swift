@@ -12,6 +12,7 @@ import SwiftUI
 struct BarometerDetailView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
@@ -19,12 +20,19 @@ struct BarometerDetailView: View {
         tools.isBarometerAvailable
     }
 
+    private var accentFg: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
+
     // MARK: - Body
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: SpacingTheme.cardStack) {
                 if !isBarometerAvailable {
-                    hardwareUnavailableBanner
+                    ToolNoticeBanner(
+                        icon: "exclamationmark.triangle.fill",
+                        message: L10n.Tools.barometerHardwareUnavailable
+                    )
                 }
 
                 // Dual Top KPI Hero Cards
@@ -39,9 +47,12 @@ struct BarometerDetailView: View {
                 // Bottom Reset Altitude Action Bar
                 bottomControlsBar
             }
+            .frame(maxWidth: LayoutTheme.maxContentWidth)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, SpacingTheme.cardStack)
             .padding(.vertical, SpacingTheme.rowStandard)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.barometer)
         .navigationBarTitleDisplayMode(.inline)
@@ -58,8 +69,15 @@ struct BarometerDetailView: View {
     // MARK: - Dual Metrics Hero
     @ViewBuilder
     private var dualMetricsHero: some View {
-        HStack(spacing: SpacingTheme.standard) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: SpacingTheme.standard))
+            : AnyLayout(HStackLayout(spacing: SpacingTheme.standard))
+
+        layout {
             // Pressure Tile
+            let safePressure = tools.barometer.pressureHpa.isFinite ? tools.barometer.pressureHpa : 1013.25
+            let formattedPressure = String(format: "%.1f", safePressure)
+
             VStack(alignment: .leading, spacing: SpacingTheme.tight) {
                 Text(L10n.Tools.atmosphericPressure)
                     .font(Typography.badgeTagMono)
@@ -67,11 +85,13 @@ struct BarometerDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                let safePressure = tools.barometer.pressureHpa.isFinite ? tools.barometer.pressureHpa : 1013.25
-                Text(String(format: "%.1f", safePressure))
+                Text(formattedPressure)
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(appState.accentColor)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(accentFg)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
                 Text("hPa")
                     .font(Typography.captionMono)
@@ -82,15 +102,22 @@ struct BarometerDetailView: View {
             .padding(SpacingTheme.rowStandard)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                    .fill(Theme.tileBackground(for: colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
             )
             .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Tools.atmosphericPressure)
+            .accessibilityValue("\(formattedPressure) hPa")
 
             // Relative Altitude Tile
+            let safeAlt = tools.barometer.relativeAltitudeMeters.isFinite ? tools.barometer.relativeAltitudeMeters : 0.0
+            let safeVSpd = tools.barometer.verticalSpeedMps.isFinite ? tools.barometer.verticalSpeedMps : 0.0
+            let formattedAlt = String(format: "%+.1f m", safeAlt)
+            let formattedVSpd = String(format: "%@: %+.1f m/s", L10n.Tools.verticalSpeed, safeVSpd)
+
             VStack(alignment: .leading, spacing: SpacingTheme.tight) {
                 Text(L10n.Tools.relativeElevation)
                     .font(Typography.badgeTagMono)
@@ -98,15 +125,17 @@ struct BarometerDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                let safeAlt = tools.barometer.relativeAltitudeMeters.isFinite ? tools.barometer.relativeAltitudeMeters : 0.0
-                let safeVSpd = tools.barometer.verticalSpeedMps.isFinite ? tools.barometer.verticalSpeedMps : 0.0
-                Text(String(format: "%+.1f m", safeAlt))
+                Text(formattedAlt)
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(safeAlt >= 0 ? Color.green : Color.orange)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(safeAlt >= 0 ? Theme.readableGreen(for: colorScheme) : Theme.readableOrange(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
-                Text(String(format: "%@: %+.1f m/s", L10n.Tools.verticalSpeed, safeVSpd))
+                Text(formattedVSpd)
                     .font(Typography.captionMono)
+                    .monospacedDigit()
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
@@ -115,13 +144,15 @@ struct BarometerDetailView: View {
             .padding(SpacingTheme.rowStandard)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                    .fill(Theme.tileBackground(for: colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
             )
             .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Tools.relativeElevation)
+            .accessibilityValue("\(formattedAlt), \(formattedVSpd)")
         }
     }
 
@@ -150,6 +181,7 @@ struct BarometerDetailView: View {
 
                 HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: trendIcon)
+                        .accessibilityHidden(true)
                     Text(trendTitle)
                         .font(Typography.captionBold)
                 }
@@ -157,25 +189,28 @@ struct BarometerDetailView: View {
             }
 
             if history.isEmpty {
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
-                    .frame(height: 160)
+                BentoEmptyStateView(
+                    icon: "gauge.with.needle.fill",
+                    message: L10n.Tools.waitingForSamples,
+                    showsProgress: tools.isBarometerActive,
+                    height: 160
+                )
             } else {
                 Chart {
                     ForEach(history) { pt in
                         AreaMark(
-                            x: .value("Time", pt.timestamp),
-                            yStart: .value("Baseline", yMin),
-                            yEnd: .value("hPa", pt.value)
+                            x: .value(L10n.Tools.chartTimeAxis, pt.timestamp),
+                            yStart: .value(L10n.Tools.chartBaselineAxis, yMin),
+                            yEnd: .value(L10n.Tools.chartPressureAxis, pt.value)
                         )
-                        .foregroundStyle(ChartTheme.areaGradient(for: appState.accentColor))
+                        .foregroundStyle(ChartTheme.areaGradient(for: accentFg))
                         .interpolationMethod(.monotone)
 
                         LineMark(
-                            x: .value("Time", pt.timestamp),
-                            y: .value("hPa", pt.value)
+                            x: .value(L10n.Tools.chartTimeAxis, pt.timestamp),
+                            y: .value(L10n.Tools.chartPressureAxis, pt.value)
                         )
-                        .foregroundStyle(appState.accentColor)
+                        .foregroundStyle(accentFg)
                         .lineStyle(StrokeStyle(lineWidth: ChartTheme.lineWidth, lineCap: .round, lineJoin: .round))
                         .interpolationMethod(.monotone)
                     }
@@ -196,78 +231,89 @@ struct BarometerDetailView: View {
                     }
                 }
                 .frame(height: 160)
+                .accessibilityHidden(true)
             }
         }
         .padding(SpacingTheme.rowStandard)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.tileBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L10n.Tools.barometricTendency)
+        .accessibilityValue("\(trendTitle), \(String(format: "%.1f", currentP)) hPa")
     }
 
     // MARK: - Environmental ISA Reference Card
     @ViewBuilder
     private var isaAtmosphereCard: some View {
-        HStack(spacing: SpacingTheme.standard) {
+        HStack(alignment: .top, spacing: SpacingTheme.standard) {
             Image(systemName: "gauge.with.needle.fill")
                 .font(IconTheme.actionButton)
-                .foregroundStyle(appState.accentColor)
+                .foregroundStyle(accentFg)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 HStack {
                     Text(L10n.Tools.isaSeaLevelStandard)
                         .font(Typography.captionBold)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
 
-                    Spacer()
+                    Spacer(minLength: SpacingTheme.compact)
 
                     Text("1013.25 hPa")
                         .font(Typography.badgeTagMono)
+                        .monospacedDigit()
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 }
 
                 Text(trendWeatherDescription)
                     .font(Typography.badgeTag)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.horizontal, SpacingTheme.rowStandard)
         .padding(.vertical, SpacingTheme.row)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.tileBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
         )
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Bottom Controls Bar
     @ViewBuilder
     private var bottomControlsBar: some View {
-        HStack(spacing: SpacingTheme.standard) {
-            Button {
-                tools.resetBarometerAltitude()
-            } label: {
-                HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "arrow.counterclockwise.circle.fill")
-                        .font(IconTheme.actionButton)
-                    Text(L10n.Tools.resetAltitude)
-                        .font(Typography.captionBold)
-                }
-                .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(appState.accentColor)
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        Button {
+            tools.resetBarometerAltitude()
+        } label: {
+            HStack(spacing: SpacingTheme.tight) {
+                Image(systemName: "arrow.counterclockwise.circle.fill")
+                    .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
+                Text(L10n.Tools.resetAltitude)
+                    .font(Typography.captionBold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
-            .buttonStyle(.plain)
+            .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
+            .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+            .background(appState.accentColor)
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
         }
+        .buttonStyle(BentoCardButtonStyle())
     }
 
     // MARK: - Trend Helpers
@@ -289,9 +335,9 @@ struct BarometerDetailView: View {
 
     private var trendColor: Color {
         switch tools.barometer.trend {
-        case .rising: return Color.green
-        case .steady: return appState.accentColor
-        case .falling: return Color.orange
+        case .rising: return Theme.readableGreen(for: colorScheme)
+        case .steady: return accentFg
+        case .falling: return Theme.readableOrange(for: colorScheme)
         }
     }
 
@@ -304,27 +350,6 @@ struct BarometerDetailView: View {
         case .falling:
             return L10n.Tools.pressureFallingDesc
         }
-    }
-
-    @ViewBuilder
-    private var hardwareUnavailableBanner: some View {
-        HStack(spacing: SpacingTheme.tight) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(Color.orange)
-            Text(L10n.Tools.barometerHardwareUnavailable)
-                .font(Typography.caption)
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .multilineTextAlignment(.leading)
-        }
-        .padding(SpacingTheme.cardInternal)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
-        )
     }
 }
 

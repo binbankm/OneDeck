@@ -11,14 +11,19 @@ import SwiftUI
 struct OverviewMemoryStorageCard: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var system = SystemViewModel.shared
+
+    private var readableAccent: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     // MARK: - Body
     var body: some View {
         VStack(spacing: SpacingTheme.cardInternal) {
             physicalMemorySection
-            Divider().opacity(0.25)
+            BentoHairlineDivider()
             diskStorageSection
         }
         .bentoCard(accent: appState.accentColor)
@@ -27,16 +32,21 @@ struct OverviewMemoryStorageCard: View {
     // MARK: - Subviews
     @ViewBuilder
     private var physicalMemorySection: some View {
-        VStack(alignment: .leading, spacing: SpacingTheme.row) {
-            HStack {
-                OverviewSectionHeader(title: L10n.Overview.memory, icon: "memorychip.fill")
+        let accent = readableAccent
 
-                Spacer()
+        VStack(alignment: .leading, spacing: SpacingTheme.row) {
+            HStack(spacing: SpacingTheme.standard) {
+                OverviewSectionHeader(title: L10n.Overview.memory, icon: "memorychip.fill")
+                    .layoutPriority(1)
+
+                Spacer(minLength: SpacingTheme.compact)
 
                 Text(system.totalPhysicalMemory.formattedBytes)
                     .font(Typography.bodyValue)
+                    .monospacedDigit()
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
             // Smooth Segmented Memory Capsule (Single Canvas Draw)
@@ -49,9 +59,9 @@ struct OverviewMemoryStorageCard: View {
                 let freeColor = colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
 
                 let segments: [(bytes: UInt64, color: Color)] = [
-                    (system.activeMemory, appState.accentColor),
-                    (system.wiredMemory, appState.accentColor.opacity(0.65)),
-                    (system.compressedMemory, appState.accentColor.opacity(0.35)),
+                    (system.activeMemory, accent),
+                    (system.wiredMemory, accent.opacity(0.65)),
+                    (system.compressedMemory, accent.opacity(0.35)),
                     (system.inactiveMemory, inactiveColor),
                     (system.freeMemory, freeColor)
                 ]
@@ -79,60 +89,95 @@ struct OverviewMemoryStorageCard: View {
             .clipShape(Capsule())
             .frame(height: 8)
             .animation(.easeInOut(duration: 0.25), value: system.activeMemory)
+            .accessibilityHidden(true)
 
             // Memory Breakdown Bento Stat Grid
             VStack(spacing: SpacingTheme.standard) {
-                HStack(spacing: SpacingTheme.row) {
-                    MemoryStatCell(
-                        label: L10n.Overview.memoryActive,
-                        color: appState.accentColor,
-                        value: system.activeMemory.formattedBytes
-                    )
+                let inactiveChipColor = colorScheme == .dark ? Color.white.opacity(0.32) : Color.black.opacity(0.24)
 
-                    MemoryStatCell(
-                        label: L10n.Overview.memoryWired,
-                        color: appState.accentColor.opacity(0.65),
-                        value: system.wiredMemory.formattedBytes
-                    )
-                }
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(spacing: SpacingTheme.standard) {
+                        MemoryStatCell(
+                            label: L10n.Overview.memoryActive,
+                            color: accent,
+                            value: system.activeMemory.formattedBytes
+                        )
+                        MemoryStatCell(
+                            label: L10n.Overview.memoryWired,
+                            color: accent.opacity(0.65),
+                            value: system.wiredMemory.formattedBytes
+                        )
+                        MemoryStatCell(
+                            label: L10n.Overview.memoryCompressed,
+                            color: accent.opacity(0.35),
+                            value: system.compressedMemory.formattedBytes
+                        )
+                        MemoryStatCell(
+                            label: L10n.Overview.memoryInactive,
+                            color: inactiveChipColor,
+                            value: system.inactiveMemory.formattedBytes
+                        )
+                    }
+                } else {
+                    HStack(spacing: SpacingTheme.row) {
+                        MemoryStatCell(
+                            label: L10n.Overview.memoryActive,
+                            color: accent,
+                            value: system.activeMemory.formattedBytes
+                        )
 
-                HStack(spacing: SpacingTheme.row) {
-                    MemoryStatCell(
-                        label: L10n.Overview.memoryCompressed,
-                        color: appState.accentColor.opacity(0.35),
-                        value: system.compressedMemory.formattedBytes
-                    )
+                        MemoryStatCell(
+                            label: L10n.Overview.memoryWired,
+                            color: accent.opacity(0.65),
+                            value: system.wiredMemory.formattedBytes
+                        )
+                    }
 
-                    MemoryStatCell(
-                        label: L10n.Overview.memoryInactive,
-                        color: colorScheme == .dark ? Color.white.opacity(0.32) : Color.black.opacity(0.24),
-                        value: system.inactiveMemory.formattedBytes
-                    )
+                    HStack(spacing: SpacingTheme.row) {
+                        MemoryStatCell(
+                            label: L10n.Overview.memoryCompressed,
+                            color: accent.opacity(0.35),
+                            value: system.compressedMemory.formattedBytes
+                        )
+
+                        MemoryStatCell(
+                            label: L10n.Overview.memoryInactive,
+                            color: inactiveChipColor,
+                            value: system.inactiveMemory.formattedBytes
+                        )
+                    }
                 }
 
                 HStack(spacing: SpacingTheme.tight) {
                     Circle()
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.18) : Color.black.opacity(0.14))
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.24) : Color.black.opacity(0.18))
                         .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
 
                     Text(L10n.Overview.memoryFree)
                         .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
 
-                    Spacer()
+                    Spacer(minLength: SpacingTheme.compact)
 
                     Text(system.freeMemory.formattedBytes)
                         .font(Typography.bodyValue)
                         .monospacedDigit()
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                         .contentTransition(.numericText())
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 }
                 .padding(.horizontal, SpacingTheme.row)
                 .padding(.vertical, SpacingTheme.standard)
-                .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                .background(Theme.tileBackground(for: colorScheme))
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                        .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+                )
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(L10n.Overview.memoryFree)
                 .accessibilityValue(system.freeMemory.formattedBytes)
@@ -143,62 +188,68 @@ struct OverviewMemoryStorageCard: View {
 
     @ViewBuilder
     private var diskStorageSection: some View {
-        VStack(alignment: .leading, spacing: SpacingTheme.row) {
-            HStack {
-                OverviewSectionHeader(title: L10n.Overview.storage, icon: "internaldrive.fill")
+        let accent = readableAccent
+        let totalDisk = Double(max(1, system.totalDiskSpace))
+        let usedDisk = Double(max(0, system.totalDiskSpace - system.availableDiskSpace))
 
-                Spacer()
+        VStack(alignment: .leading, spacing: SpacingTheme.row) {
+            HStack(spacing: SpacingTheme.standard) {
+                OverviewSectionHeader(title: L10n.Overview.storage, icon: "internaldrive.fill")
+                    .layoutPriority(1)
+
+                Spacer(minLength: SpacingTheme.compact)
 
                 Text(system.totalDiskSpace.formattedBytes)
                     .font(Typography.bodyValue)
+                    .monospacedDigit()
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
-            // Storage Native Progress Bar
-            let totalDisk = Double(max(1, system.totalDiskSpace))
-            let usedDisk = Double(max(0, system.totalDiskSpace - system.availableDiskSpace))
-            ProgressView(value: min(1.0, max(0.0, usedDisk / totalDisk)))
-                .tint(appState.accentColor)
-                .scaleEffect(x: 1, y: 1.6, anchor: .center)
-                .frame(height: 8)
+            // Storage Progress Bar
+            BentoCapsuleProgressBar(
+                value: min(1.0, max(0.0, usedDisk / totalDisk)),
+                tint: accent,
+                height: 8,
+                accessibilityLabel: L10n.Overview.storage,
+                accessibilityValue: "\(system.usedDiskSpace.formattedBytes) / \(system.totalDiskSpace.formattedBytes)"
+            )
 
             // Used vs Available Metrics
-            HStack {
-                VStack(alignment: .leading, spacing: SpacingTheme.micro) {
-                    Text(L10n.Overview.storageUsed)
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                        .lineLimit(1)
-
-                    Text(system.usedDiskSpace.formattedBytes)
-                        .font(Typography.bodyValue)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .contentTransition(.numericText())
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: SpacingTheme.compact) {
+                    storageStatRow(
+                        label: L10n.Overview.storageUsed,
+                        value: system.usedDiskSpace.formattedBytes,
+                        alignment: .leading
+                    )
+                    storageStatRow(
+                        label: L10n.Overview.storageAvailable,
+                        value: system.availableDiskSpace.formattedBytes,
+                        alignment: .leading
+                    )
                 }
+            } else {
+                HStack {
+                    storageStatRow(
+                        label: L10n.Overview.storageUsed,
+                        value: system.usedDiskSpace.formattedBytes,
+                        alignment: .leading
+                    )
 
-                Spacer()
+                    Spacer(minLength: SpacingTheme.standard)
 
-                VStack(alignment: .trailing, spacing: SpacingTheme.micro) {
-                    Text(L10n.Overview.storageAvailable)
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                        .lineLimit(1)
-
-                    Text(system.availableDiskSpace.formattedBytes)
-                        .font(Typography.bodyValue)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .contentTransition(.numericText())
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    storageStatRow(
+                        label: L10n.Overview.storageAvailable,
+                        value: system.availableDiskSpace.formattedBytes,
+                        alignment: .trailing
+                    )
                 }
             }
 
-            // Full-Width Tactile Action Button
+            // Full-Width Tactile Action Button (ViewModel owns haptic triggers)
             Button {
-                Haptics.impact(.medium)
                 Task {
                     await system.cleanSystemCache()
                 }
@@ -206,69 +257,91 @@ struct OverviewMemoryStorageCard: View {
                 HStack(spacing: SpacingTheme.compact) {
                     if system.isCleaningCache {
                         ProgressView()
-                            .tint(appState.accentColor)
-                            .scaleEffect(0.8)
+                            .controlSize(.small)
+                            .tint(accent)
 
                         Text(L10n.Overview.cleaningCache)
-                            .font(Typography.calloutLabel)
-                            .fontWeight(.semibold)
+                            .font(Typography.calloutBold)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     } else {
                         Image(systemName: "checkmark.circle.fill")
                             .font(IconTheme.actionButton)
+                            .accessibilityHidden(true)
 
                         Text(L10n.Overview.cleanPurged)
-                            .font(Typography.calloutLabel)
-                            .fontWeight(.semibold)
+                            .font(Typography.calloutBold)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 36)
-                .background(appState.accentColor.opacity(0.12))
-                .foregroundStyle(appState.accentColor)
+                .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+                .padding(.horizontal, SpacingTheme.row)
+                .background(accent.opacity(0.12))
+                .foregroundStyle(accent)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                        .stroke(appState.accentColor.opacity(0.25), lineWidth: 0.5)
+                        .stroke(accent.opacity(0.25), lineWidth: 0.6)
                 )
+                .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
             }
+            .buttonStyle(BentoCardButtonStyle())
             .disabled(system.isCleaningCache)
-            .accessibilityLabel(L10n.Overview.cleanPurged)
+            .accessibilityLabel(system.isCleaningCache ? L10n.Overview.cleaningCache : L10n.Overview.cleanPurged)
 
             if let purgedAt = system.lastCachePurgedAt {
                 HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "sparkles")
                         .font(IconTheme.badgeInline)
-                        .foregroundStyle(appState.accentColor)
+                        .foregroundStyle(accent)
+                        .accessibilityHidden(true)
 
                     Text(L10n.Overview.cachePurgedToast)
                         .font(Typography.badgeTag)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.85)
 
-                    Spacer()
+                    Spacer(minLength: SpacingTheme.compact)
 
-                    Text(Self.purgeTimeFormatter.string(from: purgedAt))
+                    Text(purgedAt, format: .dateTime.hour().minute().second())
                         .font(Typography.badgeTagMono)
+                        .monospacedDigit()
                         .foregroundStyle(Theme.textTertiary(for: colorScheme))
                         .lineLimit(1)
                 }
                 .padding(.horizontal, SpacingTheme.row)
                 .padding(.vertical, SpacingTheme.tight)
-                .background(appState.accentColor.opacity(0.08))
+                .background(accent.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 .transition(.opacity)
+                .accessibilityElement(children: .combine)
             }
         }
     }
 
-    private static let purgeTimeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter
-    }()
+    @ViewBuilder
+    private func storageStatRow(label: String, value: String, alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: SpacingTheme.micro) {
+            Text(label)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+
+            Text(value)
+                .font(Typography.bodyValue)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+                .contentTransition(.numericText())
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue(value)
+    }
 }
 
 // MARK: - Extracted Component
@@ -284,25 +357,32 @@ private struct MemoryStatCell: View {
                 Circle()
                     .fill(color)
                     .frame(width: 6, height: 6)
+                    .accessibilityHidden(true)
 
                 Text(label)
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
             Text(value)
                 .font(Typography.bodyValue)
                 .monospacedDigit()
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
                 .contentTransition(.numericText())
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.standard)
-        .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+        .background(Theme.tileBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
         .accessibilityValue(value)

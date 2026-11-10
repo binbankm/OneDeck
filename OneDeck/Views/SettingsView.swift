@@ -12,19 +12,19 @@ import SwiftUI
 struct SettingsView: View {
     // MARK: - Properties & State
     @Environment(\.colorScheme) private var colorScheme
-    @Bindable private var appState = AppState.shared
 
     // MARK: - Body
     var body: some View {
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 cardStack
-                    .frame(maxWidth: 680)
+                    .frame(maxWidth: LayoutTheme.maxContentWidth)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, SpacingTheme.cardStack)
                     .padding(.vertical, SpacingTheme.rowStandard)
             }
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
+            .scrollDismissesKeyboard(.interactively)
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Settings.title)
         }

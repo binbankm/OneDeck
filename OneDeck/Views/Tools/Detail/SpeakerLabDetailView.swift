@@ -11,11 +11,16 @@ import SwiftUI
 struct SpeakerLabDetailView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
     // MARK: - State
     @State private var activeFrequency: Double = 1000.0
+
+    private var accentFg: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     // Frequency Presets
     private var testFrequencies: [(title: String, freq: Double)] {
@@ -43,9 +48,12 @@ struct SpeakerLabDetailView: View {
                 // Master Stop / Play Button
                 primaryToggleButton
             }
+            .frame(maxWidth: LayoutTheme.maxContentWidth)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, SpacingTheme.cardStack)
             .padding(.vertical, SpacingTheme.rowStandard)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.speakerLab)
         .navigationBarTitleDisplayMode(.inline)
@@ -63,46 +71,60 @@ struct SpeakerLabDetailView: View {
     private var speakerDiagramCard: some View {
         let isPlaying = tools.isSpeakerTesting
         let activeChannel = tools.speakerChannel
+        let isLeftActive = isPlaying && (activeChannel == .left || activeChannel == .stereo)
+        let isRightActive = isPlaying && (activeChannel == .right || activeChannel == .stereo)
 
-        VStack(spacing: SpacingTheme.standard) {
-            HStack(spacing: SpacingTheme.cardStack) {
-                // Left / Top Speaker Indicator
-                VStack(spacing: SpacingTheme.micro) {
-                    Image(systemName: "speaker.wave.3.fill")
-                        .font(IconTheme.prominentAction)
-                        .foregroundStyle(isPlaying && (activeChannel == .left || activeChannel == .stereo) ? appState.accentColor : Theme.textTertiary(for: colorScheme))
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: SpacingTheme.standard))
+            : AnyLayout(HStackLayout(spacing: SpacingTheme.cardStack))
 
-                    Text(L10n.Tools.leftSpeaker)
-                        .font(Typography.captionMono)
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, SpacingTheme.rowStandard)
-                .background(Theme.cardBackground(for: colorScheme).opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
+        layout {
+            speakerDiagramTile(
+                title: L10n.Tools.leftSpeaker,
+                isActive: isLeftActive
+            )
 
-                // Right / Bottom Speaker Indicator
-                VStack(spacing: SpacingTheme.micro) {
-                    Image(systemName: "speaker.wave.3.fill")
-                        .font(IconTheme.prominentAction)
-                        .foregroundStyle(isPlaying && (activeChannel == .right || activeChannel == .stereo) ? appState.accentColor : Theme.textTertiary(for: colorScheme))
-
-                    Text(L10n.Tools.rightSpeaker)
-                        .font(Typography.captionMono)
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, SpacingTheme.rowStandard)
-                .background(Theme.cardBackground(for: colorScheme).opacity(0.6))
-                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
-            }
+            speakerDiagramTile(
+                title: L10n.Tools.rightSpeaker,
+                isActive: isRightActive
+            )
         }
         .bentoCard(accent: appState.accentColor)
+    }
+
+    @ViewBuilder
+    private func speakerDiagramTile(title: String, isActive: Bool) -> some View {
+        VStack(spacing: SpacingTheme.micro) {
+            Image(systemName: "speaker.wave.3.fill")
+                .font(IconTheme.prominentAction)
+                .foregroundStyle(isActive ? accentFg : Theme.textTertiary(for: colorScheme))
+                .accessibilityHidden(true)
+
+            Text(title)
+                .font(Typography.captionMono)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, SpacingTheme.rowStandard)
+        .padding(.horizontal, SpacingTheme.tight)
+        .background(Theme.tileBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(isActive ? accentFg.opacity(0.45) : Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 
     // MARK: - Channel Isolation Section
     @ViewBuilder
     private var channelIsolationSection: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: SpacingTheme.compact))
+            : AnyLayout(HStackLayout(spacing: SpacingTheme.compact))
+
         VStack(alignment: .leading, spacing: SpacingTheme.standard) {
             BentoSectionHeader(
                 title: L10n.Tools.speakerLab,
@@ -110,7 +132,7 @@ struct SpeakerLabDetailView: View {
                 subtitle: L10n.Tools.stereoSeparation
             )
 
-            HStack(spacing: SpacingTheme.compact) {
+            layout {
                 channelButton(title: L10n.Tools.leftOnly, channel: .left)
                 channelButton(title: L10n.Tools.dualSpeaker, channel: .stereo)
                 channelButton(title: L10n.Tools.rightOnly, channel: .right)
@@ -129,16 +151,20 @@ struct SpeakerLabDetailView: View {
             Text(title)
                 .font(Typography.badgeTagMono)
                 .foregroundStyle(isSelected ? Theme.contrastingForeground(for: appState.accentColor) : Theme.textPrimary(for: colorScheme))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, SpacingTheme.rowStandard)
-                .background(isSelected ? appState.accentColor : Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+                .padding(.horizontal, SpacingTheme.compact)
+                .background(isSelected ? appState.accentColor : Theme.tileBackground(for: colorScheme))
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                        .stroke(isSelected ? appState.accentColor : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                        .stroke(isSelected ? appState.accentColor : Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
                 )
+                .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     // MARK: - Frequency Selector Section
@@ -153,10 +179,14 @@ struct SpeakerLabDetailView: View {
 
             VStack(spacing: SpacingTheme.compact) {
                 ForEach(testFrequencies, id: \.title) { item in
+                    let isSelected = abs(activeFrequency - item.freq) < 1.0
+
                     Button {
                         activeFrequency = item.freq
                         if tools.isSpeakerTesting {
                             tools.playSpeakerTest(channel: tools.speakerChannel, frequency: activeFrequency)
+                        } else {
+                            Haptics.selection()
                         }
                     } label: {
                         HStack {
@@ -166,21 +196,25 @@ struct SpeakerLabDetailView: View {
 
                             Spacer()
 
-                            if abs(activeFrequency - item.freq) < 1.0 {
+                            if isSelected {
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(IconTheme.badgeInline)
-                                    .foregroundStyle(appState.accentColor)
+                                    .foregroundStyle(accentFg)
+                                    .accessibilityHidden(true)
                             }
                         }
-                        .padding(SpacingTheme.rowStandard)
-                        .background(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                        .padding(.horizontal, SpacingTheme.rowStandard)
+                        .frame(minHeight: LayoutTheme.minTapTarget)
+                        .background(Theme.tileBackground(for: colorScheme))
                         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                                .stroke(abs(activeFrequency - item.freq) < 1.0 ? appState.accentColor : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                                .stroke(isSelected ? accentFg : Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
                         )
+                        .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(BentoCardButtonStyle())
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                 }
             }
         }
@@ -191,9 +225,11 @@ struct SpeakerLabDetailView: View {
     @ViewBuilder
     private var primaryToggleButton: some View {
         let isPlaying = tools.isSpeakerTesting
+        let buttonBg = isPlaying ? Theme.readableRed(for: colorScheme) : appState.accentColor
 
         Button {
             if isPlaying {
+                Haptics.selection()
                 tools.stopSpeakerTest()
             } else {
                 tools.playSpeakerTest(channel: tools.speakerChannel, frequency: activeFrequency)
@@ -202,18 +238,21 @@ struct SpeakerLabDetailView: View {
             HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: isPlaying ? "stop.fill" : "play.fill")
                     .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
                 Text(isPlaying ? L10n.Tools.stopTone : L10n.Tools.playChannelTest)
                     .font(Typography.headlineValue)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
-            .foregroundStyle(isPlaying ? Color.white : Theme.contrastingForeground(for: appState.accentColor))
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .foregroundStyle(Theme.contrastingForeground(for: buttonBg))
+            .frame(maxWidth: .infinity, minHeight: 50)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                    .fill(isPlaying ? Color.red : appState.accentColor)
+                    .fill(buttonBg)
             )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
     }
 }
 

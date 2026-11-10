@@ -17,7 +17,7 @@ struct ToolsView: View {
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 cardStack
-                    .frame(maxWidth: 680)
+                    .frame(maxWidth: LayoutTheme.maxContentWidth)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, SpacingTheme.cardStack)
                     .padding(.vertical, SpacingTheme.rowStandard)
@@ -34,7 +34,7 @@ struct ToolsView: View {
     // MARK: - Cards Stack
     @ViewBuilder
     private var cardStack: some View {
-        VStack(spacing: SpacingTheme.cardStack) {
+        LazyVStack(spacing: SpacingTheme.cardStack) {
             ForEach(HardwareTool.allCases) { tool in
                 ToolLauncherCard(tool: tool)
             }

@@ -62,6 +62,14 @@ public enum Theme {
 
     private static let lightReadableYellow = Color(hex: "#B45309")
     private static let lightReadableCyan = Color(hex: "#0369A1")
+    private static let lightReadableGreen = Color(hex: "#15803D")
+    private static let lightReadableOrange = Color(hex: "#C2410C")
+    private static let lightReadableRed = Color(hex: "#DC2626")
+
+    private static let darkTileBg = Color.white.opacity(0.035)
+    private static let lightTileBg = Color.black.opacity(0.025)
+    private static let darkTileBorder = Color.white.opacity(0.07)
+    private static let lightTileBorder = Color.black.opacity(0.06)
 
     // Canvas Background
     public static func background(for scheme: ColorScheme) -> Color {
@@ -76,6 +84,15 @@ public enum Theme {
     // Card Subtle Border
     public static func cardBorder(for scheme: ColorScheme) -> Color {
         scheme == .dark ? darkCardBorder : lightCardBorder
+    }
+
+    // Nested Tile Surface inside Bento Cards
+    public static func tileBackground(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? darkTileBg : lightTileBg
+    }
+
+    public static func tileBorder(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? darkTileBorder : lightTileBorder
     }
 
     // Chip & Unselected Pill Surfaces
@@ -94,6 +111,95 @@ public enum Theme {
 
     public static func readableCyan(for scheme: ColorScheme) -> Color {
         scheme == .dark ? .cyan : lightReadableCyan
+    }
+
+    public static func readableGreen(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? .green : lightReadableGreen
+    }
+
+    public static func readableOrange(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? .orange : lightReadableOrange
+    }
+
+    public static func readableRed(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? .red : lightReadableRed
+    }
+
+    /// Calibrates user-selected accent colors (including bright presets like gold/cyan/emerald
+    /// or dark custom HEX values) so small text and icons maintain >= 4.5:1 WCAG contrast on cards.
+    public static func readableAccent(_ accent: Color, for scheme: ColorScheme) -> Color {
+        #if canImport(UIKit)
+        let uic = UIColor(accent)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        guard uic.getRed(&r, green: &g, blue: &b, alpha: &a) else {
+            return accent
+        }
+        let cr = Double(min(max(r, 0.0), 1.0))
+        let cg = Double(min(max(g, 0.0), 1.0))
+        let cb = Double(min(max(b, 0.0), 1.0))
+
+        let rl = srgbToLinear(cr)
+        let gl = srgbToLinear(cg)
+        let bl = srgbToLinear(cb)
+        let luminance = 0.2126 * rl + 0.7152 * gl + 0.0722 * bl
+
+        if scheme == .light {
+            let maxLightLuminance = 0.145
+            guard luminance > maxLightLuminance else { return accent }
+            let scale = maxLightLuminance / luminance
+            return Color(
+                .sRGB,
+                red: linearToSrgb(rl * scale),
+                green: linearToSrgb(gl * scale),
+                blue: linearToSrgb(bl * scale),
+                opacity: Double(a)
+            )
+        } else {
+            let minDarkLuminance = 0.21
+            guard luminance < minDarkLuminance else { return accent }
+            let factor = (minDarkLuminance - luminance) / max(1.0 - luminance, 0.0001)
+            return Color(
+                .sRGB,
+                red: linearToSrgb(rl + factor * (1.0 - rl)),
+                green: linearToSrgb(gl + factor * (1.0 - gl)),
+                blue: linearToSrgb(bl + factor * (1.0 - bl)),
+                opacity: Double(a)
+            )
+        }
+        #else
+        return accent
+        #endif
+    }
+
+    internal static func relativeLuminance(of color: Color) -> Double {
+        #if canImport(UIKit)
+        let uic = UIColor(color)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        guard uic.getRed(&r, green: &g, blue: &b, alpha: &a) else {
+            return 0.0
+        }
+        let rl = srgbToLinear(Double(min(max(r, 0.0), 1.0)))
+        let gl = srgbToLinear(Double(min(max(g, 0.0), 1.0)))
+        let bl = srgbToLinear(Double(min(max(b, 0.0), 1.0)))
+        return 0.2126 * rl + 0.7152 * gl + 0.0722 * bl
+        #else
+        return 0.0
+        #endif
+    }
+
+    private static func srgbToLinear(_ channel: Double) -> Double {
+        channel <= 0.04045 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
+    }
+
+    private static func linearToSrgb(_ channel: Double) -> Double {
+        let clamped = min(max(channel, 0.0), 1.0)
+        return clamped <= 0.0031308 ? clamped * 12.92 : 1.055 * pow(clamped, 1.0 / 2.4) - 0.055
     }
 
     public static func contrastingForeground(for background: Color) -> Color {
@@ -198,6 +304,14 @@ public enum SpacingTheme {
     public static let heroPadding: CGFloat = 18.0
     /// Modal sheet horizontal padding (24pt)
     public static let modalPadding: CGFloat = 24.0
+}
+
+// MARK: - Layout Constraints & Accessibility Hit-Target Tokens
+public enum LayoutTheme {
+    /// Maximum readable content column width across phones and iPads
+    public static let maxContentWidth: CGFloat = 680.0
+    /// Apple HIG minimum accessible touch target dimension
+    public static let minTapTarget: CGFloat = 44.0
 }
 
 // MARK: - Corner Radius Design System Tokens
@@ -452,13 +566,14 @@ public struct FlowLayout: Layout {
 
     public func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let availableWidth = proposal.width ?? .infinity
+        let childProposal = ProposedViewSize(width: availableWidth.isFinite ? availableWidth : nil, height: nil)
         var currentX: CGFloat = 0
         var currentY: CGFloat = 0
         var lineHeight: CGFloat = 0
         var maxRowWidth: CGFloat = 0
 
         for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
+            let size = subview.sizeThatFits(childProposal)
             if currentX + size.width > availableWidth && currentX > 0 {
                 maxRowWidth = max(maxRowWidth, currentX - spacing)
                 currentX = 0
@@ -479,9 +594,10 @@ public struct FlowLayout: Layout {
         var currentX = bounds.minX
         var currentY = bounds.minY
         var lineHeight: CGFloat = 0
+        let childProposal = ProposedViewSize(width: bounds.width.isFinite ? bounds.width : nil, height: nil)
 
         for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
+            let size = subview.sizeThatFits(childProposal)
             if currentX + size.width > bounds.maxX && currentX > bounds.minX {
                 currentX = bounds.minX
                 currentY += lineHeight + rowSpacing

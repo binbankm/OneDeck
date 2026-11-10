@@ -12,6 +12,8 @@ import SwiftUI
 struct BatteryThermalChassisCard: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable private var appState = AppState.shared
     @Bindable private var battery = BatteryViewModel.shared
     @Bindable private var system = SystemViewModel.shared
@@ -21,84 +23,76 @@ struct BatteryThermalChassisCard: View {
     @State private var viewMode: ThermalViewMode = .flir
     @State private var isBreathing: Bool = false
 
+    private var readableAccent: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
+
     // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - 1. Card Header Row & Mode Toggle
-            HStack(alignment: .center) {
-                OverviewSectionHeader(title: L10n.Battery.thermalChassisTitle, icon: "thermometer.sun.fill")
-
-                Spacer()
-
-                // View Mode Segmented Pill Switcher (FLIR vs X-Ray)
-                HStack(spacing: SpacingTheme.micro) {
-                    ForEach(ThermalViewMode.allCases) { mode in
-                        Button {
-                            Haptics.selection()
-                            withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
-                                viewMode = mode
-                            }
-                        } label: {
-                            HStack(spacing: SpacingTheme.tight) {
-                                Image(systemName: mode.icon)
-                                    .font(IconTheme.badgeInline)
-                                Text(mode.title)
-                                    .font(Typography.badgeTag)
-                            }
-                            .padding(.horizontal, SpacingTheme.standard)
-                            .padding(.vertical, SpacingTheme.micro)
-                            .background(viewMode == mode ? appState.accentColor.opacity(0.18) : Color.clear)
-                            .foregroundStyle(viewMode == mode ? appState.accentColor : Theme.textSecondary(for: colorScheme))
-                            .clipShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(mode.title)
-                        .accessibilityAddTraits(viewMode == mode ? [.isSelected] : [])
-                    }
-                }
-                .padding(SpacingTheme.micro)
-                .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
-                .clipShape(Capsule())
-            }
+            cardHeaderRow
 
             // MARK: - 2. Professional Thermal Spectrum Scale Bar
             thermalScaleBar
 
-            // MARK: - 3. Dual-Deck: Phone Thermal Heatmap (Left) + Inspector (Right)
-            HStack(alignment: .top, spacing: SpacingTheme.rowStandard) {
-                // Left: Industrial FLIR Chassis Viewport (118pt x 218pt)
-                phoneThermalChassis
-                    .frame(width: 118, height: 218)
+            // MARK: - 3. Dual-Deck: Phone Thermal Heatmap + Inspector
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .center, spacing: SpacingTheme.rowStandard) {
+                    phoneThermalChassis
+                        .frame(width: 118, height: 218)
 
-                // Right: 4-Row Dedicated Full-Width Zone List & Inspector (100% Zero Truncation)
-                VStack(alignment: .leading, spacing: SpacingTheme.compact) {
-                    // 4 Dedicated Full-Width Zone Rows
-                    VStack(spacing: SpacingTheme.tight) {
-                        ForEach(ThermalZone.allCases) { zone in
-                            zoneFullWidthRow(zone)
+                    VStack(alignment: .leading, spacing: SpacingTheme.compact) {
+                        VStack(spacing: SpacingTheme.tight) {
+                            ForEach(ThermalZone.allCases) { zone in
+                                zoneFullWidthRow(zone)
+                            }
                         }
+                        activeZoneNote
                     }
-
-                    // Active Zone Concise Engineering Note (expands cleanly with Dynamic Type)
-                    activeZoneNote
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
-                .frame(maxWidth: .infinity, minHeight: 218, alignment: .topLeading)
+            } else {
+                HStack(alignment: .top, spacing: SpacingTheme.rowStandard) {
+                    // Left: Industrial FLIR Chassis Viewport (118pt x 218pt)
+                    phoneThermalChassis
+                        .frame(width: 118, height: 218)
+
+                    // Right: 4-Row Dedicated Full-Width Zone List & Inspector (100% Zero Truncation)
+                    VStack(alignment: .leading, spacing: SpacingTheme.compact) {
+                        // 4 Dedicated Full-Width Zone Rows
+                        VStack(spacing: SpacingTheme.tight) {
+                            ForEach(ThermalZone.allCases) { zone in
+                                zoneFullWidthRow(zone)
+                            }
+                        }
+
+                        // Active Zone Concise Engineering Note (expands cleanly with Dynamic Type)
+                        activeZoneNote
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 218, alignment: .topLeading)
+                }
             }
 
             if battery.hardwarePmicTemp == nil || battery.hardwareWirelessTemp == nil {
                 HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "info.circle.fill")
                         .font(IconTheme.badgeInline)
+                        .accessibilityHidden(true)
                     Text(L10n.Battery.thermalZoneEstimatedNote)
                         .font(Typography.caption)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                .accessibilityElement(children: .combine)
             }
         }
         .bentoCard(accent: thermalColor(for: temperature(of: selectedZone)))
         .onAppear {
-            isBreathing = true
+            updateBreathingState()
+        }
+        .onChange(of: reduceMotion) { _, _ in
+            updateBreathingState()
         }
         .onDisappear {
             var transaction = Transaction(animation: nil)
@@ -109,21 +103,106 @@ struct BatteryThermalChassisCard: View {
         }
     }
 
+    @ViewBuilder
+    private var cardHeaderRow: some View {
+        let headerTitle = OverviewSectionHeader(title: L10n.Battery.thermalChassisTitle, icon: "thermometer.sun.fill")
+            .layoutPriority(1)
+
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: SpacingTheme.compact) {
+                headerTitle
+                modeTogglePill
+            }
+        } else {
+            HStack(alignment: .center, spacing: SpacingTheme.standard) {
+                headerTitle
+                Spacer(minLength: SpacingTheme.compact)
+                modeTogglePill
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var modeTogglePill: some View {
+        let accent = readableAccent
+
+        HStack(spacing: SpacingTheme.micro) {
+            ForEach(ThermalViewMode.allCases) { mode in
+                let isSelected = (viewMode == mode)
+
+                Button {
+                    Haptics.selection()
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
+                        viewMode = mode
+                    }
+                } label: {
+                    HStack(spacing: SpacingTheme.tight) {
+                        Image(systemName: mode.icon)
+                            .font(IconTheme.badgeInline)
+                            .accessibilityHidden(true)
+                        Text(mode.title)
+                            .font(Typography.badgeTag)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    .padding(.horizontal, SpacingTheme.standard)
+                    .frame(minHeight: LayoutTheme.minTapTarget - 8)
+                    .background(isSelected ? accent.opacity(0.18) : Color.clear)
+                    .foregroundStyle(isSelected ? accent : Theme.textSecondary(for: colorScheme))
+                    .clipShape(Capsule())
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(BentoCardButtonStyle())
+                .frame(minHeight: LayoutTheme.minTapTarget)
+                .contentShape(Rectangle())
+                .accessibilityLabel(mode.title)
+                .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+            }
+        }
+        .padding(.horizontal, SpacingTheme.tight)
+        .background(Theme.chipBackground(for: colorScheme))
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Theme.chipBorder(for: colorScheme), lineWidth: 0.5)
+        )
+    }
+
+    private func updateBreathingState() {
+        if reduceMotion {
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                isBreathing = false
+            }
+        } else {
+            withAnimation(.easeInOut(duration: 1.3).repeatForever(autoreverses: true)) {
+                isBreathing = true
+            }
+        }
+    }
+
     // MARK: - 2. Thermal Spectrum Scale Bar with MAX / MIN Indicators
     private var thermalScaleBar: some View {
         let isDark = (colorScheme == .dark)
         let minC = thermalColor(for: minTemperature)
         let maxC = thermalColor(for: maxTemperature)
+        let minText = "\(L10n.Battery.minSpot) \(String(format: "%.1f", minTemperature))°C"
+        let maxText = "\(L10n.Battery.maxSpot) \(String(format: "%.1f", maxTemperature))°C"
 
         return HStack(spacing: SpacingTheme.compact) {
             // Min Reading Tag
             HStack(spacing: SpacingTheme.tight) {
-                Circle().fill(minC).frame(width: 5, height: 5)
-                Text("\(L10n.Battery.minSpot) \(String(format: "%.1f", minTemperature))°C")
+                Circle()
+                    .fill(minC)
+                    .frame(width: 5, height: 5)
+                    .accessibilityHidden(true)
+                Text(minText)
                     .font(Typography.microAxis)
+                    .monospacedDigit()
                     .foregroundStyle(minC)
                     .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
+                    .minimumScaleFactor(0.85)
             }
 
             // Smooth Multi-Stop False Color Thermal Gradient Track
@@ -142,23 +221,30 @@ struct BatteryThermalChassisCard: View {
                         endPoint: .trailing
                     )
                 )
-                .frame(height: 4)
+                .frame(minWidth: 24, maxWidth: .infinity, minHeight: 4, maxHeight: 4)
                 .overlay(
                     Capsule()
                         .stroke(isDark ? Color.white.opacity(0.15) : Color.black.opacity(0.12), lineWidth: 0.5)
                 )
+                .accessibilityHidden(true)
 
             // Max Reading Tag
             HStack(spacing: SpacingTheme.tight) {
-                Circle().fill(maxC).frame(width: 5, height: 5)
-                Text("\(L10n.Battery.maxSpot) \(String(format: "%.1f", maxTemperature))°C")
+                Circle()
+                    .fill(maxC)
+                    .frame(width: 5, height: 5)
+                    .accessibilityHidden(true)
+                Text(maxText)
                     .font(Typography.microAxis)
+                    .monospacedDigit()
                     .foregroundStyle(maxC)
                     .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
+                    .minimumScaleFactor(0.85)
             }
         }
         .padding(.horizontal, SpacingTheme.micro)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(minText), \(maxText)")
     }
 
     // MARK: - 3. Phone Thermal Chassis Viewport (Follows System Appearance & Real Device)
@@ -391,7 +477,7 @@ struct BatteryThermalChassisCard: View {
         let bColor = thermalColor(for: temperature(of: .battery))
         let defaultFill: Color = isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)
         let batteryFill: Color = isBatteryActive ? bColor.opacity(isDark ? 0.20 : 0.12) : defaultFill
-        let defaultStroke: Color = isXRay ? (isDark ? Color.cyan.opacity(0.6) : Color(hex: "#0284C7").opacity(0.6)) : bColor.opacity(isDark ? 0.4 : 0.35)
+        let defaultStroke: Color = isXRay ? Theme.readableCyan(for: colorScheme).opacity(0.65) : bColor.opacity(isDark ? 0.4 : 0.35)
         let batteryStroke: Color = isBatteryActive ? bColor : defaultStroke
 
         Button {
@@ -404,9 +490,10 @@ struct BatteryThermalChassisCard: View {
                         .stroke(batteryStroke, lineWidth: isBatteryActive ? 1.6 : 0.8)
                 )
                 .frame(width: w * 0.74, height: h * 0.63)
-                .offset(x: -w * 0.02, y: -h * 0.03)
+                .contentShape(LShapedBatteryShape())
         }
         .buttonStyle(.plain)
+        .offset(x: -w * 0.02, y: -h * 0.03)
         .accessibilityLabel(ThermalZone.battery.title)
         .accessibilityValue(String(format: "%.1f °C", temperature(of: .battery)))
         .accessibilityAddTraits(isBatteryActive ? [.isSelected] : [])
@@ -416,8 +503,9 @@ struct BatteryThermalChassisCard: View {
     private func wirelessCoilBlueprint(w: CGFloat, h: CGFloat, isDark: Bool, strokeAlpha: Double) -> some View {
         let isWirelessActive = (selectedZone == .wireless)
         let wColor = thermalColor(for: temperature(of: .wireless))
-        let defaultOuterColor: Color = isDark ? Color.yellow.opacity(strokeAlpha * 0.8) : Color(hex: "#C25E00").opacity(0.55)
-        let defaultInnerColor: Color = isDark ? Color.yellow.opacity(strokeAlpha * 0.5) : Color(hex: "#C25E00").opacity(0.38)
+        let yellowTone = Theme.readableYellow(for: colorScheme)
+        let defaultOuterColor: Color = yellowTone.opacity(isDark ? strokeAlpha * 0.85 : 0.65)
+        let defaultInnerColor: Color = yellowTone.opacity(isDark ? strokeAlpha * 0.55 : 0.45)
         let outerColor: Color = isWirelessActive ? wColor : defaultOuterColor
         let innerColor: Color = isWirelessActive ? wColor.opacity(0.85) : defaultInnerColor
 
@@ -438,9 +526,10 @@ struct BatteryThermalChassisCard: View {
                     .frame(width: w * 0.28, height: w * 0.28)
             }
             .frame(width: w * 0.44, height: w * 0.44)
-            .offset(x: 0, y: -h * 0.02)
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .offset(x: 0, y: -h * 0.02)
         .accessibilityLabel(ThermalZone.wireless.title)
         .accessibilityValue(String(format: "%.1f °C", temperature(of: .wireless)))
         .accessibilityAddTraits(isWirelessActive ? [.isSelected] : [])
@@ -452,7 +541,7 @@ struct BatteryThermalChassisCard: View {
         let sColor = thermalColor(for: temperature(of: .soc))
         let defaultFill: Color = isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)
         let socFill: Color = isSocActive ? sColor.opacity(isDark ? 0.24 : 0.14) : defaultFill
-        let defaultStroke: Color = isXRay ? (isDark ? Color.orange.opacity(0.7) : Color(hex: "#C25E00").opacity(0.65)) : sColor.opacity(isDark ? 0.5 : 0.4)
+        let defaultStroke: Color = isXRay ? Theme.readableOrange(for: colorScheme).opacity(0.75) : sColor.opacity(isDark ? 0.5 : 0.4)
         let socStroke: Color = isSocActive ? sColor : defaultStroke
 
         Button {
@@ -470,6 +559,7 @@ struct BatteryThermalChassisCard: View {
                     Image(systemName: "cpu.fill")
                         .font(IconTheme.tileLeading)
                         .foregroundStyle(isSocActive ? sColor : (isDark ? Color.white.opacity(0.85) : Color(hex: "#1E1E24").opacity(0.75)))
+                        .accessibilityHidden(true)
 
                     Text(chipMarketingShort)
                         .font(Typography.microAxis)
@@ -478,9 +568,10 @@ struct BatteryThermalChassisCard: View {
                 }
             }
             .frame(width: w * 0.36, height: h * 0.29)
-            .offset(x: w * 0.24, y: -h * 0.18)
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous))
         }
         .buttonStyle(.plain)
+        .offset(x: w * 0.24, y: -h * 0.18)
         .accessibilityLabel(ThermalZone.soc.title)
         .accessibilityValue(String(format: "%.1f °C", temperature(of: .soc)))
         .accessibilityAddTraits(isSocActive ? [.isSelected] : [])
@@ -492,7 +583,7 @@ struct BatteryThermalChassisCard: View {
         let pColor = thermalColor(for: temperature(of: .pmic))
         let defaultFill: Color = isDark ? Color.white.opacity(fillAlpha) : Color.black.opacity(fillAlpha)
         let pmicFill: Color = isPmicActive ? pColor.opacity(isDark ? 0.22 : 0.14) : defaultFill
-        let defaultStroke: Color = isXRay ? (isDark ? Color.cyan.opacity(0.6) : Color(hex: "#0284C7").opacity(0.6)) : pColor.opacity(isDark ? 0.5 : 0.4)
+        let defaultStroke: Color = isXRay ? Theme.readableCyan(for: colorScheme).opacity(0.65) : pColor.opacity(isDark ? 0.5 : 0.4)
         let pmicStroke: Color = isPmicActive ? pColor : defaultStroke
 
         Button {
@@ -510,15 +601,17 @@ struct BatteryThermalChassisCard: View {
                     Image(systemName: "bolt.fill")
                         .font(IconTheme.badgeInline)
                         .foregroundStyle(isPmicActive ? pColor : (isDark ? Color.white.opacity(0.8) : Color(hex: "#1E1E24").opacity(0.7)))
+                        .accessibilityHidden(true)
                     Capsule()
                         .fill((isDark ? Color.white : Color(hex: "#1E1E24")).opacity(0.4))
                         .frame(width: 14, height: 3)
                 }
             }
             .frame(width: w * 0.74, height: h * 0.14)
-            .offset(x: 0, y: h * 0.36)
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous))
         }
         .buttonStyle(.plain)
+        .offset(x: 0, y: h * 0.36)
         .accessibilityLabel(ThermalZone.pmic.title)
         .accessibilityValue(String(format: "%.1f °C", temperature(of: .pmic)))
         .accessibilityAddTraits(isPmicActive ? [.isSelected] : [])
@@ -544,6 +637,7 @@ struct BatteryThermalChassisCard: View {
                 .offset(x: socX, y: socY)
         }
         .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     // MARK: - Layer 5: FLIR Target Tracking Reticles (Non-Colliding, Clean Positioning)
@@ -560,6 +654,7 @@ struct BatteryThermalChassisCard: View {
         flirCrosshairShape(color: maxColor, label: L10n.Battery.maxSpot, isPulse: true)
             .offset(x: maxX, y: maxY)
             .allowsHitTesting(false)
+            .accessibilityHidden(true)
 
         // MIN Coldspot Reticle
         let (rawMinX, rawMinY) = pinCoordinates(for: minZone, w: w, h: h)
@@ -570,6 +665,7 @@ struct BatteryThermalChassisCard: View {
         flirCrosshairShape(color: minColor, label: L10n.Battery.minSpot, isPulse: false)
             .offset(x: minX, y: minY)
             .allowsHitTesting(false)
+            .accessibilityHidden(true)
 
         // Active Zone Selection Pulse Ring
         let (selX, selY) = pinCoordinates(for: selectedZone, w: w, h: h)
@@ -580,8 +676,7 @@ struct BatteryThermalChassisCard: View {
             Circle()
                 .stroke(selColor, lineWidth: 1.6)
                 .frame(width: 18, height: 18)
-                .scaleEffect(isBreathing ? 1.25 : 0.9)
-                .animation(.easeInOut(duration: 1.3).repeatForever(autoreverses: true), value: isBreathing)
+                .scaleEffect((isBreathing && !reduceMotion) ? 1.25 : 0.9)
 
             Circle()
                 .fill(centerPipColor)
@@ -590,6 +685,7 @@ struct BatteryThermalChassisCard: View {
         }
         .offset(x: selX, y: selY)
         .allowsHitTesting(false)
+        .accessibilityHidden(true)
         .animation(.spring(response: 0.32, dampingFraction: 0.78), value: selectedZone)
     }
 
@@ -634,12 +730,12 @@ struct BatteryThermalChassisCard: View {
             HStack {
                 Text(hasDirectZones ? L10n.Battery.hardwareDirectTag : L10n.Battery.thermalModelBadge)
                     .font(Typography.microAxis)
-                    .foregroundStyle(hudColor.opacity(isDark ? 0.60 : 0.72))
+                    .foregroundStyle(hudColor.opacity(isDark ? 0.65 : 0.76))
                     .lineLimit(1)
                 Spacer()
                 Text(selectedZone.shortLabel)
                     .font(Typography.microAxis)
-                    .foregroundStyle(hudColor.opacity(isDark ? 0.50 : 0.65))
+                    .foregroundStyle(hudColor.opacity(isDark ? 0.55 : 0.70))
                     .lineLimit(1)
             }
             .padding(.horizontal, SpacingTheme.standard)
@@ -650,17 +746,18 @@ struct BatteryThermalChassisCard: View {
             HStack {
                 Text(viewMode.title)
                     .font(Typography.microAxis)
-                    .foregroundStyle(hudColor.opacity(isDark ? 0.45 : 0.60))
+                    .foregroundStyle(hudColor.opacity(isDark ? 0.50 : 0.65))
                     .lineLimit(1)
                 Spacer()
                 Text(L10n.Battery.liveIndicator)
                     .font(Typography.microAxis)
-                    .foregroundStyle(isDark ? Color.green.opacity(0.85) : Color(hex: "#15803D"))
+                    .foregroundStyle(Theme.readableGreen(for: colorScheme))
             }
             .padding(.horizontal, SpacingTheme.standard)
             .padding(.bottom, SpacingTheme.compact)
         }
         .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private func pinCoordinates(for zone: ThermalZone, w: CGFloat, h: CGFloat) -> (CGFloat, CGFloat) {
@@ -684,11 +781,10 @@ struct BatteryThermalChassisCard: View {
         let color: Color = thermalColor(for: temp)
         let isDark: Bool = (colorScheme == .dark)
 
-        let defaultBg: Color = isDark ? Color.white.opacity(0.04) : Color.black.opacity(0.03)
-        let rowBg: Color = isSelected ? color.opacity(isDark ? 0.18 : 0.12) : defaultBg
+        let rowBg: Color = isSelected ? color.opacity(isDark ? 0.18 : 0.12) : Theme.tileBackground(for: colorScheme)
         let rowStroke: Color = isSelected
             ? color.opacity(isDark ? 0.75 : 0.65)
-            : (isDark ? Color.white.opacity(0.04) : Color.black.opacity(0.06))
+            : Theme.tileBorder(for: colorScheme)
         let iconColor: Color = isSelected ? color : Theme.textSecondary(for: colorScheme)
         let labelColor: Color = isSelected ? Theme.textPrimary(for: colorScheme) : Theme.textSecondary(for: colorScheme)
 
@@ -700,6 +796,7 @@ struct BatteryThermalChassisCard: View {
                     .font(IconTheme.tileLeading)
                     .foregroundStyle(iconColor)
                     .frame(width: 14)
+                    .accessibilityHidden(true)
 
                 Text(zone.shortLabel)
                     .font(isSelected ? Typography.calloutBold : Typography.calloutLabel)
@@ -715,17 +812,17 @@ struct BatteryThermalChassisCard: View {
                     .lineLimit(1)
                     .foregroundStyle(color)
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
             .padding(.horizontal, SpacingTheme.standard)
-            .padding(.vertical, SpacingTheme.compact)
             .background(rowBg)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .stroke(rowStroke, lineWidth: 1)
+                    .stroke(rowStroke, lineWidth: isSelected ? 1.0 : 0.5)
             )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
         .accessibilityLabel(zone.title)
         .accessibilityValue(String(format: "%.1f °C", temp))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
@@ -743,8 +840,9 @@ struct BatteryThermalChassisCard: View {
                     .font(Typography.calloutBold)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
-                Spacer()
+                Spacer(minLength: SpacingTheme.tight)
 
                 Text(temperatureStatusLabel(for: temp))
                     .font(Typography.badgeTag)
@@ -770,8 +868,8 @@ struct BatteryThermalChassisCard: View {
 
             HStack {
                 Text(String(format: "%.1f °C", temp))
-                    .font(Typography.captionMono)
-                    .fontWeight(.bold)
+                    .font(Typography.badgeTagMono)
+                    .monospacedDigit()
                     .foregroundStyle(color)
 
                 Spacer()
@@ -779,17 +877,19 @@ struct BatteryThermalChassisCard: View {
                 let delta = max(0.0, temp - minTemperature)
                 Text(String(format: "Δ +%.1f °C", delta))
                     .font(Typography.badgeTagMono)
+                    .monospacedDigit()
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
             }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(SpacingTheme.standard)
-        .background(isDark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+        .background(Theme.tileBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .stroke(isDark ? Color.white.opacity(0.05) : Color.black.opacity(0.05), lineWidth: 0.6)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.6)
         )
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Actions & Thermal Computations
@@ -859,7 +959,7 @@ struct BatteryThermalChassisCard: View {
             return isDark ? Color(red: 0.15, green: 0.85, blue: 0.40) : Color(hex: "#15803D")
         } else if temp < 39.0 {
             // Warm (35 ~ 39°C): Titanium Gold/Amber in Dark, Rich Dark Amber in Light
-            return isDark ? Color(red: 1.00, green: 0.70, blue: 0.10) : Color(hex: "#C25E00")
+            return isDark ? Color(red: 1.00, green: 0.70, blue: 0.10) : Theme.readableYellow(for: colorScheme)
         } else if temp < 43.0 {
             // Hot (39 ~ 43°C): Fiery Orange-Red in Dark, Vivid Crimson in Light
             return isDark ? Color(red: 1.00, green: 0.32, blue: 0.18) : Color(hex: "#DC2626")

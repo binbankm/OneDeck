@@ -13,6 +13,7 @@ struct BatteryAnalyticsSheet: View {
     // MARK: - Dependencies & Environment
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var battery = BatteryViewModel.shared
 
@@ -23,6 +24,14 @@ struct BatteryAnalyticsSheet: View {
     @State private var isShowingFilePicker: Bool = false
     @State private var autoDismissTask: Task<Void, Never>?
     @FocusState private var isPasteEditorFocused: Bool
+
+    private var readableAccent: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
+
+    private var isPasteEmpty: Bool {
+        pastedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     // MARK: - Body
     var body: some View {
@@ -35,8 +44,12 @@ struct BatteryAnalyticsSheet: View {
                     textPasteSection
                     resultSection
                 }
+                .frame(maxWidth: LayoutTheme.maxContentWidth)
+                .frame(maxWidth: .infinity)
                 .padding(SpacingTheme.cardStack)
             }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Battery.guideTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -67,7 +80,7 @@ struct BatteryAnalyticsSheet: View {
                         dismiss()
                     }
                     .font(Typography.sectionHeader)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(readableAccent)
                 }
 
                 ToolbarItemGroup(placement: .keyboard) {
@@ -75,6 +88,8 @@ struct BatteryAnalyticsSheet: View {
                     Button(L10n.Common.done) {
                         isPasteEditorFocused = false
                     }
+                    .font(Typography.sectionHeader)
+                    .foregroundStyle(readableAccent)
                 }
             }
             .onDisappear {
@@ -82,16 +97,21 @@ struct BatteryAnalyticsSheet: View {
                 autoDismissTask = nil
             }
         }
+        .presentationDragIndicator(.visible)
     }
 
     // MARK: - Subviews
     @ViewBuilder
     private var guideSection: some View {
+        let accent = readableAccent
+
         VStack(alignment: .leading, spacing: SpacingTheme.row) {
-            HStack {
+            HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: "info.circle.fill")
                     .font(IconTheme.sectionHeader)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(accent)
+                    .accessibilityHidden(true)
+
                 Text(L10n.Battery.guideStepsHeader)
                     .font(Typography.sectionHeader)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
@@ -101,17 +121,29 @@ struct BatteryAnalyticsSheet: View {
                 Text(L10n.Battery.guideStep1)
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(L10n.Battery.guideStep2)
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(L10n.Battery.guideStep3)
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(SpacingTheme.cardInternal)
-        .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
+        .background(Theme.tileBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.prominent, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.prominent, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.6)
+        )
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder
@@ -123,24 +155,27 @@ struct BatteryAnalyticsSheet: View {
             HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: "doc.fill.badge.plus")
                     .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
+
                 Text(L10n.Battery.selectFileButton)
                     .font(Typography.sectionHeader)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .padding(.horizontal, SpacingTheme.row)
             .background(appState.accentColor)
             .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
     }
 
     @ViewBuilder
     private var dividerSection: some View {
         HStack(spacing: SpacingTheme.rowStandard) {
-            Rectangle()
-                .fill(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.12))
-                .frame(height: 0.5)
+            BentoHairlineDivider()
 
             Text(L10n.Battery.orPasteSnippet)
                 .font(Typography.caption)
@@ -148,24 +183,30 @@ struct BatteryAnalyticsSheet: View {
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
 
-            Rectangle()
-                .fill(colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.12))
-                .frame(height: 0.5)
+            BentoHairlineDivider()
         }
         .padding(.vertical, SpacingTheme.tight)
     }
 
     @ViewBuilder
     private var textPasteSection: some View {
+        let accent = readableAccent
+
         VStack(alignment: .leading, spacing: SpacingTheme.row) {
             TextEditor(text: $pastedText)
                 .focused($isPasteEditorFocused)
                 .scrollContentBackground(.hidden)
                 .font(Typography.captionMono)
-                .frame(height: 120)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .tint(accent)
+                .frame(minHeight: 120, maxHeight: 160)
                 .padding(SpacingTheme.standard)
-                .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
+                .background(Theme.tileBackground(for: colorScheme))
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                        .stroke(isPasteEditorFocused ? accent.opacity(0.6) : Theme.tileBorder(for: colorScheme), lineWidth: isPasteEditorFocused ? 1.0 : 0.6)
+                )
                 .overlay(alignment: .topLeading) {
                     if pastedText.isEmpty {
                         Text(L10n.Battery.pastePlaceholder)
@@ -173,8 +214,11 @@ struct BatteryAnalyticsSheet: View {
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
                             .padding(SpacingTheme.rowStandard)
                             .allowsHitTesting(false)
+                            .accessibilityHidden(true)
                     }
                 }
+                .accessibilityLabel(L10n.Battery.pasteLogButton)
+                .accessibilityHint(L10n.Battery.pastePlaceholder)
 
             Button {
                 Haptics.impact(.medium)
@@ -183,50 +227,86 @@ struct BatteryAnalyticsSheet: View {
                 HStack(spacing: SpacingTheme.compact) {
                     Image(systemName: "doc.badge.gearshape.fill")
                         .font(IconTheme.actionButton)
+                        .accessibilityHidden(true)
+
                     Text(L10n.Battery.parseNow)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
-                .font(Typography.bodyValue)
-                .frame(maxWidth: .infinity)
-                .frame(height: 38)
-                .background(appState.accentColor.opacity(0.15))
-                .foregroundStyle(appState.accentColor)
+                .font(Typography.calloutBold)
+                .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+                .padding(.horizontal, SpacingTheme.row)
+                .background(accent.opacity(0.14))
+                .foregroundStyle(accent)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                        .stroke(accent.opacity(0.28), lineWidth: 0.6)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
             }
-            .buttonStyle(.plain)
-            .disabled(pastedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .buttonStyle(BentoCardButtonStyle())
+            .disabled(isPasteEmpty)
+            .opacity(isPasteEmpty ? 0.5 : 1.0)
         }
     }
 
     @ViewBuilder
     private var resultSection: some View {
+        let green = Theme.readableGreen(for: colorScheme)
+        let red = Theme.readableRed(for: colorScheme)
+
         if let record = successRecord {
             VStack(alignment: .leading, spacing: SpacingTheme.standard) {
-                HStack {
+                HStack(spacing: SpacingTheme.compact) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(IconTheme.actionButton)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(green)
+                        .accessibilityHidden(true)
+
                     Text(L10n.Common.success)
                         .font(Typography.sectionHeader)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(green)
                 }
 
-                HStack(spacing: SpacingTheme.cardInternal) {
-                    statPill(label: L10n.Battery.cycleCount, val: "\(record.cycleCount) \(L10n.Battery.cyclesUnit)")
-                    statPill(label: L10n.Battery.health, val: String(format: "%.1f%%", record.healthPercent))
-                    statPill(label: L10n.Battery.currentMaxCapacity, val: "\(record.nominalChargeCapacityMah) mAh")
+                Group {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: SpacingTheme.compact) {
+                            statPill(label: L10n.Battery.cycleCount, val: "\(record.cycleCount) \(L10n.Battery.cyclesUnit)")
+                            statPill(label: L10n.Battery.health, val: String(format: "%.1f%%", record.healthPercent))
+                            statPill(label: L10n.Battery.currentMaxCapacity, val: "\(record.nominalChargeCapacityMah) mAh")
+                        }
+                    } else {
+                        HStack(spacing: SpacingTheme.cardInternal) {
+                            statPill(label: L10n.Battery.cycleCount, val: "\(record.cycleCount) \(L10n.Battery.cyclesUnit)")
+                            statPill(label: L10n.Battery.health, val: String(format: "%.1f%%", record.healthPercent))
+                            statPill(label: L10n.Battery.currentMaxCapacity, val: "\(record.nominalChargeCapacityMah) mAh")
+                        }
+                    }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(SpacingTheme.rowStandard)
-            .background(Color.green.opacity(0.12))
+            .background(green.opacity(0.12))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
+                    .stroke(green.opacity(0.3), lineWidth: 0.6)
+            )
+            .accessibilityElement(children: .combine)
         }
 
         if let err = errorMessage {
             Text(err)
                 .font(Typography.calloutLabel)
-                .foregroundStyle(.red)
+                .foregroundStyle(red)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, SpacingTheme.row)
+                .padding(.vertical, SpacingTheme.standard)
+                .background(red.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+                .accessibilityLabel("\(L10n.Common.failed): \(err)")
         }
     }
 
@@ -236,10 +316,20 @@ struct BatteryAnalyticsSheet: View {
             Text(label)
                 .font(Typography.caption)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+
             Text(val)
                 .font(Typography.bodyValue)
+                .monospacedDigit()
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue(val)
     }
 
     // MARK: - Handlers

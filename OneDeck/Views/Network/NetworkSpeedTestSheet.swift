@@ -12,8 +12,13 @@ struct NetworkSpeedTestSheet: View {
     // MARK: - Dependencies & Environment
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var net = NetworkViewModel.shared
+
+    private var accentFg: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     private var uploadAccentColor: Color {
         colorScheme == .dark ? ChartTheme.uploadColor : Theme.readableCyan(for: colorScheme)
@@ -22,7 +27,7 @@ struct NetworkSpeedTestSheet: View {
     // MARK: - Body
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: SpacingTheme.cardStack) {
                     gaugeSection
                     if let errorMessage = net.speedTestError, !errorMessage.isEmpty {
@@ -33,9 +38,12 @@ struct NetworkSpeedTestSheet: View {
                     actionDispatcherSection
                     historySection
                 }
+                .frame(maxWidth: LayoutTheme.maxContentWidth)
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, SpacingTheme.cardStack)
                 .padding(.vertical, SpacingTheme.cardStack)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Network.speedTestTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -48,15 +56,21 @@ struct NetworkSpeedTestSheet: View {
                         dismiss()
                     }
                     .font(Typography.bodyValue)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(accentFg)
                 }
             }
         }
+        .presentationDragIndicator(.visible)
     }
 
     // MARK: - 1. Speedometer Arc Gauge HUD
     @ViewBuilder
     private var gaugeSection: some View {
+        let gaugeWidth: CGFloat = dynamicTypeSize.isAccessibilitySize ? 240 : 200
+        let gaugeHeight: CGFloat = dynamicTypeSize.isAccessibilitySize ? 190 : 160
+        let safeMbps = net.speedTestCurrentMbps.isFinite ? net.speedTestCurrentMbps : 0.0
+        let safeProgress = net.speedTestProgress.isFinite ? min(1.0, max(0.0, net.speedTestProgress)) : 0.0
+
         VStack(spacing: SpacingTheme.row) {
             ZStack {
                 SpeedometerGaugeArc(
@@ -64,38 +78,44 @@ struct NetworkSpeedTestSheet: View {
                     maxScale: 500.0,
                     accentColor: appState.accentColor
                 )
-                .frame(width: 200, height: 160)
+                .frame(width: gaugeWidth, height: gaugeHeight)
+                .accessibilityHidden(true)
 
                 VStack(spacing: SpacingTheme.micro) {
-                    let safeMbps = net.speedTestCurrentMbps.isFinite ? net.speedTestCurrentMbps : 0.0
                     Text(String(format: "%.1f", safeMbps))
                         .font(Typography.displayHero)
                         .monospacedDigit()
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .minimumScaleFactor(0.7)
 
                     Text("Mbps")
                         .font(Typography.calloutLabel)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 }
+                .padding(.horizontal, SpacingTheme.modalPadding)
                 .offset(y: -8)
             }
-            .frame(width: 200, height: 160)
+            .frame(width: gaugeWidth, height: gaugeHeight)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Network.speedTestTitle)
+            .accessibilityValue(String(format: "%.1f Mbps, %@", safeMbps, stageText))
 
             stageIndicatorPill
 
-            let safeProgress = net.speedTestProgress.isFinite ? min(1.0, max(0.0, net.speedTestProgress)) : 0.0
-            ProgressView(value: safeProgress)
-                .tint(appState.accentColor)
-                .scaleEffect(x: 1, y: 1.6, anchor: .center)
-                .padding(.horizontal, SpacingTheme.modalPadding)
-                .padding(.top, SpacingTheme.tight)
+            BentoCapsuleProgressBar(
+                value: safeProgress,
+                tint: appState.accentColor,
+                height: 7,
+                accessibilityLabel: stageText
+            )
+            .padding(.horizontal, SpacingTheme.modalPadding)
+            .padding(.top, SpacingTheme.tight)
         }
         .padding(.vertical, SpacingTheme.cardStack)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.sheetCard, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.cardBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.sheetCard, style: .continuous)
@@ -112,15 +132,18 @@ struct NetworkSpeedTestSheet: View {
         let safeUpPeak = net.speedTestUploadPeakMbps.isFinite ? net.speedTestUploadPeakMbps : 0.0
         let safePing = net.speedTestPingMs.isFinite ? net.speedTestPingMs : 0.0
         let safeJitter = net.speedTestJitterMs.isFinite ? net.speedTestJitterMs : 0.0
+        let columns = dynamicTypeSize.isAccessibilitySize
+            ? [GridItem(.flexible())]
+            : [GridItem(.flexible()), GridItem(.flexible())]
 
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: SpacingTheme.row) {
+        LazyVGrid(columns: columns, spacing: SpacingTheme.row) {
             scorecardCell(
                 title: L10n.Network.downloadSpeed,
                 value: safeDown > 0 ? String(format: "%.1f", safeDown) : "--",
                 unit: "Mbps",
                 subtext: safeDownPeak > 0 ? L10n.Network.peakSpeedFormatted(mbps: safeDownPeak) : nil,
                 icon: "arrow.down.circle.fill",
-                color: appState.accentColor
+                color: accentFg
             )
 
             let uploadUnavailable = !net.isSpeedTestUploadAvailable && net.speedTestStage == .completed && safeUp <= 0
@@ -150,7 +173,7 @@ struct NetworkSpeedTestSheet: View {
                 unit: "ms",
                 subtext: nil,
                 icon: "waveform.path.ecg.rectangle.fill",
-                color: Color.orange
+                color: Theme.readableOrange(for: colorScheme)
             )
         }
     }
@@ -158,16 +181,17 @@ struct NetworkSpeedTestSheet: View {
     // MARK: - 3. Rating & Server Info Banner
     @ViewBuilder
     private var serverBanner: some View {
-        HStack(spacing: SpacingTheme.standard) {
+        let leadingTag = Group {
             if !net.speedTestRating.isEmpty {
                 HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "medal.fill")
                         .font(IconTheme.badgeInline)
+                        .accessibilityHidden(true)
                     Text(net.speedTestRating)
                         .font(Typography.badgeTag)
                         .lineLimit(1)
                 }
-                .foregroundStyle(appState.accentColor)
+                .foregroundStyle(accentFg)
                 .padding(.horizontal, SpacingTheme.row)
                 .padding(.vertical, SpacingTheme.tight)
                 .background(appState.accentColor.opacity(0.12))
@@ -175,26 +199,42 @@ struct NetworkSpeedTestSheet: View {
             } else {
                 HStack(spacing: SpacingTheme.tight) {
                     Circle()
-                        .fill(appState.accentColor)
+                        .fill(accentFg)
                         .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
                     Text(L10n.Network.serverNode)
                         .font(Typography.captionBold)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 }
             }
-
-            Spacer()
-
-            Text(net.speedTestServerName)
-                .font(Typography.captionMono)
-                .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                .lineLimit(1)
         }
+
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+                    leadingTag
+                    Text(net.speedTestServerName)
+                        .font(Typography.captionMono)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(2)
+                }
+            } else {
+                HStack(spacing: SpacingTheme.standard) {
+                    leadingTag
+                    Spacer(minLength: SpacingTheme.compact)
+                    Text(net.speedTestServerName)
+                        .font(Typography.captionMono)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(1)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, SpacingTheme.cardInternal)
         .padding(.vertical, SpacingTheme.row)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
+                .fill(Theme.cardBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
@@ -208,6 +248,8 @@ struct NetworkSpeedTestSheet: View {
     // MARK: - 4. Action Dispatcher Controls
     @ViewBuilder
     private var actionDispatcherSection: some View {
+        let stopColor = Theme.readableRed(for: colorScheme)
+
         VStack(spacing: SpacingTheme.row) {
             if net.isRunningSpeedTest {
                 Button {
@@ -217,59 +259,71 @@ struct NetworkSpeedTestSheet: View {
                     HStack(spacing: SpacingTheme.compact) {
                         Image(systemName: "stop.fill")
                             .font(IconTheme.sectionHeader)
+                            .accessibilityHidden(true)
                         Text(L10n.Network.speedTestStop)
                             .font(Typography.headlineValue)
                     }
-                    .foregroundStyle(Color.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, SpacingTheme.rowStandard)
+                    .foregroundStyle(Theme.contrastingForeground(for: stopColor))
+                    .frame(maxWidth: .infinity, minHeight: 48)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                            .fill(Color.red)
+                            .fill(stopColor)
                     )
+                    .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BentoCardButtonStyle())
             } else if net.speedTestStage == .completed {
-                HStack(spacing: SpacingTheme.rowStandard) {
-                    Button {
-                        Haptics.selection()
-                        net.resetSpeedTest()
-                    } label: {
-                        Text(L10n.Network.clearResults)
-                            .font(Typography.sectionHeader)
-                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, SpacingTheme.rowStandard)
-                            .background(
-                                RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.8))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
-                            )
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        Haptics.impact(.medium)
-                        net.startSpeedTest()
-                    } label: {
-                        HStack(spacing: SpacingTheme.compact) {
-                            Image(systemName: "arrow.clockwise.circle.fill")
-                                .font(IconTheme.sectionHeader)
-                            Text(L10n.Network.speedTestRestart)
-                                .font(Typography.headlineValue)
-                        }
-                        .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, SpacingTheme.rowStandard)
+                let clearBtn = Button {
+                    Haptics.selection()
+                    net.resetSpeedTest()
+                } label: {
+                    Text(L10n.Network.clearResults)
+                        .font(Typography.headlineValue)
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .frame(maxWidth: .infinity, minHeight: 48)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                                .fill(appState.accentColor)
+                                .fill(Theme.chipBackground(for: colorScheme))
                         )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
+                                .stroke(Theme.chipBorder(for: colorScheme), lineWidth: 0.8)
+                        )
+                        .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
+                }
+                .buttonStyle(BentoCardButtonStyle())
+
+                let retestBtn = Button {
+                    Haptics.impact(.medium)
+                    net.startSpeedTest()
+                } label: {
+                    HStack(spacing: SpacingTheme.compact) {
+                        Image(systemName: "arrow.clockwise.circle.fill")
+                            .font(IconTheme.sectionHeader)
+                            .accessibilityHidden(true)
+                        Text(L10n.Network.speedTestRestart)
+                            .font(Typography.headlineValue)
                     }
-                    .buttonStyle(.plain)
+                    .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
+                            .fill(appState.accentColor)
+                    )
+                    .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
+                }
+                .buttonStyle(BentoCardButtonStyle())
+
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(spacing: SpacingTheme.rowStandard) {
+                        retestBtn
+                        clearBtn
+                    }
+                } else {
+                    HStack(spacing: SpacingTheme.rowStandard) {
+                        clearBtn
+                        retestBtn
+                    }
                 }
             } else {
                 Button {
@@ -279,18 +333,19 @@ struct NetworkSpeedTestSheet: View {
                     HStack(spacing: SpacingTheme.standard) {
                         Image(systemName: "play.fill")
                             .font(IconTheme.sectionHeader)
+                            .accessibilityHidden(true)
                         Text(L10n.Network.startSpeedTest)
                             .font(Typography.headlineValue)
                     }
                     .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, SpacingTheme.cardInternal)
+                    .frame(maxWidth: .infinity, minHeight: 48)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                             .fill(appState.accentColor)
                     )
+                    .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BentoCardButtonStyle())
             }
         }
         .padding(.top, SpacingTheme.compact)
@@ -305,8 +360,9 @@ struct NetworkSpeedTestSheet: View {
                     Text(L10n.Network.speedTestHistory)
                         .font(Typography.bodyValue)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .accessibilityAddTraits(.isHeader)
 
-                    Spacer()
+                    Spacer(minLength: SpacingTheme.compact)
 
                     Button {
                         Haptics.selection()
@@ -314,9 +370,12 @@ struct NetworkSpeedTestSheet: View {
                     } label: {
                         Text(L10n.Network.clearHistory)
                             .font(Typography.captionBold)
-                            .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                            .padding(.horizontal, SpacingTheme.row)
+                            .frame(minWidth: LayoutTheme.minTapTarget, minHeight: LayoutTheme.minTapTarget)
+                            .contentShape(Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(BentoCardButtonStyle())
                 }
 
                 VStack(spacing: SpacingTheme.standard) {
@@ -325,44 +384,57 @@ struct NetworkSpeedTestSheet: View {
                         let itemUp = item.uploadMbps.isFinite ? item.uploadMbps : 0.0
                         let itemPing = item.pingMs.isFinite ? item.pingMs : 0.0
 
-                        HStack {
-                            VStack(alignment: .leading, spacing: SpacingTheme.micro) {
-                                Text(item.date, format: .dateTime.month().day().hour().minute())
-                                    .font(Typography.captionMono)
-                                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        let leftMeta = VStack(alignment: .leading, spacing: SpacingTheme.micro) {
+                            Text(item.date, format: .dateTime.month().day().hour().minute())
+                                .font(Typography.captionMono)
+                                .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-                                Text(item.rating)
-                                    .font(Typography.captionBold)
-                                    .foregroundStyle(appState.accentColor)
-                                    .lineLimit(1)
-                            }
+                            Text(item.rating)
+                                .font(Typography.captionBold)
+                                .foregroundStyle(accentFg)
+                                .lineLimit(1)
+                        }
 
-                            Spacer()
+                        let rightMetrics = HStack(spacing: SpacingTheme.standard) {
+                            Text("↓\(String(format: "%.1f", itemDown))M")
+                                .font(Typography.calloutMono)
+                                .foregroundStyle(accentFg)
 
-                            HStack(spacing: SpacingTheme.standard) {
-                                Text("↓\(String(format: "%.1f", itemDown))M")
-                                    .font(Typography.calloutMono)
-                                    .foregroundStyle(appState.accentColor)
+                            Text(itemUp > 0 ? "↑\(String(format: "%.1f", itemUp))M" : "↑--")
+                                .font(Typography.calloutMono)
+                                .foregroundStyle(uploadAccentColor)
 
-                                Text(itemUp > 0 ? "↑\(String(format: "%.1f", itemUp))M" : "↑--")
-                                    .font(Typography.calloutMono)
-                                    .foregroundStyle(uploadAccentColor)
+                            Text("\(String(format: "%.0f", itemPing))ms")
+                                .font(Typography.captionMono)
+                                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        }
 
-                                Text("\(String(format: "%.0f", itemPing))ms")
-                                    .font(Typography.captionMono)
-                                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        Group {
+                            if dynamicTypeSize.isAccessibilitySize {
+                                VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+                                    leftMeta
+                                    rightMetrics
+                                }
+                            } else {
+                                HStack {
+                                    leftMeta
+                                    Spacer(minLength: SpacingTheme.compact)
+                                    rightMetrics
+                                }
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, SpacingTheme.rowStandard)
                         .padding(.vertical, SpacingTheme.standard)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                                .fill(Theme.cardBackground(for: colorScheme).opacity(0.5))
+                                .fill(Theme.cardBackground(for: colorScheme))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                         )
+                        .accessibilityElement(children: .combine)
                     }
                 }
             }
@@ -373,47 +445,30 @@ struct NetworkSpeedTestSheet: View {
     // MARK: - Subviews & Helpers
     @ViewBuilder
     private func speedTestErrorBanner(_ message: String) -> some View {
-        HStack(spacing: SpacingTheme.compact) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(IconTheme.tileLeading)
-                .foregroundStyle(.orange)
-
-            Text(message)
-                .font(Typography.caption)
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .lineLimit(2)
-
-            Spacer()
-        }
-        .padding(.horizontal, SpacingTheme.rowStandard)
-        .padding(.vertical, SpacingTheme.standard)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                .fill(Color.orange.opacity(0.10))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                .stroke(Color.orange.opacity(0.30), lineWidth: 0.8)
-        )
+        ToolNoticeBanner(icon: "exclamationmark.triangle.fill", message: message)
     }
 
     @ViewBuilder
     private var stageIndicatorPill: some View {
+        let dotColor = net.isRunningSpeedTest ? Theme.readableGreen(for: colorScheme) : accentFg
+
         HStack(spacing: SpacingTheme.tight) {
             Circle()
-                .fill(net.isRunningSpeedTest ? Color.green : appState.accentColor)
+                .fill(dotColor)
                 .frame(width: 6, height: 6)
+                .accessibilityHidden(true)
 
             Text(stageText)
                 .font(Typography.captionBold)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
                 .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.horizontal, SpacingTheme.standard)
-        .padding(.vertical, SpacingTheme.micro)
-        .background(Theme.cardBackground(for: colorScheme).opacity(0.8))
+        .padding(.vertical, SpacingTheme.tight)
+        .background(Theme.chipBackground(for: colorScheme))
+        .overlay(Capsule().stroke(Theme.chipBorder(for: colorScheme), lineWidth: 0.6))
         .clipShape(Capsule())
+        .accessibilityElement(children: .combine)
     }
 
     private var stageText: String {
@@ -433,6 +488,7 @@ struct NetworkSpeedTestSheet: View {
                 Image(systemName: icon)
                     .font(IconTheme.tileLeading)
                     .foregroundStyle(color)
+                    .accessibilityHidden(true)
 
                 Text(title)
                     .font(Typography.caption)
@@ -447,25 +503,29 @@ struct NetworkSpeedTestSheet: View {
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .lineLimit(1)
 
-                Text(unit)
-                    .font(Typography.caption)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                }
             }
 
             if let sub = subtext {
                 Text(sub)
                     .font(Typography.badgeTag)
                     .fontDesign(.monospaced)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme).opacity(0.8))
+                    .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     .lineLimit(1)
             }
+
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, SpacingTheme.rowStandard)
         .padding(.vertical, SpacingTheme.row)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.cardBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)

@@ -11,11 +11,16 @@ import SwiftUI
 struct OverviewHardwareCard: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var system = SystemViewModel.shared
 
     // MARK: - State
     @State private var selectedCategory: HardwareCategory = .display
+
+    private var readableAccent: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     // MARK: - Body
     var body: some View {
@@ -35,61 +40,90 @@ struct OverviewHardwareCard: View {
 
     @ViewBuilder
     private var categorySwitcher: some View {
-        HStack(spacing: SpacingTheme.compact) {
-            ForEach(HardwareCategory.allCases) { category in
-                Button {
-                    Haptics.selection()
-                    withAnimation(.snappy(duration: 0.16, extraBounce: 0)) {
-                        selectedCategory = category
-                    }
-                } label: {
-                    HStack(spacing: SpacingTheme.tight) {
-                        Image(systemName: category.icon)
-                            .font(IconTheme.actionButton)
-                        Text(category.title)
-                            .font(Typography.calloutLabel)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 32)
-                    .background(
-                        selectedCategory == category
-                            ? appState.accentColor
-                            : Theme.chipBackground(for: colorScheme)
-                    )
-                    .foregroundStyle(
-                        selectedCategory == category
-                            ? Theme.contrastingForeground(for: appState.accentColor)
-                            : Theme.textSecondary(for: colorScheme)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        if dynamicTypeSize.isAccessibilitySize {
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: SpacingTheme.compact),
+                    GridItem(.flexible(), spacing: SpacingTheme.compact)
+                ],
+                spacing: SpacingTheme.compact
+            ) {
+                ForEach(HardwareCategory.allCases) { category in
+                    categoryButton(for: category)
                 }
-                .buttonStyle(CategoryTabButtonStyle())
-                .accessibilityLabel(category.title)
-                .accessibilityAddTraits(selectedCategory == category ? [.isSelected] : [])
+            }
+        } else {
+            HStack(spacing: SpacingTheme.compact) {
+                ForEach(HardwareCategory.allCases) { category in
+                    categoryButton(for: category)
+                }
             }
         }
     }
 
     @ViewBuilder
+    private func categoryButton(for category: HardwareCategory) -> some View {
+        let isSelected = (selectedCategory == category)
+
+        Button {
+            Haptics.selection()
+            withAnimation(.snappy(duration: 0.16, extraBounce: 0)) {
+                selectedCategory = category
+            }
+        } label: {
+            HStack(spacing: SpacingTheme.tight) {
+                Image(systemName: category.icon)
+                    .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
+
+                Text(category.title)
+                    .font(Typography.calloutLabel)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+            .padding(.horizontal, SpacingTheme.tight)
+            .background(
+                isSelected
+                    ? appState.accentColor
+                    : Theme.chipBackground(for: colorScheme)
+            )
+            .foregroundStyle(
+                isSelected
+                    ? Theme.contrastingForeground(for: appState.accentColor)
+                    : Theme.textSecondary(for: colorScheme)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .stroke(
+                        isSelected ? Color.clear : Theme.chipBorder(for: colorScheme),
+                        lineWidth: 0.5
+                    )
+            )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        }
+        .buttonStyle(BentoCardButtonStyle())
+        .accessibilityLabel(category.title)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    @ViewBuilder
     private var specDetailsList: some View {
         VStack(spacing: SpacingTheme.standard) {
-            Group {
-                switch selectedCategory {
-                case .display:
-                    displaySpecs
-                case .soc:
-                    socSpecs
-                case .gpu:
-                    gpuSpecs
-                case .system:
-                    systemSpecs
-                }
+            switch selectedCategory {
+            case .display:
+                displaySpecs
+            case .soc:
+                socSpecs
+            case .gpu:
+                gpuSpecs
+            case .system:
+                systemSpecs
             }
-            .id(selectedCategory)
-            .transition(.opacity)
         }
+        .id(selectedCategory)
+        .transition(.opacity)
     }
 
     // MARK: - Category Sections
@@ -248,46 +282,70 @@ struct OverviewHardwareCard: View {
     // MARK: - Spec Row Helper
     @ViewBuilder
     private func specListRow(icon: String, label: String, value: String, isHighlight: Bool = false) -> some View {
-        HStack(alignment: .center, spacing: SpacingTheme.standard) {
-            Image(systemName: icon)
-                .font(IconTheme.tileLeading)
-                .foregroundStyle(appState.accentColor)
-                .frame(width: 20, height: 20, alignment: .center)
+        let accent = readableAccent
 
-            Text(label)
-                .font(Typography.bodyMedium)
-                .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+                    HStack(spacing: SpacingTheme.standard) {
+                        Image(systemName: icon)
+                            .font(IconTheme.tileLeading)
+                            .foregroundStyle(accent)
+                            .frame(width: 20, height: 20, alignment: .center)
+                            .accessibilityHidden(true)
 
-            Spacer(minLength: SpacingTheme.standard)
+                        Text(label)
+                            .font(Typography.bodyMedium)
+                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
 
-            Text(value)
-                .font(Typography.bodyValue)
-                .monospacedDigit()
-                .foregroundStyle(isHighlight ? appState.accentColor : Theme.textPrimary(for: colorScheme))
-                .multilineTextAlignment(.trailing)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                    Text(value)
+                        .font(Typography.bodyValue)
+                        .monospacedDigit()
+                        .foregroundStyle(isHighlight ? accent : Theme.textPrimary(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(alignment: .center, spacing: SpacingTheme.standard) {
+                    Image(systemName: icon)
+                        .font(IconTheme.tileLeading)
+                        .foregroundStyle(accent)
+                        .frame(width: 20, height: 20, alignment: .center)
+                        .accessibilityHidden(true)
+
+                    Text(label)
+                        .font(Typography.bodyMedium)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+
+                    Spacer(minLength: SpacingTheme.standard)
+
+                    Text(value)
+                        .font(Typography.bodyValue)
+                        .monospacedDigit()
+                        .foregroundStyle(isHighlight ? accent : Theme.textPrimary(for: colorScheme))
+                        .multilineTextAlignment(.trailing)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                }
+            }
         }
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.standard)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                .fill(Theme.tileBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
         .accessibilityValue(value)
-    }
-}
-
-// MARK: - Category Tab Button Style
-private struct CategoryTabButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
     }
 }
 

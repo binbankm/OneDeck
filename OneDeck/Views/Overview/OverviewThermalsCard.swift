@@ -11,8 +11,13 @@ import SwiftUI
 struct OverviewThermalsCard: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var system = SystemViewModel.shared
+
+    private var accentFg: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     // MARK: - Body
     var body: some View {
@@ -29,43 +34,55 @@ struct OverviewThermalsCard: View {
     private var headerRow: some View {
         HStack(spacing: SpacingTheme.compact) {
             OverviewSectionHeader(title: L10n.Overview.thermalSectionTitle, icon: "flame.fill")
+                .layoutPriority(1)
 
-            Spacer()
+            Spacer(minLength: SpacingTheme.tight)
 
-            Text(system.isThermalEstimated ? L10n.Overview.modelEstimatedBadge : L10n.Overview.hardwareSensorBadge)
-                .font(Typography.badgeTag)
-                .foregroundStyle(system.isThermalEstimated ? Theme.textSecondary(for: colorScheme) : appState.accentColor)
-                .lineLimit(1)
+            FlowLayout(spacing: SpacingTheme.compact, rowSpacing: SpacingTheme.tight) {
+                Text(system.isThermalEstimated ? L10n.Overview.modelEstimatedBadge : L10n.Overview.hardwareSensorBadge)
+                    .font(Typography.badgeTag)
+                    .foregroundStyle(system.isThermalEstimated ? Theme.textSecondary(for: colorScheme) : accentFg)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .padding(.horizontal, SpacingTheme.standard)
+                    .padding(.vertical, SpacingTheme.micro)
+                    .background(
+                        system.isThermalEstimated
+                            ? Theme.chipBackground(for: colorScheme)
+                            : appState.accentColor.opacity(0.12)
+                    )
+                    .clipShape(Capsule())
+
+                HStack(spacing: SpacingTheme.tight) {
+                    Circle()
+                        .fill(thermalColor)
+                        .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
+
+                    Text(thermalText)
+                        .font(Typography.captionBold)
+                        .foregroundStyle(thermalColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
                 .padding(.horizontal, SpacingTheme.standard)
                 .padding(.vertical, SpacingTheme.micro)
-                .background(
-                    (system.isThermalEstimated
-                        ? (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.05))
-                        : appState.accentColor.opacity(0.12))
-                )
+                .background(thermalColor.opacity(0.12))
                 .clipShape(Capsule())
-
-            HStack(spacing: SpacingTheme.tight) {
-                Circle()
-                    .fill(thermalColor)
-                    .frame(width: 6, height: 6)
-
-                Text(thermalText)
-                    .font(Typography.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(thermalColor)
-                    .lineLimit(1)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(L10n.Overview.thermalPressure)
+                .accessibilityValue(thermalText)
             }
-            .padding(.horizontal, SpacingTheme.standard)
-            .padding(.vertical, SpacingTheme.micro)
-            .background(thermalColor.opacity(0.12))
-            .clipShape(Capsule())
         }
     }
 
     @ViewBuilder
     private var dualTemperatureTiles: some View {
-        HStack(spacing: SpacingTheme.row) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: SpacingTheme.row))
+            : AnyLayout(HStackLayout(spacing: SpacingTheme.row))
+
+        layout {
             TemperatureBentoTile(
                 icon: "cpu.fill",
                 iconColor: thermalColor,
@@ -75,7 +92,7 @@ struct OverviewThermalsCard: View {
 
             TemperatureBentoTile(
                 icon: "battery.100.bolt",
-                iconColor: appState.accentColor,
+                iconColor: accentFg,
                 label: L10n.Overview.batteryTemp,
                 value: system.batteryTemperature
             )
@@ -84,39 +101,48 @@ struct OverviewThermalsCard: View {
 
     @ViewBuilder
     private var thermalPressureBar: some View {
+        let pressureValueText = system.thermalPressurePercent <= 25
+            ? L10n.Overview.thermalOptimal
+            : "\(system.thermalPressurePercent)%"
+
         VStack(alignment: .leading, spacing: SpacingTheme.tight) {
             HStack {
                 Text(L10n.Overview.thermalPressure)
                     .font(Typography.badgeTag)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
                 Spacer()
 
-                Text(system.thermalPressurePercent <= 25 ? L10n.Overview.thermalOptimal : "\(system.thermalPressurePercent)%")
+                Text(pressureValueText)
                     .font(Typography.badgeTagMono)
                     .foregroundStyle(thermalColor)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
-            ProgressView(value: min(1.0, max(0.0, Double(system.thermalPressurePercent) / 100.0)))
-                .tint(thermalColor)
-                .scaleEffect(x: 1, y: 1.25, anchor: .center)
-                .frame(height: 5)
+            BentoCapsuleProgressBar(
+                value: Double(system.thermalPressurePercent) / 100.0,
+                tint: thermalColor,
+                height: 6,
+                accessibilityLabel: L10n.Overview.thermalPressure,
+                accessibilityValue: pressureValueText
+            )
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(L10n.Overview.thermalPressure)
-        .accessibilityValue(system.thermalPressurePercent <= 25 ? L10n.Overview.thermalOptimal : "\(system.thermalPressurePercent)%")
+        .accessibilityValue(pressureValueText)
     }
 
     // MARK: - Dynamic Thermal Colors & Text
     private var thermalColor: Color {
         switch system.thermalState {
-        case .nominal: return appState.accentColor
+        case .nominal: return accentFg
         case .fair: return Theme.readableYellow(for: colorScheme)
-        case .serious: return .orange
-        case .critical: return .red
-        @unknown default: return appState.accentColor
+        case .serious: return Theme.readableOrange(for: colorScheme)
+        case .critical: return Theme.readableRed(for: colorScheme)
+        @unknown default: return accentFg
         }
     }
 
@@ -140,38 +166,48 @@ private struct TemperatureBentoTile: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let safeValue = value.isFinite ? value : 0.0
+
         VStack(alignment: .leading, spacing: SpacingTheme.compact) {
             HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
                     .font(IconTheme.tileLeading)
                     .foregroundStyle(iconColor)
+                    .accessibilityHidden(true)
 
                 Text(label)
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
 
-            let safeValue = value.isFinite ? value : 0.0
             HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
                 Text(String(format: "%.1f", safeValue))
                     .font(Typography.title1)
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     .contentTransition(.numericText())
 
                 Text("°C")
                     .font(Typography.calloutLabel)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(SpacingTheme.row)
-        .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
-        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
+        .background(Theme.tileBackground(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
-        .accessibilityValue(String(format: "%.1f °C", value.isFinite ? value : 0.0))
+        .accessibilityValue(String(format: "%.1f °C", safeValue))
     }
 }
 

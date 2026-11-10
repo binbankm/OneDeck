@@ -11,6 +11,7 @@ import SwiftUI
 struct ToneGeneratorDetailView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
@@ -20,31 +21,41 @@ struct ToneGeneratorDetailView: View {
     // State
     @State private var showHearingTest: Bool = false
 
+    private var accentFg: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
+
     // MARK: - Body
     var body: some View {
-        VStack(spacing: SpacingTheme.cardStack) {
-            // Waveform Selector
-            waveformPickerBar
+        GeometryReader { geo in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: SpacingTheme.cardStack) {
+                    // Waveform Selector
+                    waveformPickerBar
 
-            Spacer()
+                    Spacer(minLength: SpacingTheme.standard)
 
-            // Center Frequency Wheel / Readout
-            frequencyCenterReadout
+                    // Center Frequency Wheel / Readout
+                    frequencyCenterReadout
 
-            Spacer()
+                    Spacer(minLength: SpacingTheme.standard)
 
-            // Frequency Slider & Steppers
-            frequencySliderSection
+                    // Frequency Slider & Steppers
+                    frequencySliderSection
 
-            // Quick Presets
-            presetsRow
+                    // Quick Presets
+                    presetsRow
 
-            // Master Play / Stop Button
-            playToggleButton
+                    // Master Play / Stop Button
+                    playToggleButton
+                }
+                .padding(.horizontal, SpacingTheme.cardStack)
+                .padding(.vertical, SpacingTheme.rowStandard)
+                .frame(maxWidth: LayoutTheme.maxContentWidth)
+                .frame(maxWidth: .infinity, minHeight: geo.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         }
-        .padding(.horizontal, SpacingTheme.cardStack)
-        .padding(.vertical, SpacingTheme.rowStandard)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.toneGenerator)
         .navigationBarTitleDisplayMode(.inline)
@@ -63,7 +74,7 @@ struct ToneGeneratorDetailView: View {
                 } label: {
                     Image(systemName: "hearingdevice.ear.fill")
                         .font(IconTheme.badgeInline)
-                        .foregroundStyle(appState.accentColor)
+                        .foregroundStyle(accentFg)
                 }
                 .accessibilityLabel(L10n.Tools.hearingAgeChallenge)
             }
@@ -86,37 +97,45 @@ struct ToneGeneratorDetailView: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
+        .accessibilityLabel(L10n.Tools.waveformType)
     }
 
     // MARK: - Frequency Center Readout
     @ViewBuilder
     private var frequencyCenterReadout: some View {
         let safeFreq = tools.toneGenerator.frequencyHz.isFinite ? tools.toneGenerator.frequencyHz : 440.0
+        let freqString = String(format: safeFreq >= 1000 ? "%.0f" : "%.1f", safeFreq)
+        let bandTitle = L10n.Tools.frequencyBandTitle(safeFreq)
 
         VStack(spacing: SpacingTheme.micro) {
-            Text(String(format: safeFreq >= 1000 ? "%.0f" : "%.1f", safeFreq))
+            Text(freqString)
                 .font(Typography.displayHero)
                 .monospacedDigit()
-                .foregroundStyle(tools.toneGenerator.isPlaying ? appState.accentColor : Theme.textTertiary(for: colorScheme))
+                .contentTransition(.numericText())
+                .foregroundStyle(tools.toneGenerator.isPlaying ? accentFg : Theme.textTertiary(for: colorScheme))
 
             Text(L10n.Tools.hertzUnit)
                 .font(Typography.badgeTagMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-            Text(L10n.Tools.frequencyBandTitle(safeFreq))
+            Text(bandTitle)
                 .font(Typography.caption)
-                .foregroundStyle(appState.accentColor)
+                .foregroundStyle(accentFg)
                 .padding(.horizontal, SpacingTheme.standard)
                 .padding(.vertical, SpacingTheme.micro)
-                .background(appState.accentColor.opacity(0.12))
+                .background(accentFg.opacity(0.14))
                 .clipShape(Capsule())
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L10n.Tools.hertzUnit)
+        .accessibilityValue("\(freqString) Hz, \(bandTitle)")
     }
 
     // MARK: - Frequency Slider
     @ViewBuilder
     private var frequencySliderSection: some View {
         let safeFreq = tools.toneGenerator.frequencyHz.isFinite ? tools.toneGenerator.frequencyHz : 440.0
+        let freqDisplay = safeFreq >= 1000 ? String(format: "%.0f Hz", safeFreq) : String(format: "%.1f Hz", safeFreq)
 
         VStack(spacing: SpacingTheme.compact) {
             // Logarithmic mapping for smooth acoustic exploration
@@ -124,8 +143,10 @@ struct ToneGeneratorDetailView: View {
                 get: { log10(min(20000.0, max(20.0, safeFreq))) },
                 set: { tools.setToneFrequency(pow(10.0, $0)) }
             ), in: log10(20.0) ... log10(20000.0))
-                .tint(appState.accentColor)
+                .tint(accentFg)
                 .padding(.horizontal, SpacingTheme.standard)
+                .accessibilityLabel(L10n.Tools.hertzUnit)
+                .accessibilityValue(freqDisplay)
 
             HStack {
                 Text("20 Hz")
@@ -144,28 +165,36 @@ struct ToneGeneratorDetailView: View {
     @ViewBuilder
     private var presetsRow: some View {
         let safeFreq = tools.toneGenerator.frequencyHz.isFinite ? tools.toneGenerator.frequencyHz : 440.0
+        let columns = Array(
+            repeating: GridItem(.flexible(), spacing: SpacingTheme.compact),
+            count: dynamicTypeSize.isAccessibilitySize ? 3 : 6
+        )
 
-        HStack(spacing: SpacingTheme.compact) {
+        LazyVGrid(columns: columns, spacing: SpacingTheme.compact) {
             ForEach(quickPresets, id: \.self) { freq in
+                let isSelected = abs(safeFreq - freq) < 1.0
+
                 Button {
-                    Haptics.tick()
+                    Haptics.selection()
                     tools.setToneFrequency(freq)
                 } label: {
                     Text(freq >= 1000 ? "\(Int(freq / 1000))k" : "\(Int(freq))")
                         .font(Typography.badgeTagMonoMedium)
-                        .foregroundStyle(abs(safeFreq - freq) < 1.0 ? appState.accentColor : Theme.textSecondary(for: colorScheme))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, SpacingTheme.compact)
+                        .foregroundStyle(isSelected ? Theme.contrastingForeground(for: appState.accentColor) : Theme.textPrimary(for: colorScheme))
+                        .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                                .fill(isSelected ? appState.accentColor : Theme.chipBackground(for: colorScheme))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                                .stroke(isSelected ? appState.accentColor : Theme.chipBorder(for: colorScheme), lineWidth: 0.8)
                         )
+                        .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BentoCardButtonStyle())
+                .accessibilityLabel(freq >= 1000 ? "\(Int(freq / 1000)) kHz" : "\(Int(freq)) Hz")
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
     }
@@ -174,6 +203,7 @@ struct ToneGeneratorDetailView: View {
     @ViewBuilder
     private var playToggleButton: some View {
         let isPlaying = tools.toneGenerator.isPlaying
+        let buttonBg = isPlaying ? Theme.readableRed(for: colorScheme) : appState.accentColor
 
         Button {
             tools.toggleToneGenerator()
@@ -181,18 +211,21 @@ struct ToneGeneratorDetailView: View {
             HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: isPlaying ? "stop.fill" : "play.fill")
                     .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
                 Text(isPlaying ? L10n.Tools.stopTone : L10n.Tools.generateTone)
                     .font(Typography.headlineValue)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
-            .foregroundStyle(isPlaying ? Color.white : Theme.contrastingForeground(for: appState.accentColor))
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .foregroundStyle(Theme.contrastingForeground(for: buttonBg))
+            .frame(maxWidth: .infinity, minHeight: 50)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                    .fill(isPlaying ? Color.red : appState.accentColor)
+                    .fill(buttonBg)
             )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
     }
 
     // MARK: - Hearing Age Sheet
@@ -204,12 +237,14 @@ struct ToneGeneratorDetailView: View {
                     VStack(spacing: SpacingTheme.micro) {
                         Image(systemName: "hearingdevice.ear.fill")
                             .font(Typography.displayHero)
-                            .foregroundStyle(appState.accentColor)
+                            .foregroundStyle(accentFg)
                             .padding(.bottom, SpacingTheme.micro)
+                            .accessibilityHidden(true)
 
                         Text(L10n.Tools.hearingAgeChallenge)
                             .font(Typography.title1)
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                            .multilineTextAlignment(.center)
 
                         Text(L10n.Tools.hearingAgeTip)
                             .font(Typography.badgeTag)
@@ -228,12 +263,16 @@ struct ToneGeneratorDetailView: View {
                         hearingTestRow(freq: 19000, age: L10n.Tools.hearingAgeBracket(20))
                     }
                 }
+                .frame(maxWidth: LayoutTheme.maxContentWidth)
+                .frame(maxWidth: .infinity)
                 .padding(SpacingTheme.cardStack)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        Haptics.selection()
                         if tools.toneGenerator.isPlaying {
                             tools.stopToneGenerator()
                         }
@@ -241,12 +280,13 @@ struct ToneGeneratorDetailView: View {
                     } label: {
                         Text(L10n.Common.done)
                             .font(Typography.calloutBold)
-                            .foregroundStyle(appState.accentColor)
+                            .foregroundStyle(accentFg)
                     }
                 }
             }
         }
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
         .onDisappear {
             if tools.toneGenerator.isPlaying {
                 tools.stopToneGenerator()
@@ -257,6 +297,7 @@ struct ToneGeneratorDetailView: View {
     @ViewBuilder
     private func hearingTestRow(freq: Double, age: String) -> some View {
         let isCurrent = abs(tools.toneGenerator.frequencyHz - freq) < 1.0 && tools.toneGenerator.isPlaying
+        let redAccent = Theme.readableRed(for: colorScheme)
 
         Button {
             Haptics.selection()
@@ -268,11 +309,13 @@ struct ToneGeneratorDetailView: View {
             HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: isCurrent ? "waveform" : "play.circle.fill")
                     .font(IconTheme.actionButton)
-                    .foregroundStyle(isCurrent ? Color.red : appState.accentColor)
+                    .foregroundStyle(isCurrent ? redAccent : accentFg)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                     Text("\(Int(freq)) Hz")
                         .font(Typography.bodyValueMono)
+                        .monospacedDigit()
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                     Text(age)
                         .font(Typography.badgeTagMono)
@@ -284,24 +327,28 @@ struct ToneGeneratorDetailView: View {
                 if isCurrent {
                     Text(L10n.Tools.stopTone)
                         .font(Typography.badgeTagMono)
-                        .foregroundStyle(Color.red)
+                        .foregroundStyle(redAccent)
                 } else {
                     Text(L10n.Tools.generateTone)
                         .font(Typography.badgeTagMono)
-                        .foregroundStyle(appState.accentColor)
+                        .foregroundStyle(accentFg)
                 }
             }
-            .padding(SpacingTheme.rowStandard)
+            .padding(.horizontal, SpacingTheme.rowStandard)
+            .padding(.vertical, SpacingTheme.row)
+            .frame(minHeight: LayoutTheme.minTapTarget)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.7))
+                    .fill(Theme.tileBackground(for: colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .stroke(isCurrent ? Color.red.opacity(0.5) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                    .stroke(isCurrent ? redAccent.opacity(0.5) : Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
             )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
+        .accessibilityAddTraits(isCurrent ? .isSelected : [])
     }
 }
 

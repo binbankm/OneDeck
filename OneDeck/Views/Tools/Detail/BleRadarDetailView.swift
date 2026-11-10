@@ -11,7 +11,7 @@ import SwiftUI
 struct BleRadarDetailView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
-    @Bindable private var appState = AppState.shared
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var tools = ToolsViewModel.shared
 
     @State private var radarSweepAngle: Double = 0.0
@@ -34,9 +34,12 @@ struct BleRadarDetailView: View {
                 // Toggle Scan Action Button
                 scanActionButton
             }
+            .frame(maxWidth: LayoutTheme.maxContentWidth)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, SpacingTheme.cardStack)
             .padding(.vertical, SpacingTheme.rowStandard)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.bleRadar)
         .navigationBarTitleDisplayMode(.inline)
@@ -69,74 +72,34 @@ struct BleRadarDetailView: View {
     private var bleStatusBanner: some View {
         switch tools.bleBannerStatus {
         case .unauthorized:
-            VStack(spacing: SpacingTheme.compact) {
-                HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "hand.raised.fill")
-                        .foregroundStyle(Color.orange)
-                    Text(L10n.Tools.bleUnauthorized)
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                        .multilineTextAlignment(.leading)
-                }
-
-                Button {
-                    tools.openAppSettings()
-                } label: {
-                    Text(L10n.Tools.openSettings)
-                        .font(Typography.captionBold)
-                        .padding(.horizontal, SpacingTheme.standard)
-                        .padding(.vertical, SpacingTheme.tight)
-                        .background(Color.orange)
-                        .foregroundStyle(Color.white)
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(SpacingTheme.cardInternal)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+            ToolPermissionDeniedBanner(
+                icon: "hand.raised.fill",
+                message: L10n.Tools.bleUnauthorized,
+                onOpenSettings: tools.openAppSettings
             )
         case .poweredOff:
-            bleNoticeRow(icon: "bluetooth", message: L10n.Tools.blePoweredOff)
+            ToolNoticeBanner(icon: "bluetooth", message: L10n.Tools.blePoweredOff)
         case .unsupported:
-            bleNoticeRow(icon: "exclamationmark.triangle.fill", message: L10n.Tools.bleHardwareUnavailable)
+            ToolNoticeBanner(icon: "exclamationmark.triangle.fill", message: L10n.Tools.bleHardwareUnavailable)
         case .normal:
             EmptyView()
         }
     }
 
-    @ViewBuilder
-    private func bleNoticeRow(icon: String, message: String) -> some View {
-        HStack(spacing: SpacingTheme.tight) {
-            Image(systemName: icon)
-                .foregroundStyle(Color.orange)
-            Text(message)
-                .font(Typography.caption)
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .multilineTextAlignment(.leading)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(SpacingTheme.cardInternal)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
-        )
-    }
-
     // MARK: - Dual Metrics Hero
     @ViewBuilder
     private var dualMetricsHero: some View {
-        HStack(spacing: SpacingTheme.standard) {
+        let cyanAccent = Theme.readableCyan(for: colorScheme)
+        let nearestName = tools.bleRadar.nearestDeviceName.isEmpty ? L10n.Tools.noNearbyDevices : tools.bleRadar.nearestDeviceName
+        let safeDist = tools.bleRadar.estimatedDistanceMeters.isFinite ? tools.bleRadar.estimatedDistanceMeters : 0.0
+        let distText = tools.bleRadar.devices.isEmpty ? "--" : String(format: "~%.1f m", safeDist)
+        let rssiText = tools.bleRadar.devices.isEmpty ? "-- dBm" : "\(tools.bleRadar.nearestDeviceRssi) dBm"
+
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: SpacingTheme.standard))
+            : AnyLayout(HStackLayout(spacing: SpacingTheme.standard))
+
+        layout {
             // Discovered Count Tile
             VStack(alignment: .leading, spacing: SpacingTheme.tight) {
                 Text(L10n.Tools.bleScanStatus)
@@ -147,24 +110,30 @@ struct BleRadarDetailView: View {
 
                 Text("\(tools.bleRadar.devices.count)")
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(Theme.readableCyan(for: colorScheme))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(cyanAccent)
                     .lineLimit(1)
 
-                Text(tools.bleRadar.nearestDeviceName.isEmpty ? L10n.Tools.noNearbyDevices : tools.bleRadar.nearestDeviceName)
+                Text(nearestName)
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(SpacingTheme.rowStandard)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                    .fill(Theme.tileBackground(for: colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Tools.bleScanStatus)
+            .accessibilityValue("\(tools.bleRadar.devices.count), \(nearestName)")
 
             // Nearest Proximity Tile
             VStack(alignment: .leading, spacing: SpacingTheme.tight) {
@@ -174,14 +143,15 @@ struct BleRadarDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                let safeDist = tools.bleRadar.estimatedDistanceMeters.isFinite ? tools.bleRadar.estimatedDistanceMeters : 0.0
-                Text(tools.bleRadar.devices.isEmpty ? "--" : String(format: "~%.1f m", safeDist))
+                Text(distText)
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(Theme.readableCyan(for: colorScheme))
+                    .monospacedDigit()
+                    .foregroundStyle(cyanAccent)
                     .lineLimit(1)
 
-                Text(tools.bleRadar.devices.isEmpty ? "-- dBm" : "\(tools.bleRadar.nearestDeviceRssi) dBm")
+                Text(rssiText)
                     .font(Typography.captionMono)
+                    .monospacedDigit()
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
             }
@@ -189,12 +159,15 @@ struct BleRadarDetailView: View {
             .padding(SpacingTheme.rowStandard)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                    .fill(Theme.tileBackground(for: colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Tools.nearestDevice)
+            .accessibilityValue("\(distText), \(rssiText)")
         }
     }
 
@@ -203,6 +176,8 @@ struct BleRadarDetailView: View {
     private var radarDialView: some View {
         let size: CGFloat = 220
         let cyanAccent = Theme.readableCyan(for: colorScheme)
+        let greenAccent = Theme.readableGreen(for: colorScheme)
+        let nearestName = tools.bleRadar.nearestDeviceName.isEmpty ? L10n.Tools.noNearbyDevices : tools.bleRadar.nearestDeviceName
 
         ZStack {
             // Concentric Range Rings (1m, 3m, 5m, 10m)
@@ -258,9 +233,9 @@ struct BleRadarDetailView: View {
                 let y = radius * sin(rad)
 
                 Circle()
-                    .fill(Color.green)
+                    .fill(greenAccent)
                     .frame(width: 7, height: 7)
-                    .shadow(color: Color.green.opacity(0.8), radius: 4)
+                    .shadow(color: greenAccent.opacity(0.8), radius: 4)
                     .offset(x: x, y: y)
             }
         }
@@ -269,12 +244,15 @@ struct BleRadarDetailView: View {
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.tileBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
         )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.Tools.bleRadar)
+        .accessibilityValue("\(tools.bleRadar.devices.count), \(nearestName)")
     }
 
     // MARK: - Discovered Devices List
@@ -288,24 +266,25 @@ struct BleRadarDetailView: View {
 
                 Spacer()
 
-                if tools.bleRadar.isScanning {
+                if tools.bleRadar.isScanning && !tools.bleRadar.devices.isEmpty {
                     ProgressView()
-                        .scaleEffect(0.7)
+                        .controlSize(.small)
+                        .tint(Theme.readableCyan(for: colorScheme))
                 }
             }
 
             if tools.bleRadar.devices.isEmpty {
-                Text(tools.bleRadar.isScanning ? L10n.Tools.bleScanning : L10n.Tools.blePaused)
-                    .font(Typography.caption)
-                    .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.vertical, SpacingTheme.rowStandard)
+                BentoEmptyStateView(
+                    icon: "antenna.radiowaves.left.and.right",
+                    message: tools.bleRadar.isScanning ? L10n.Tools.bleScanning : L10n.Tools.blePaused,
+                    showsProgress: tools.bleRadar.isScanning,
+                    height: 100
+                )
             } else {
                 ForEach(tools.bleRadar.devices) { dev in
                     deviceRow(dev: dev)
                     if dev.id != tools.bleRadar.devices.last?.id {
-                        Divider()
-                            .foregroundStyle(Theme.cardBorder(for: colorScheme))
+                        BentoHairlineDivider()
                     }
                 }
             }
@@ -313,11 +292,11 @@ struct BleRadarDetailView: View {
         .padding(SpacingTheme.rowStandard)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.tileBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
         )
     }
 
@@ -325,45 +304,78 @@ struct BleRadarDetailView: View {
     private func deviceRow(dev: BleDeviceItem) -> some View {
         let cyanAccent = Theme.readableCyan(for: colorScheme)
         let safeDist = dev.estimatedDistanceMeters.isFinite ? dev.estimatedDistanceMeters : 0.0
-        HStack(spacing: SpacingTheme.standard) {
-            Image(systemName: "sensor.tag.radiowaves.forward.fill")
-                .font(IconTheme.badgeInline)
-                .foregroundStyle(cyanAccent)
-                .frame(width: 22)
+        let distString = String(format: "~%.1f m", safeDist)
+        let rssiString = "\(dev.rssi) dBm"
 
-            VStack(alignment: .leading, spacing: SpacingTheme.micro) {
-                Text(dev.name)
-                    .font(Typography.captionBold)
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+                    Text(dev.name)
+                        .font(Typography.captionBold)
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Text(dev.id.uuidString.prefix(18) + "...")
-                    .font(Typography.badgeTagMono)
-                    .foregroundStyle(Theme.textTertiary(for: colorScheme))
-            }
+                    Text("\(distString) · \(rssiString)")
+                        .font(Typography.captionMono)
+                        .foregroundStyle(cyanAccent)
 
-            Spacer()
+                    Text(dev.id.uuidString.prefix(18) + "...")
+                        .font(Typography.badgeTagMono)
+                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                }
+            } else {
+                HStack(spacing: SpacingTheme.standard) {
+                    Image(systemName: "sensor.tag.radiowaves.forward.fill")
+                        .font(IconTheme.badgeInline)
+                        .foregroundStyle(cyanAccent)
+                        .frame(width: 22)
+                        .accessibilityHidden(true)
 
-            VStack(alignment: .trailing, spacing: SpacingTheme.micro) {
-                Text(String(format: "~%.1f m", safeDist))
-                    .font(Typography.captionMono)
-                    .foregroundStyle(cyanAccent)
+                    VStack(alignment: .leading, spacing: SpacingTheme.micro) {
+                        Text(dev.name)
+                            .font(Typography.captionBold)
+                            .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
 
-                Text("\(dev.rssi) dBm")
-                    .font(Typography.badgeTagMono)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        Text(dev.id.uuidString.prefix(18) + "...")
+                            .font(Typography.badgeTagMono)
+                            .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                    }
+
+                    Spacer(minLength: SpacingTheme.compact)
+
+                    VStack(alignment: .trailing, spacing: SpacingTheme.micro) {
+                        Text(distString)
+                            .font(Typography.captionMono)
+                            .monospacedDigit()
+                            .foregroundStyle(cyanAccent)
+
+                        Text(rssiString)
+                            .font(Typography.badgeTagMono)
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    }
+                }
             }
         }
-        .padding(.vertical, SpacingTheme.compact)
+        .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget, alignment: .leading)
+        .padding(.vertical, SpacingTheme.tight)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(dev.name)
+        .accessibilityValue("\(distString), \(rssiString)")
     }
 
     // MARK: - Toggle Scan Action Button
     @ViewBuilder
     private var scanActionButton: some View {
         let cyanAccent = Theme.readableCyan(for: colorScheme)
-        let buttonBg = tools.bleRadar.isScanning ? Color.red : cyanAccent
-        let buttonFg = tools.bleRadar.isScanning ? Color.white : Theme.contrastingForeground(for: cyanAccent)
+        let redAccent = Theme.readableRed(for: colorScheme)
+        let buttonBg = tools.bleRadar.isScanning ? redAccent : cyanAccent
+        let buttonFg = Theme.contrastingForeground(for: buttonBg)
 
         Button {
+            Haptics.selection()
             if tools.bleRadar.isScanning {
                 tools.stopBleRadar()
             } else {
@@ -373,16 +385,19 @@ struct BleRadarDetailView: View {
             HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: tools.bleRadar.isScanning ? "stop.circle.fill" : "play.circle.fill")
                     .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
                 Text(tools.bleRadar.isScanning ? L10n.Tools.stopBleRadarAction : L10n.Tools.startBleRadarAction)
                     .font(Typography.captionBold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             .foregroundStyle(buttonFg)
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(maxWidth: .infinity, minHeight: 48)
             .background(buttonBg)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
     }
 }
 

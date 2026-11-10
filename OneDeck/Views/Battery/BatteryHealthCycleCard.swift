@@ -11,11 +11,16 @@ import SwiftUI
 struct BatteryHealthCycleCard: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var battery = BatteryViewModel.shared
 
     // MARK: - State
     @State private var showAnalyticsSheet: Bool = false
+
+    private var readableAccent: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     // MARK: - Body
     var body: some View {
@@ -37,81 +42,104 @@ struct BatteryHealthCycleCard: View {
     // MARK: - Subviews
     @ViewBuilder
     private var headerRow: some View {
-        HStack {
+        HStack(spacing: SpacingTheme.standard) {
             OverviewSectionHeader(title: L10n.Battery.healthTitle, icon: "heart.text.square.fill")
+                .layoutPriority(1)
 
-            Spacer()
+            Spacer(minLength: SpacingTheme.compact)
 
             let isDataActive = battery.hasRealTelemetry
-            let badgeColor: Color = isDataActive ? .green : .orange
+            let badgeColor: Color = isDataActive
+                ? Theme.readableGreen(for: colorScheme)
+                : Theme.readableOrange(for: colorScheme)
             let badgeText: String = battery.hasImportedBMS ? L10n.Battery.bmsRaw : (battery.hasRealTelemetry ? L10n.Battery.hardwareDirectTag : L10n.Battery.pendingImport)
 
             HStack(spacing: SpacingTheme.tight) {
                 Circle()
                     .fill(badgeColor)
                     .frame(width: 6, height: 6)
+                    .accessibilityHidden(true)
 
                 Text(badgeText)
-                    .font(Typography.caption)
-                    .fontWeight(.semibold)
+                    .font(Typography.captionBold)
                     .foregroundStyle(badgeColor)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .padding(.horizontal, SpacingTheme.standard)
             .padding(.vertical, SpacingTheme.micro)
             .background(badgeColor.opacity(0.12))
             .clipShape(Capsule())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(L10n.Battery.healthTitle): \(badgeText)")
         }
     }
 
     @ViewBuilder
     private var matrixSection: some View {
         let isDataActive = battery.hasRealTelemetry
+        let accent = readableAccent
+        let orange = Theme.readableOrange(for: colorScheme)
+
         VStack(spacing: SpacingTheme.standard) {
-            HStack(spacing: SpacingTheme.row) {
-                healthTile(
-                    icon: "arrow.triangle.2.circlepath",
-                    label: L10n.Battery.cycleCount,
-                    value: isDataActive ? "\(battery.cycleCountDisplay)" : "--",
-                    unit: isDataActive ? L10n.Battery.cyclesUnit : "",
-                    status: isDataActive ? cycleTierText : L10n.Battery.pendingImport,
-                    statusColor: isDataActive ? cycleTierColor : .orange
-                )
+            let cycleTile = healthTile(
+                icon: "arrow.triangle.2.circlepath",
+                label: L10n.Battery.cycleCount,
+                value: isDataActive ? "\(battery.cycleCountDisplay)" : "--",
+                unit: isDataActive ? L10n.Battery.cyclesUnit : "",
+                status: isDataActive ? cycleTierText : L10n.Battery.pendingImport,
+                statusColor: isDataActive ? cycleTierColor : orange
+            )
+            let healthTileView = healthTile(
+                icon: "heart.fill",
+                label: L10n.Battery.health,
+                value: isDataActive ? String(format: "%.1f", battery.healthPercentDisplay.isFinite ? battery.healthPercentDisplay : 0.0) : "--",
+                unit: isDataActive ? "%" : "",
+                status: isDataActive ? healthTierText : L10n.Battery.pendingImport,
+                statusColor: isDataActive ? healthTierColor : orange
+            )
+            let maxCapTile = healthTile(
+                icon: "battery.100.bolt",
+                label: L10n.Battery.currentMaxCapacity,
+                value: isDataActive ? "\(battery.actualMaxCapacityMahDisplay)" : "--",
+                unit: isDataActive ? "mAh" : "",
+                status: isDataActive ? L10n.Battery.effectiveCap : L10n.Battery.pendingImport,
+                statusColor: isDataActive ? accent : orange
+            )
+            let designCapTile = healthTile(
+                icon: "bolt.badge.clock.fill",
+                label: L10n.Battery.designCapacity,
+                value: "\(battery.effectiveDesignCapacityMah)",
+                unit: "mAh",
+                status: battery.isCustomBattery ? L10n.Battery.customCalibrated : L10n.Battery.oemNominal,
+                statusColor: battery.isCustomBattery ? orange : Theme.textSecondary(for: colorScheme)
+            )
 
-                healthTile(
-                    icon: "heart.fill",
-                    label: L10n.Battery.health,
-                    value: isDataActive ? String(format: "%.1f", battery.healthPercentDisplay.isFinite ? battery.healthPercentDisplay : 0.0) : "--",
-                    unit: isDataActive ? "%" : "",
-                    status: isDataActive ? healthTierText : L10n.Battery.pendingImport,
-                    statusColor: isDataActive ? healthTierColor : .orange
-                )
-            }
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: SpacingTheme.standard) {
+                    cycleTile
+                    healthTileView
+                    maxCapTile
+                    designCapTile
+                }
+            } else {
+                HStack(spacing: SpacingTheme.row) {
+                    cycleTile
+                    healthTileView
+                }
 
-            HStack(spacing: SpacingTheme.row) {
-                healthTile(
-                    icon: "battery.100.bolt",
-                    label: L10n.Battery.currentMaxCapacity,
-                    value: isDataActive ? "\(battery.actualMaxCapacityMahDisplay)" : "--",
-                    unit: isDataActive ? "mAh" : "",
-                    status: isDataActive ? L10n.Battery.effectiveCap : L10n.Battery.pendingImport,
-                    statusColor: isDataActive ? appState.accentColor : .orange
-                )
-
-                healthTile(
-                    icon: "bolt.badge.clock.fill",
-                    label: L10n.Battery.designCapacity,
-                    value: "\(battery.effectiveDesignCapacityMah)",
-                    unit: "mAh",
-                    status: battery.isCustomBattery ? L10n.Battery.customCalibrated : L10n.Battery.oemNominal,
-                    statusColor: battery.isCustomBattery ? .orange : Theme.textSecondary(for: colorScheme)
-                )
+                HStack(spacing: SpacingTheme.row) {
+                    maxCapTile
+                    designCapTile
+                }
             }
         }
     }
 
     @ViewBuilder
     private var baselineNoticeSection: some View {
+        let orange = Theme.readableOrange(for: colorScheme)
+
         Button {
             Haptics.impact(.medium)
             showAnalyticsSheet = true
@@ -119,7 +147,8 @@ struct BatteryHealthCycleCard: View {
             HStack(spacing: SpacingTheme.compact) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(IconTheme.tileLeading)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(orange)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                     Text(L10n.Battery.pendingImportNotice)
@@ -130,27 +159,28 @@ struct BatteryHealthCycleCard: View {
 
                     Text(L10n.Battery.calibrateViaLogPrompt)
                         .font(Typography.microAxis)
-                        .foregroundStyle(.orange)
-                        .fontWeight(.semibold)
+                        .foregroundStyle(orange)
                 }
 
-                Spacer()
+                Spacer(minLength: SpacingTheme.compact)
 
                 Image(systemName: "chevron.right")
                     .font(IconTheme.badgeInline)
-                    .foregroundStyle(.orange.opacity(0.8))
+                    .foregroundStyle(orange.opacity(0.85))
+                    .accessibilityHidden(true)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget, alignment: .leading)
             .padding(.horizontal, SpacingTheme.row)
             .padding(.vertical, SpacingTheme.compact)
-            .background(Color.orange.opacity(colorScheme == .dark ? 0.12 : 0.08))
+            .background(orange.opacity(colorScheme == .dark ? 0.14 : 0.08))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .stroke(Color.orange.opacity(0.25), lineWidth: 0.5)
+                    .stroke(orange.opacity(0.28), lineWidth: 0.6)
             )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
     }
 
     @ViewBuilder
@@ -169,56 +199,80 @@ struct BatteryHealthCycleCard: View {
 
         if !battery.cellVoltages.isEmpty {
             let cellVoltagesText = battery.cellVoltages.map { "\($0) mV" }.joined(separator: " · ")
-            HStack(spacing: SpacingTheme.compact) {
-                Image(systemName: "battery.100.bolt")
-                    .font(IconTheme.tileLeading)
-                    .foregroundStyle(appState.accentColor)
+            let accent = readableAccent
 
-                Text(L10n.Battery.cellVoltagesLabel)
-                    .font(Typography.caption)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
-
-                Spacer()
-
-                Text(cellVoltagesText)
-                    .font(Typography.captionMono)
-                    .foregroundStyle(appState.accentColor)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .padding(.horizontal, SpacingTheme.row)
-            .padding(.vertical, SpacingTheme.standard)
-            .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(L10n.Battery.cellVoltagesLabel)
-            .accessibilityValue(cellVoltagesText)
+            hardwareRow(
+                icon: "battery.100.bolt",
+                label: L10n.Battery.cellVoltagesLabel,
+                value: cellVoltagesText,
+                valueColor: accent
+            )
         }
     }
 
     @ViewBuilder
-    private func hardwareRow(icon: String, label: String, value: String) -> some View {
-        HStack(spacing: SpacingTheme.compact) {
-            Image(systemName: icon)
-                .font(IconTheme.tileLeading)
-                .foregroundStyle(appState.accentColor)
+    private func hardwareRow(
+        icon: String,
+        label: String,
+        value: String,
+        valueColor: Color? = nil
+    ) -> some View {
+        let accent = readableAccent
+        let resolvedColor = valueColor ?? Theme.textPrimary(for: colorScheme)
 
-            Text(label)
-                .font(Typography.caption)
-                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: SpacingTheme.micro) {
+                    HStack(spacing: SpacingTheme.compact) {
+                        Image(systemName: icon)
+                            .font(IconTheme.tileLeading)
+                            .foregroundStyle(accent)
+                            .accessibilityHidden(true)
 
-            Spacer()
+                        Text(label)
+                            .font(Typography.caption)
+                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    }
 
-            Text(value)
-                .font(Typography.captionMono)
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                    Text(value)
+                        .font(Typography.captionMono)
+                        .monospacedDigit()
+                        .foregroundStyle(resolvedColor)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(spacing: SpacingTheme.compact) {
+                    Image(systemName: icon)
+                        .font(IconTheme.tileLeading)
+                        .foregroundStyle(accent)
+                        .accessibilityHidden(true)
+
+                    Text(label)
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+
+                    Spacer(minLength: SpacingTheme.compact)
+
+                    Text(value)
+                        .font(Typography.captionMono)
+                        .monospacedDigit()
+                        .foregroundStyle(resolvedColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
         }
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.standard)
-        .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+        .background(Theme.tileBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
         .accessibilityValue(value)
@@ -227,31 +281,36 @@ struct BatteryHealthCycleCard: View {
     @ViewBuilder
     private var diagnosticsActionSection: some View {
         if let record = battery.analyticsRecord {
+            let accent = readableAccent
+
             HStack(spacing: SpacingTheme.standard) {
                 HStack(spacing: SpacingTheme.compact) {
                     Image(systemName: "checkmark.seal.fill")
                         .font(IconTheme.actionButton)
+                        .accessibilityHidden(true)
 
                     Text(L10n.Battery.importedSuccess)
                         .font(Typography.calloutBold)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
 
-                    Spacer()
-                    Text(formatDate(record.logDate))
+                    Spacer(minLength: SpacingTheme.compact)
+
+                    Text(record.logDate, format: .dateTime.month(.twoDigits).day(.twoDigits))
                         .font(Typography.badgeTagMono)
-                        .foregroundStyle(appState.accentColor.opacity(0.8))
+                        .monospacedDigit()
+                        .foregroundStyle(accent.opacity(0.85))
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 36)
+                .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
                 .padding(.horizontal, SpacingTheme.row)
-                .background(appState.accentColor.opacity(0.12))
-                .foregroundStyle(appState.accentColor)
+                .background(accent.opacity(0.12))
+                .foregroundStyle(accent)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                        .stroke(appState.accentColor.opacity(0.25), lineWidth: 0.5)
+                        .stroke(accent.opacity(0.25), lineWidth: 0.5)
                 )
+                .accessibilityElement(children: .combine)
 
                 Button {
                     Haptics.impact(.medium)
@@ -259,12 +318,17 @@ struct BatteryHealthCycleCard: View {
                 } label: {
                     Image(systemName: "arrow.counterclockwise.circle.fill")
                         .font(IconTheme.actionButton)
-                        .frame(width: 36, height: 36)
-                        .background(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
+                        .frame(minWidth: LayoutTheme.minTapTarget, minHeight: LayoutTheme.minTapTarget)
+                        .background(Theme.chipBackground(for: colorScheme))
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                                .stroke(Theme.chipBorder(for: colorScheme), lineWidth: 0.5)
+                        )
+                        .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BentoCardButtonStyle())
                 .accessibilityLabel(L10n.Battery.clearRecord)
             }
         }
@@ -284,7 +348,8 @@ struct BatteryHealthCycleCard: View {
             HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: icon)
                     .font(IconTheme.tileLeading)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(readableAccent)
+                    .accessibilityHidden(true)
 
                 Text(label)
                     .font(Typography.caption)
@@ -301,10 +366,12 @@ struct BatteryHealthCycleCard: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
-                Text(unit)
-                    .font(Typography.captionBold)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                    .lineLimit(1)
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(Typography.captionBold)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(1)
+                }
             }
 
             Text(status)
@@ -320,8 +387,12 @@ struct BatteryHealthCycleCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.standard)
-        .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+        .background(Theme.tileBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
         .accessibilityValue("\(value)\(unit.isEmpty ? "" : " \(unit)"), \(status)")
@@ -337,9 +408,9 @@ struct BatteryHealthCycleCard: View {
 
     private var cycleTierColor: Color {
         let count = battery.cycleCountDisplay
-        if count < 500 { return appState.accentColor }
+        if count < 500 { return readableAccent }
         if count < 800 { return Theme.readableYellow(for: colorScheme) }
-        return .orange
+        return Theme.readableOrange(for: colorScheme)
     }
 
     private var healthTierText: String {
@@ -351,20 +422,9 @@ struct BatteryHealthCycleCard: View {
 
     private var healthTierColor: Color {
         let health = battery.healthPercentDisplay
-        if health >= 85 { return appState.accentColor }
+        if health >= 85 { return readableAccent }
         if health >= 80 { return Theme.readableYellow(for: colorScheme) }
-        return .orange
-    }
-
-    private static let shortDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "MM-dd"
-        return formatter
-    }()
-
-    private func formatDate(_ date: Date) -> String {
-        Self.shortDateFormatter.string(from: date)
+        return Theme.readableOrange(for: colorScheme)
     }
 }
 

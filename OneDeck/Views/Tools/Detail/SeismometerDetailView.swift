@@ -12,6 +12,7 @@ import SwiftUI
 struct SeismometerDetailView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
@@ -20,22 +21,9 @@ struct SeismometerDetailView: View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: SpacingTheme.cardStack) {
                 if !tools.isSeismicHardwareAvailable {
-                    HStack(spacing: SpacingTheme.tight) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(Color.orange)
-                        Text(L10n.Tools.motionHardwareUnavailable)
-                            .font(Typography.caption)
-                            .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                            .multilineTextAlignment(.leading)
-                    }
-                    .padding(SpacingTheme.cardInternal)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                            .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                            .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+                    ToolNoticeBanner(
+                        icon: "exclamationmark.triangle.fill",
+                        message: L10n.Tools.motionHardwareUnavailable
                     )
                 }
 
@@ -51,9 +39,12 @@ struct SeismometerDetailView: View {
                 // Reset Peak Action Button
                 resetPeakButton
             }
+            .frame(maxWidth: LayoutTheme.maxContentWidth)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, SpacingTheme.cardStack)
             .padding(.vertical, SpacingTheme.rowStandard)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.seismometer)
         .navigationBarTitleDisplayMode(.inline)
@@ -70,7 +61,17 @@ struct SeismometerDetailView: View {
     // MARK: - Dual Metrics Hero
     @ViewBuilder
     private var dualMetricsHero: some View {
-        HStack(spacing: SpacingTheme.standard) {
+        let intensityColor = tools.seismometer.intensity.readableColor(for: colorScheme)
+        let safePeak = tools.seismometer.peakGal.isFinite ? tools.seismometer.peakGal : 0.0
+        let safeLive = tools.seismometer.currentGal.isFinite ? tools.seismometer.currentGal : 0.0
+        let peakText = String(format: "%.1f", safePeak)
+        let liveText = L10n.Tools.liveGal(safeLive)
+
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: SpacingTheme.standard))
+            : AnyLayout(HStackLayout(spacing: SpacingTheme.standard))
+
+        layout {
             // Live Acceleration Tile
             VStack(alignment: .leading, spacing: SpacingTheme.tight) {
                 Text(L10n.Tools.peakAcceleration)
@@ -79,28 +80,34 @@ struct SeismometerDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                let safePeak = tools.seismometer.peakGal.isFinite ? tools.seismometer.peakGal : 0.0
-                Text(String(format: "%.1f", safePeak))
+                Text(peakText)
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(tools.seismometer.intensity.color)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(intensityColor)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
-                let safeLive = tools.seismometer.currentGal.isFinite ? tools.seismometer.currentGal : 0.0
-                Text(L10n.Tools.liveGal(safeLive))
+                Text(liveText)
                     .font(Typography.captionMono)
+                    .monospacedDigit()
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(SpacingTheme.rowStandard)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                    .fill(Theme.tileBackground(for: colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Tools.peakAcceleration)
+            .accessibilityValue("\(peakText) Gal, \(liveText)")
 
             // Intensity Level Tile
             VStack(alignment: .leading, spacing: SpacingTheme.tight) {
@@ -112,34 +119,41 @@ struct SeismometerDetailView: View {
 
                 Text(tools.seismometer.intensity.shortCode)
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(tools.seismometer.intensity.color)
+                    .foregroundStyle(intensityColor)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
                 Text(tools.seismometer.intensity.title)
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(SpacingTheme.rowStandard)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                    .fill(Theme.tileBackground(for: colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Tools.seismicIntensityTitle)
+            .accessibilityValue("\(tools.seismometer.intensity.shortCode), \(tools.seismometer.intensity.title)")
         }
     }
 
     // MARK: - Waveform Chart
     @ViewBuilder
     private var waveformChart: some View {
+        let intensityColor = tools.seismometer.intensity.readableColor(for: colorScheme)
         let history = tools.seismometer.waveform.filter { $0.value.isFinite }
         let values = history.isEmpty ? [0.0] : history.map(\.value)
         let maxVal = max(5.0, (values.max() ?? 0.0) * 1.2)
         let safeDominantHz = tools.seismometer.dominantFrequencyHz.isFinite ? tools.seismometer.dominantFrequencyHz : 0.0
+        let dominantHzText = String(format: "%.1f Hz", safeDominantHz)
 
         VStack(alignment: .leading, spacing: SpacingTheme.standard) {
             HStack {
@@ -151,40 +165,39 @@ struct SeismometerDetailView: View {
 
                 HStack(spacing: SpacingTheme.tight) {
                     Circle()
-                        .fill(tools.seismometer.intensity.color)
+                        .fill(intensityColor)
                         .frame(width: 6, height: 6)
-                    Text(String(format: "%.1f Hz", safeDominantHz))
+                        .accessibilityHidden(true)
+                    Text(dominantHzText)
                         .font(Typography.captionMono)
-                        .foregroundStyle(tools.seismometer.intensity.color)
+                        .monospacedDigit()
+                        .foregroundStyle(intensityColor)
                 }
             }
 
             if history.isEmpty {
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
-                    .frame(height: 160)
+                BentoEmptyStateView(
+                    icon: "waveform.path.ecg",
+                    message: L10n.Tools.waitingForSamples,
+                    showsProgress: tools.seismometer.isRecording,
+                    height: 160
+                )
             } else {
                 Chart {
                     ForEach(history) { pt in
                         LineMark(
-                            x: .value("Time", pt.timestamp),
-                            y: .value("Gal", pt.value)
+                            x: .value(L10n.Tools.chartTimeAxis, pt.timestamp),
+                            y: .value(L10n.Tools.chartSeismicAxis, pt.value)
                         )
-                        .foregroundStyle(tools.seismometer.intensity.color)
+                        .foregroundStyle(intensityColor)
                         .lineStyle(StrokeStyle(lineWidth: ChartTheme.lineWidth, lineCap: .round, lineJoin: .round))
                         .interpolationMethod(.monotone)
 
                         AreaMark(
-                            x: .value("Time", pt.timestamp),
-                            y: .value("Gal", pt.value)
+                            x: .value(L10n.Tools.chartTimeAxis, pt.timestamp),
+                            y: .value(L10n.Tools.chartSeismicAxis, pt.value)
                         )
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [tools.seismometer.intensity.color.opacity(0.35), tools.seismometer.intensity.color.opacity(0.0)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
+                        .foregroundStyle(ChartTheme.areaGradient(for: intensityColor))
                         .interpolationMethod(.monotone)
                     }
                 }
@@ -204,59 +217,83 @@ struct SeismometerDetailView: View {
                     }
                 }
                 .frame(height: 160)
+                .accessibilityHidden(true)
             }
         }
         .padding(SpacingTheme.rowStandard)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.tileBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L10n.Tools.triaxialWaveform)
+        .accessibilityValue("\(dominantHzText), \(tools.seismometer.intensity.title)")
     }
 
     // MARK: - Intensity Scale Reference Card
     @ViewBuilder
     private var intensityScaleCard: some View {
+        let levels = SeismicIntensity.allCases
+
         VStack(alignment: .leading, spacing: SpacingTheme.tight) {
             Text(L10n.Tools.seismicIntensityTitle)
                 .font(Typography.badgeTagMono)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                .padding(.bottom, SpacingTheme.micro)
 
-            ForEach(SeismicIntensity.allCases, id: \.self) { item in
-                HStack(spacing: SpacingTheme.standard) {
-                    Circle()
-                        .fill(item.color)
-                        .frame(width: 6, height: 6)
+            ForEach(Array(levels.enumerated()), id: \.element) { index, item in
+                let thresholdText = String(format: "< %.1f Gal", item.maxGal)
+                let rowLayout = dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: SpacingTheme.micro))
+                    : AnyLayout(HStackLayout(spacing: SpacingTheme.standard))
 
-                    Text(item.shortCode)
+                rowLayout {
+                    HStack(spacing: SpacingTheme.standard) {
+                        Circle()
+                            .fill(item.readableColor(for: colorScheme))
+                            .frame(width: 6, height: 6)
+                            .accessibilityHidden(true)
+
+                        Text(item.shortCode)
+                            .font(Typography.captionMono)
+                            .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                            .frame(minWidth: 44, alignment: .leading)
+
+                        Text(item.title)
+                            .font(Typography.caption)
+                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        Spacer(minLength: 0)
+                    }
+
+                    Text(thresholdText)
                         .font(Typography.captionMono)
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                        .frame(width: 44, alignment: .leading)
-
-                    Text(item.title)
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-
-                    Spacer()
-
-                    Text(String(format: "< %.1f Gal", item.maxGal))
-                        .font(Typography.captionMono)
+                        .monospacedDigit()
                         .foregroundStyle(Theme.textTertiary(for: colorScheme))
                 }
-                .padding(.vertical, SpacingTheme.micro)
+                .padding(.vertical, SpacingTheme.tight)
+                .accessibilityElement(children: .combine)
+
+                if index < levels.count - 1 {
+                    BentoHairlineDivider()
+                }
             }
         }
         .padding(SpacingTheme.rowStandard)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.tileBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
         )
     }
 
@@ -269,16 +306,19 @@ struct SeismometerDetailView: View {
             HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: "arrow.counterclockwise.circle.fill")
                     .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
                 Text(L10n.Tools.resetPeakLabel)
-                    .font(Typography.captionBold)
+                    .font(Typography.headlineValue)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(maxWidth: .infinity, minHeight: 50)
             .background(appState.accentColor)
-            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
     }
 }
 

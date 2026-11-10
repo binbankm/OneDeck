@@ -610,6 +610,16 @@ public nonisolated enum SeismicIntensity: String, CaseIterable, Identifiable, Se
         case .strong: return Color.red
         }
     }
+
+    @MainActor
+    public func readableColor(for scheme: ColorScheme) -> Color {
+        switch self {
+        case .instrumental: return Theme.readableGreen(for: scheme)
+        case .weak: return Theme.readableCyan(for: scheme)
+        case .moderate: return Theme.readableOrange(for: scheme)
+        case .strong: return Theme.readableRed(for: scheme)
+        }
+    }
 }
 
 public nonisolated struct SeismometerData: Sendable {

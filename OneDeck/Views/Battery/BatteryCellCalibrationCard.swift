@@ -11,8 +11,13 @@ import SwiftUI
 struct BatteryCellCalibrationCard: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var battery = BatteryViewModel.shared
+
+    private var readableAccent: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     // MARK: - Body
     var body: some View {
@@ -21,7 +26,7 @@ struct BatteryCellCalibrationCard: View {
             toggleSection
 
             if battery.isCustomBattery {
-                Divider().opacity(0.25)
+                BentoHairlineDivider()
                 customCalibrationSection
             }
         }
@@ -45,59 +50,66 @@ struct BatteryCellCalibrationCard: View {
                 Text(L10n.Battery.isCustomToggle)
                     .font(Typography.bodyMedium)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(L10n.Battery.calibrateDesc)
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .tint(appState.accentColor)
+        .tint(readableAccent)
     }
 
     @ViewBuilder
     private var customCalibrationSection: some View {
+        let accent = readableAccent
+
         VStack(alignment: .leading, spacing: SpacingTheme.standard) {
             Text(L10n.Battery.customCapacityLabel)
                 .font(Typography.caption)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
             // Preset Quick Switchers
-            HStack(spacing: SpacingTheme.compact) {
-                capacityPill(
-                    title: L10n.Battery.oemNominal,
-                    mah: battery.officialDesignCapacityMah
-                )
-
-                capacityPill(
-                    title: L10n.Battery.highCap,
-                    mah: Int(Double(battery.officialDesignCapacityMah) * 1.12)
-                )
-
-                capacityPill(
-                    title: L10n.Battery.superCap,
-                    mah: Int(Double(battery.officialDesignCapacityMah) * 1.22)
-                )
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(spacing: SpacingTheme.compact) {
+                        presetPills
+                    }
+                } else {
+                    HStack(spacing: SpacingTheme.compact) {
+                        presetPills
+                    }
+                }
             }
 
             // Stepper Adjustment Row
-            HStack {
+            HStack(spacing: SpacingTheme.standard) {
                 Text("\(battery.customCapacityMah) mAh")
                     .font(Typography.bodyValue)
-                    .foregroundStyle(appState.accentColor)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
-                Spacer()
+                Spacer(minLength: SpacingTheme.compact)
 
-                HStack(spacing: SpacingTheme.rowStandard) {
+                HStack(spacing: SpacingTheme.tight) {
                     Button {
                         Haptics.tick()
                         battery.setCustomBattery(enabled: true, customMah: max(500, battery.customCapacityMah - 50))
                     } label: {
                         Image(systemName: "minus.circle.fill")
                             .font(IconTheme.launcherIcon)
-                            .foregroundStyle(appState.accentColor)
+                            .foregroundStyle(accent)
+                            .frame(minWidth: LayoutTheme.minTapTarget, minHeight: LayoutTheme.minTapTarget)
+                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("-50 mAh")
+                    .buttonStyle(BentoCardButtonStyle())
+                    .disabled(battery.customCapacityMah <= 500)
+                    .opacity(battery.customCapacityMah <= 500 ? 0.4 : 1.0)
+                    .accessibilityLabel(L10n.Battery.capacityAdjustMinus(50))
 
                     Button {
                         Haptics.tick()
@@ -105,23 +117,52 @@ struct BatteryCellCalibrationCard: View {
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(IconTheme.launcherIcon)
-                            .foregroundStyle(appState.accentColor)
+                            .foregroundStyle(accent)
+                            .frame(minWidth: LayoutTheme.minTapTarget, minHeight: LayoutTheme.minTapTarget)
+                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("+50 mAh")
+                    .buttonStyle(BentoCardButtonStyle())
+                    .disabled(battery.customCapacityMah >= 20000)
+                    .opacity(battery.customCapacityMah >= 20000 ? 0.4 : 1.0)
+                    .accessibilityLabel(L10n.Battery.capacityAdjustPlus(50))
                 }
             }
-            .padding(.horizontal, SpacingTheme.row)
-            .padding(.vertical, SpacingTheme.standard)
-            .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
+            .padding(.leading, SpacingTheme.row)
+            .padding(.trailing, SpacingTheme.tight)
+            .padding(.vertical, SpacingTheme.tight)
+            .background(Theme.tileBackground(for: colorScheme))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+            )
         }
         .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    @ViewBuilder
+    private var presetPills: some View {
+        capacityPill(
+            title: L10n.Battery.oemNominal,
+            mah: battery.officialDesignCapacityMah
+        )
+
+        capacityPill(
+            title: L10n.Battery.highCap,
+            mah: Int(Double(battery.officialDesignCapacityMah) * 1.12)
+        )
+
+        capacityPill(
+            title: L10n.Battery.superCap,
+            mah: Int(Double(battery.officialDesignCapacityMah) * 1.22)
+        )
     }
 
     // MARK: - Pill Helper
     @ViewBuilder
     private func capacityPill(title: String, mah: Int) -> some View {
+        let isSelected = (battery.customCapacityMah == mah)
+
         Button {
             Haptics.tick()
             battery.setCustomBattery(enabled: true, customMah: mah)
@@ -130,26 +171,35 @@ struct BatteryCellCalibrationCard: View {
                 Text(title)
                     .font(Typography.badgeTag)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    .minimumScaleFactor(0.8)
                 Text("\(mah)")
                     .font(Typography.captionBold)
+                    .monospacedDigit()
                     .lineLimit(1)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, SpacingTheme.compact)
+            .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+            .padding(.horizontal, SpacingTheme.tight)
+            .padding(.vertical, SpacingTheme.tight)
             .background(
-                battery.customCapacityMah == mah
+                isSelected
                     ? appState.accentColor
-                    : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
+                    : Theme.chipBackground(for: colorScheme)
             )
             .foregroundStyle(
-                battery.customCapacityMah == mah
+                isSelected
                     ? Theme.contrastingForeground(for: appState.accentColor)
                     : Theme.textSecondary(for: colorScheme)
             )
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                    .stroke(isSelected ? Color.clear : Theme.chipBorder(for: colorScheme), lineWidth: 0.5)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
+        .accessibilityLabel("\(title), \(mah) mAh")
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
 

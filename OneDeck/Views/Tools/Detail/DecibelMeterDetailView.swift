@@ -12,8 +12,13 @@ import SwiftUI
 struct DecibelMeterDetailView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
+
+    private var accentFg: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     // MARK: - Body
     var body: some View {
@@ -26,9 +31,16 @@ struct DecibelMeterDetailView: View {
                     kpiSummaryRow
 
                     if tools.isMicrophonePermissionDenied || tools.decibelStatus == .permissionDenied {
-                        micPermissionDeniedBanner
+                        ToolPermissionDeniedBanner(
+                            icon: "mic.slash.fill",
+                            message: L10n.Tools.micPermissionDenied,
+                            onOpenSettings: tools.openAppSettings
+                        )
                     } else if tools.decibelStatus == .hardwareUnavailable {
-                        micHardwareUnavailableBanner
+                        ToolNoticeBanner(
+                            icon: "exclamationmark.triangle.fill",
+                            message: L10n.Tools.microphoneHardwareUnavailable
+                        )
                     }
 
                     Spacer(minLength: 0)
@@ -44,10 +56,12 @@ struct DecibelMeterDetailView: View {
                     // Master Start / Stop Button
                     primaryToggleButton
                 }
+                .frame(maxWidth: LayoutTheme.maxContentWidth, minHeight: geo.size.height)
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, SpacingTheme.cardStack)
                 .padding(.vertical, SpacingTheme.rowStandard)
-                .frame(maxWidth: .infinity, minHeight: geo.size.height)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         }
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.decibelMeter)
@@ -62,73 +76,21 @@ struct DecibelMeterDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private var micPermissionDeniedBanner: some View {
-        VStack(spacing: SpacingTheme.compact) {
-            HStack(spacing: SpacingTheme.tight) {
-                Image(systemName: "mic.slash.fill")
-                    .foregroundStyle(Color.orange)
-                Text(L10n.Tools.micPermissionDenied)
-                    .font(Typography.caption)
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .multilineTextAlignment(.leading)
-            }
-
-            Button {
-                tools.openAppSettings()
-            } label: {
-                Text(L10n.Tools.openSettings)
-                    .font(Typography.captionBold)
-                    .padding(.horizontal, SpacingTheme.standard)
-                    .padding(.vertical, SpacingTheme.tight)
-                    .background(Color.orange)
-                    .foregroundStyle(Color.white)
-                    .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(SpacingTheme.cardInternal)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
-        )
-    }
-
-    @ViewBuilder
-    private var micHardwareUnavailableBanner: some View {
-        HStack(spacing: SpacingTheme.tight) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(Color.orange)
-            Text(L10n.Tools.microphoneHardwareUnavailable)
-                .font(Typography.caption)
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .multilineTextAlignment(.leading)
-        }
-        .padding(SpacingTheme.cardInternal)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
-        )
-    }
-
     // MARK: - KPI Summary Row
     @ViewBuilder
     private var kpiSummaryRow: some View {
-        HStack(spacing: SpacingTheme.standard) {
-            let safePeak = tools.decibelMeter.peakDb.isFinite ? tools.decibelMeter.peakDb : 0.0
-            let safeAvg = tools.decibelMeter.avgDb.isFinite ? tools.decibelMeter.avgDb : 0.0
-            let safeMin = tools.decibelMeter.minDb.isFinite ? tools.decibelMeter.minDb : 0.0
-            metricTile(title: L10n.Tools.peakNoise, value: String(format: "%.1f", safePeak), color: Color.red)
-            metricTile(title: L10n.Tools.avgNoise, value: String(format: "%.1f", safeAvg), color: appState.accentColor)
-            metricTile(title: L10n.Tools.minNoise, value: String(format: "%.1f", safeMin), color: Color.green)
+        let safePeak = tools.decibelMeter.peakDb.isFinite ? tools.decibelMeter.peakDb : 0.0
+        let safeAvg = tools.decibelMeter.avgDb.isFinite ? tools.decibelMeter.avgDb : 0.0
+        let safeMin = tools.decibelMeter.minDb.isFinite ? tools.decibelMeter.minDb : 0.0
+
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: SpacingTheme.standard))
+            : AnyLayout(HStackLayout(spacing: SpacingTheme.standard))
+
+        layout {
+            metricTile(title: L10n.Tools.peakNoise, value: String(format: "%.1f", safePeak), color: Theme.readableRed(for: colorScheme))
+            metricTile(title: L10n.Tools.avgNoise, value: String(format: "%.1f", safeAvg), color: accentFg)
+            metricTile(title: L10n.Tools.minNoise, value: String(format: "%.1f", safeMin), color: Theme.readableGreen(for: colorScheme))
         }
     }
 
@@ -138,11 +100,16 @@ struct DecibelMeterDetailView: View {
             Text(title)
                 .font(Typography.badgeTagMono)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
 
             HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
                 Text(value)
                     .font(Typography.heroSubValueMono)
+                    .monospacedDigit()
                     .foregroundStyle(color)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Text("dB")
                     .font(Typography.badgeTagMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
@@ -150,14 +117,18 @@ struct DecibelMeterDetailView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, SpacingTheme.compact)
+        .padding(.horizontal, SpacingTheme.tight)
         .background(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .fill(Theme.tileBackground(for: colorScheme))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
+        .accessibilityValue("\(value) dB")
     }
 
     // MARK: - Center Decibel Gauge
@@ -166,12 +137,14 @@ struct DecibelMeterDetailView: View {
         let db = tools.decibelMeter.currentDb.isFinite ? tools.decibelMeter.currentDb : 30.0
         let ratio = max(0.0, min(1.0, (db - 30.0) / 90.0))
         let activeColor = ratingColor(for: db)
+        let dbString = String(format: "%.1f", db)
+        let rating = ratingTitle(for: db)
 
         ZStack {
             // Background Track
             Circle()
                 .trim(from: 0.15, to: 0.85)
-                .stroke(Theme.cardBorder(for: colorScheme), style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                .stroke(Theme.tileBorder(for: colorScheme), style: StrokeStyle(lineWidth: 14, lineCap: .round))
                 .rotationEffect(.degrees(90))
                 .frame(width: size, height: size)
 
@@ -185,7 +158,7 @@ struct DecibelMeterDetailView: View {
 
             // Center Text
             VStack(spacing: SpacingTheme.micro) {
-                Text(String(format: "%.1f", db))
+                Text(dbString)
                     .font(Typography.displayHero)
                     .monospacedDigit()
                     .foregroundStyle(activeColor)
@@ -194,7 +167,7 @@ struct DecibelMeterDetailView: View {
                     .font(Typography.badgeTagMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-                Text(ratingTitle(for: db))
+                Text(rating)
                     .font(Typography.badgeTag)
                     .foregroundStyle(activeColor)
                     .padding(.horizontal, SpacingTheme.standard)
@@ -204,30 +177,38 @@ struct DecibelMeterDetailView: View {
             }
         }
         .frame(width: size, height: size)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.Tools.decibelMeter)
+        .accessibilityValue("\(dbString) dB SPL, \(rating)")
     }
 
     // MARK: - History Chart
     @ViewBuilder
     private var historyChart: some View {
         let validHistory = tools.decibelMeter.history.filter { $0.value.isFinite }
+        let safeAvg = tools.decibelMeter.avgDb.isFinite ? tools.decibelMeter.avgDb : 0.0
 
-        VStack(alignment: .leading, spacing: SpacingTheme.micro) {
+        VStack(alignment: .leading, spacing: SpacingTheme.compact) {
             Text(L10n.Tools.soundTimeline)
                 .font(Typography.badgeTagMono)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
 
             if validHistory.isEmpty {
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
-                    .frame(height: 70)
+                BentoEmptyStateView(
+                    icon: "waveform",
+                    message: L10n.Tools.waitingForSamples,
+                    showsProgress: tools.decibelMeter.isRecording,
+                    height: 84
+                )
             } else {
                 Chart {
                     ForEach(validHistory) { pt in
                         LineMark(
-                            x: .value("Time", pt.timestamp),
-                            y: .value("dB", pt.value)
+                            x: .value(L10n.Tools.chartTimeAxis, pt.timestamp),
+                            y: .value(L10n.Tools.chartDecibelAxis, pt.value)
                         )
-                        .foregroundStyle(appState.accentColor)
+                        .foregroundStyle(accentFg)
+                        .lineStyle(StrokeStyle(lineWidth: ChartTheme.lineWidth, lineCap: .round, lineJoin: .round))
                         .interpolationMethod(.monotone)
                     }
                 }
@@ -235,27 +216,32 @@ struct DecibelMeterDetailView: View {
                 .chartXAxis(.hidden)
                 .chartYAxis {
                     AxisMarks(position: .leading, values: [40, 70, 90]) { val in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [3, 3]))
-                            .foregroundStyle(Color.gray.opacity(0.2))
+                        AxisGridLine(stroke: ChartTheme.gridStroke)
+                            .foregroundStyle(ChartTheme.gridColor(for: colorScheme))
                         AxisValueLabel {
                             if let v = val.as(Int.self) {
                                 Text("\(v)")
                                     .font(ChartTheme.compactAxisLabelFont)
-                                    .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                                    .foregroundStyle(ChartTheme.axisLabelColor(for: colorScheme))
                             }
                         }
                     }
                 }
-                .frame(height: 70)
+                .frame(height: 84)
+                .accessibilityHidden(true)
             }
         }
         .bentoCard(accent: appState.accentColor)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L10n.Tools.soundTimeline)
+        .accessibilityValue(validHistory.isEmpty ? L10n.Tools.waitingForSamples : String(format: "%.1f dB", safeAvg))
     }
 
     // MARK: - Primary Play/Stop Button
     @ViewBuilder
     private var primaryToggleButton: some View {
         let isRunning = tools.decibelMeter.isRecording
+        let buttonBg = isRunning ? Theme.readableRed(for: colorScheme) : appState.accentColor
 
         Button {
             tools.toggleDecibelMeter()
@@ -263,26 +249,29 @@ struct DecibelMeterDetailView: View {
             HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: isRunning ? "stop.fill" : "mic.fill")
                     .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
                 Text(isRunning ? L10n.Common.stop : L10n.Tools.startMeter)
                     .font(Typography.headlineValue)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
-            .foregroundStyle(isRunning ? Color.white : Theme.contrastingForeground(for: appState.accentColor))
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
+            .foregroundStyle(Theme.contrastingForeground(for: buttonBg))
+            .frame(maxWidth: .infinity, minHeight: 50)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                    .fill(isRunning ? Color.red : appState.accentColor)
+                    .fill(buttonBg)
             )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
     }
 
     // MARK: - Rating Helpers
     private func ratingColor(for db: Double) -> Color {
-        if db < 45 { return Color.green }
-        if db < 70 { return appState.accentColor }
-        if db < 85 { return Color.orange }
-        return Color.red
+        if db < 45 { return Theme.readableGreen(for: colorScheme) }
+        if db < 70 { return accentFg }
+        if db < 85 { return Theme.readableOrange(for: colorScheme) }
+        return Theme.readableRed(for: colorScheme)
     }
 
     private func ratingTitle(for db: Double) -> String {

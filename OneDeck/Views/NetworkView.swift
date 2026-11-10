@@ -11,19 +11,18 @@ import SwiftUI
 struct NetworkView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
-    @Bindable private var appState = AppState.shared
-    @Bindable private var net = NetworkViewModel.shared
 
     // MARK: - Body
     var body: some View {
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 cardStack
-                    .frame(maxWidth: 680)
+                    .frame(maxWidth: LayoutTheme.maxContentWidth)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, SpacingTheme.cardStack)
                     .padding(.vertical, SpacingTheme.rowStandard)
             }
+            .scrollDismissesKeyboard(.interactively)
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Network.title)

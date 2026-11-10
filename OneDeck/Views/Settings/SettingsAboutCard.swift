@@ -12,8 +12,14 @@ import SwiftUI
 struct SettingsAboutCard: View {
     // MARK: - Properties & State
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.openURL) private var openURL
     @Bindable private var appState = AppState.shared
     private var system = SystemViewModel.shared
+
+    private var readableAccent: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
@@ -39,31 +45,37 @@ struct SettingsAboutCard: View {
 
     // MARK: - Subviews
     private var appIdentityTile: some View {
-        // 1. Clean App Identity Platter Tile
-        HStack(spacing: SpacingTheme.rowStandard) {
-            appIconView
+        let accent = readableAccent
 
-            HStack(spacing: SpacingTheme.compact) {
+        return HStack(spacing: SpacingTheme.rowStandard) {
+            appIconView
+                .accessibilityHidden(true)
+
+            FlowLayout(spacing: SpacingTheme.compact) {
                 Text(L10n.Settings.appName)
                     .font(Typography.title1)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
                 Text("v\(appVersion)")
                     .font(Typography.badgeTagMono)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(accent)
                     .padding(.horizontal, SpacingTheme.compact)
                     .padding(.vertical, SpacingTheme.micro)
-                    .background(appState.accentColor.opacity(0.12))
+                    .background(accent.opacity(0.12))
                     .clipShape(Capsule())
             }
 
-            Spacer()
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.standard)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                .fill(Theme.tileBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(L10n.Settings.appName)
@@ -72,7 +84,6 @@ struct SettingsAboutCard: View {
 
     @ViewBuilder
     private var hardwareSpecTiles: some View {
-        // 2. Hardware Environment & Telemetry Specs
         specTile(
             icon: UIDevice.current.userInterfaceIdiom == .pad ? "ipad.gen2" : "iphone.gen3",
             label: L10n.Settings.aboutDevice,
@@ -93,43 +104,55 @@ struct SettingsAboutCard: View {
     }
 
     private var repoLinkTile: some View {
-        // 3. Official Repository Link Platter Tile
-        Button {
+        let accent = readableAccent
+
+        return Button {
             Haptics.tick()
             if let url = URL(string: "https://github.com/binbankm/OneDeck") {
-                UIApplication.shared.open(url)
+                openURL(url)
             }
         } label: {
             HStack(alignment: .center, spacing: SpacingTheme.standard) {
                 Image(systemName: "arrow.up.forward.app.fill")
                     .font(IconTheme.tileLeading)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(accent)
                     .frame(width: 20, height: 20, alignment: .center)
+                    .accessibilityHidden(true)
 
                 Text(L10n.Settings.repoLink)
                     .font(Typography.bodyMedium)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
 
                 Spacer(minLength: SpacingTheme.standard)
 
                 Image(systemName: "arrow.up.forward")
                     .font(IconTheme.copyIndicator)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(accent)
+                    .accessibilityHidden(true)
             }
+            .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
             .padding(.horizontal, SpacingTheme.row)
-            .padding(.vertical, SpacingTheme.standard)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                    .fill(Theme.tileBackground(for: colorScheme))
             )
-            .contentShape(Rectangle())
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
+        .accessibilityAddTraits(.isLink)
     }
 
     // MARK: - App Icon View (Protected against missing image asset warnings)
     @ViewBuilder
     private var appIconView: some View {
+        let accent = readableAccent
+
         if let uiImage = UIImage(named: "AppIcon-Display") {
             Image(uiImage: uiImage)
                 .resizable()
@@ -141,15 +164,14 @@ struct SettingsAboutCard: View {
                         .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                 )
         } else {
-            // High-fidelity fallback squircle with accent gradient
             ZStack {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(appState.accentColor.opacity(0.15))
+                    .fill(accent.opacity(0.15))
                     .frame(width: 44, height: 44)
 
                 Image(systemName: "circle.circle.fill")
                     .font(IconTheme.heroAvatar)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(accent)
             }
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
@@ -161,37 +183,70 @@ struct SettingsAboutCard: View {
     // MARK: - Spec Tile Helper
     @ViewBuilder
     private func specTile(icon: String, label: String, value: String) -> some View {
-        HStack(alignment: .center, spacing: SpacingTheme.standard) {
-            Image(systemName: icon)
-                .font(IconTheme.tileLeading)
-                .foregroundStyle(appState.accentColor)
-                .frame(width: 20, height: 20, alignment: .center)
+        let accent = readableAccent
 
-            Text(label)
-                .font(Typography.bodyMedium)
-                .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+                    HStack(spacing: SpacingTheme.standard) {
+                        Image(systemName: icon)
+                            .font(IconTheme.tileLeading)
+                            .foregroundStyle(accent)
+                            .frame(width: 20, height: 20, alignment: .center)
+                            .accessibilityHidden(true)
 
-            Spacer(minLength: SpacingTheme.standard)
+                        Text(label)
+                            .font(Typography.bodyMedium)
+                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
 
-            Text(value)
-                .font(Typography.bodyValue)
-                .monospacedDigit()
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .multilineTextAlignment(.trailing)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                    Text(value)
+                        .font(Typography.bodyValue)
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(alignment: .center, spacing: SpacingTheme.standard) {
+                    Image(systemName: icon)
+                        .font(IconTheme.tileLeading)
+                        .foregroundStyle(accent)
+                        .frame(width: 20, height: 20, alignment: .center)
+                        .accessibilityHidden(true)
+
+                    Text(label)
+                        .font(Typography.bodyMedium)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+
+                    Spacer(minLength: SpacingTheme.standard)
+
+                    Text(value)
+                        .font(Typography.bodyValue)
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .multilineTextAlignment(.trailing)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
         }
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.standard)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-            )
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(label)
-            .accessibilityValue(value)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .fill(Theme.tileBackground(for: colorScheme))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue(value)
     }
 }
 

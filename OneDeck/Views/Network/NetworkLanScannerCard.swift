@@ -11,12 +11,17 @@ import SwiftUI
 struct NetworkLanScannerCard: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var net = NetworkViewModel.shared
 
     // MARK: - State
     @State private var copiedDeviceID: DiscoveredDevice.ID?
     @State private var copyToastTask: Task<Void, Never>?
+
+    private var accentFg: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     // MARK: - Body
     var body: some View {
@@ -34,80 +39,82 @@ struct NetworkLanScannerCard: View {
     // MARK: - Subviews
     @ViewBuilder
     private var headerSection: some View {
-        HStack(spacing: SpacingTheme.standard) {
+        let titleAndCount = HStack(spacing: SpacingTheme.standard) {
             BentoSectionHeader(title: L10n.Network.lanScanTitle, icon: "point.3.filled.connected.trianglepath.dotted")
 
             if !net.discoveredDevices.isEmpty {
                 Text("\(net.discoveredDevices.count)")
                     .font(Typography.captionMono)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(accentFg)
                     .padding(.horizontal, SpacingTheme.compact)
                     .padding(.vertical, SpacingTheme.micro)
                     .background(appState.accentColor.opacity(0.12))
                     .clipShape(Capsule())
+                    .accessibilityLabel(L10n.Network.devicesCountText(count: net.discoveredDevices.count))
             }
+        }
 
-            Spacer()
-
-            // Trigger Scan Button
-            Button {
-                Haptics.impact(.medium)
-                net.startLanScan()
-            } label: {
-                HStack(spacing: SpacingTheme.tight) {
-                    if net.isScanningLan {
-                        ProgressView()
-                            .tint(appState.accentColor)
-                            .scaleEffect(0.65)
-                    } else {
-                        Image(systemName: "sensor.tag.radiowaves.forward.fill")
-                            .font(IconTheme.actionButton)
-                    }
-
-                    Text(net.isScanningLan ? L10n.Network.scanning : L10n.Network.startScan)
-                        .font(Typography.captionBold)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
+        let scanButton = Button {
+            Haptics.impact(.medium)
+            net.startLanScan()
+        } label: {
+            HStack(spacing: SpacingTheme.tight) {
+                if net.isScanningLan {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(accentFg)
+                } else {
+                    Image(systemName: "sensor.tag.radiowaves.forward.fill")
+                        .font(IconTheme.actionButton)
+                        .accessibilityHidden(true)
                 }
-                .foregroundStyle(appState.accentColor)
-                .padding(.horizontal, SpacingTheme.row)
-                .padding(.vertical, SpacingTheme.tight)
-                .background(appState.accentColor.opacity(0.12))
-                .clipShape(Capsule())
+
+                Text(net.isScanningLan ? L10n.Network.scanning : L10n.Network.startScan)
+                    .font(Typography.captionBold)
+                    .lineLimit(1)
             }
-            .buttonStyle(.plain)
-            .disabled(net.isScanningLan)
+            .foregroundStyle(accentFg)
+            .padding(.horizontal, SpacingTheme.row)
+            .frame(minHeight: LayoutTheme.minTapTarget)
+            .background(appState.accentColor.opacity(0.12))
+            .clipShape(Capsule())
+            .contentShape(Capsule())
+        }
+        .buttonStyle(BentoCardButtonStyle())
+        .disabled(net.isScanningLan)
+
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: SpacingTheme.compact) {
+                titleAndCount
+                scanButton
+            }
+        } else {
+            HStack(spacing: SpacingTheme.standard) {
+                titleAndCount
+                Spacer(minLength: SpacingTheme.compact)
+                scanButton
+            }
         }
     }
 
     @ViewBuilder
     private var devicesListSection: some View {
         if net.discoveredDevices.isEmpty {
-            VStack(spacing: SpacingTheme.standard) {
-                Image(systemName: net.isScanningLan ? "antenna.radiowaves.left.and.right.circle.fill" : "wifi.router.fill")
-                    .font(IconTheme.emptyState)
-                    .foregroundStyle(appState.accentColor.opacity(0.7))
-                    .symbolEffect(.pulse, isActive: net.isScanningLan)
-
-                Text(net.isScanningLan ? L10n.Network.scanning : L10n.Network.noLanDevices)
-                    .font(Typography.bodyValue)
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-
-                Text(L10n.Network.noLanDevicesHint)
-                    .font(Typography.captionRegular)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, SpacingTheme.heroPadding)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.4))
+            BentoEmptyStateView(
+                icon: "wifi.router.fill",
+                message: net.isScanningLan ? L10n.Network.scanning : L10n.Network.noLanDevices,
+                subtitle: L10n.Network.noLanDevicesHint,
+                showsProgress: net.isScanningLan,
+                height: 120
             )
         } else {
+            let green = Theme.readableGreen(for: colorScheme)
+
             VStack(spacing: SpacingTheme.standard) {
                 ForEach(net.discoveredDevices) { device in
                     let hasValidIP = device.ipAddress != "--" && !device.ipAddress.isEmpty
+                    let serviceName = friendlyServiceType(device.serviceType)
+
                     Button {
                         guard hasValidIP else { return }
                         UIPasteboard.general.string = device.ipAddress
@@ -129,15 +136,16 @@ struct NetworkLanScannerCard: View {
                         HStack(spacing: SpacingTheme.row) {
                             Image(systemName: device.iconName)
                                 .font(IconTheme.sectionHeader)
-                                .foregroundStyle(appState.accentColor)
+                                .foregroundStyle(accentFg)
                                 .frame(width: 24, height: 24, alignment: .center)
+                                .accessibilityHidden(true)
 
                             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                                 HStack(spacing: SpacingTheme.compact) {
                                     Text(device.name)
                                         .font(Typography.bodyValue)
                                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                                        .lineLimit(1)
+                                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                                         .minimumScaleFactor(0.85)
 
                                     if let vendor = device.vendorName, vendor != device.name {
@@ -148,11 +156,11 @@ struct NetworkLanScannerCard: View {
                                     }
                                 }
 
-                                HStack(spacing: SpacingTheme.compact) {
+                                FlowLayout(spacing: SpacingTheme.compact, rowSpacing: SpacingTheme.micro) {
                                     if device.ipAddress != "--" {
                                         Text(device.ipAddress)
                                             .font(Typography.captionMono)
-                                            .foregroundStyle(appState.accentColor)
+                                            .foregroundStyle(accentFg)
                                     }
 
                                     if let mac = device.macAddress {
@@ -161,49 +169,51 @@ struct NetworkLanScannerCard: View {
                                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                                     }
 
-                                    Text("· \(friendlyServiceType(device.serviceType))")
+                                    Text("· \(serviceName)")
                                         .font(Typography.badgeTagMedium)
                                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                                 }
                             }
 
-                            Spacer()
+                            Spacer(minLength: SpacingTheme.compact)
 
                             if copiedDeviceID == device.id {
                                 Text(L10n.Common.copied)
                                     .font(Typography.badgeTag)
-                                    .foregroundStyle(appState.accentColor)
+                                    .foregroundStyle(accentFg)
                                     .transition(.opacity)
                             } else if let lat = device.latencyMs, lat.isFinite {
                                 Text(String(format: "%.0fms", lat))
                                     .font(Typography.badgeTagMono)
-                                    .foregroundStyle(Color.green)
+                                    .foregroundStyle(green)
                                     .padding(.horizontal, SpacingTheme.compact)
                                     .padding(.vertical, SpacingTheme.micro)
-                                    .background(Color.green.opacity(0.12))
+                                    .background(green.opacity(0.12))
                                     .clipShape(Capsule())
                             } else {
                                 Circle()
-                                    .fill(Color.green)
+                                    .fill(green)
                                     .frame(width: 6, height: 6)
+                                    .accessibilityHidden(true)
                             }
                         }
-                        .contentShape(Rectangle())
+                        .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget, alignment: .leading)
                         .padding(.horizontal, SpacingTheme.row)
                         .padding(.vertical, SpacingTheme.standard)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                                .fill(Theme.tileBackground(for: colorScheme))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
                         )
+                        .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(BentoCardButtonStyle())
                     .disabled(!hasValidIP)
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(device.name)\(hasValidIP ? ", \(device.ipAddress)" : "")")
+                    .accessibilityLabel("\(device.name)\(hasValidIP ? ", \(device.ipAddress)" : ""), \(serviceName)")
                     .accessibilityHint(hasValidIP ? L10n.Network.copyDeviceIp : "")
                 }
             }
@@ -217,7 +227,7 @@ struct NetworkLanScannerCard: View {
         } else if type.contains("smb") {
             return "SMB"
         } else if type.contains("raop") {
-            return "AirPlay Audio"
+            return L10n.Network.airPlayAudio
         } else if type.contains("http") {
             return "HTTP"
         } else {

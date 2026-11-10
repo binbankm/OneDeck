@@ -11,6 +11,7 @@ import SwiftUI
 struct BatteryHeroCard: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var battery = BatteryViewModel.shared
 
@@ -26,10 +27,11 @@ struct BatteryHeroCard: View {
     // MARK: - Subviews
     @ViewBuilder
     private var headerSection: some View {
-        HStack(alignment: .center) {
+        HStack(alignment: .center, spacing: SpacingTheme.standard) {
             OverviewSectionHeader(title: L10n.Battery.batteryStatus, icon: "battery.100.bolt")
+                .layoutPriority(1)
 
-            Spacer()
+            Spacer(minLength: SpacingTheme.compact)
 
             // State & Protocol Capsule
             HStack(spacing: SpacingTheme.tight) {
@@ -37,10 +39,12 @@ struct BatteryHeroCard: View {
                     Image(systemName: "bolt.fill")
                         .font(IconTheme.badgeInline)
                         .foregroundStyle(activeStatusColor)
+                        .accessibilityHidden(true)
                 } else if battery.isLowPowerMode {
                     Image(systemName: "battery.100.bolt")
                         .font(IconTheme.badgeInline)
                         .foregroundStyle(Theme.readableYellow(for: colorScheme))
+                        .accessibilityHidden(true)
                 }
 
                 Text(battery.chargingProtocolName)
@@ -53,47 +57,27 @@ struct BatteryHeroCard: View {
             .padding(.vertical, SpacingTheme.tight)
             .background(activeStatusColor.opacity(0.14))
             .clipShape(Capsule())
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(L10n.Battery.chargerProtocol): \(battery.chargingProtocolName)")
         }
     }
 
     @ViewBuilder
     private var gaugeSection: some View {
-        VStack(spacing: SpacingTheme.row) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(battery.isBatteryLevelAvailable ? "\(battery.batteryLevelPercent)" : "--")
-                    .font(Typography.displayHero)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .foregroundStyle(activeStatusColor)
+        let clampedLevel = min(1.0, max(0.0, battery.batteryLevel.isFinite ? Double(battery.batteryLevel) : 0.0))
 
-                if battery.isBatteryLevelAvailable {
-                    Text("%")
-                        .font(Typography.title1)
-                        .foregroundStyle(activeStatusColor.opacity(0.85))
+        VStack(alignment: .leading, spacing: SpacingTheme.row) {
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: SpacingTheme.compact) {
+                        batteryPercentReadout
+                        remainingCapacityReadout(alignment: .leading)
+                    }
                 } else {
-                    Text(L10n.Battery.unavailableReading)
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                        .padding(.leading, SpacingTheme.tight)
-                }
-
-                Spacer()
-
-                // Available Energy vs Total Capacity
-                VStack(alignment: .trailing, spacing: SpacingTheme.micro) {
-                    Text(L10n.Battery.remainingEnergy)
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-
-                    HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
-                        Text(battery.isBatteryLevelAvailable ? "\(battery.currentRemainingMah)" : "--")
-                            .font(Typography.headlineValue)
-                            .monospacedDigit()
-                            .foregroundStyle(Theme.textPrimary(for: colorScheme))
-
-                        Text("/ \(battery.effectiveDesignCapacityMah) mAh")
-                            .font(Typography.calloutLabel)
-                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.standard) {
+                        batteryPercentReadout
+                        Spacer(minLength: SpacingTheme.compact)
+                        remainingCapacityReadout(alignment: .trailing)
                     }
                 }
             }
@@ -105,19 +89,22 @@ struct BatteryHeroCard: View {
                     : L10n.Battery.unavailableReading
             )
 
-            // Dynamic Smooth Capsule Gauge (GPU Accelerated Transform)
-            let clampedLevel = min(1.0, max(0.0, battery.batteryLevel.isFinite ? Double(battery.batteryLevel) : 0.0))
+            // Non-distorting Smooth Capsule Gauge
+            GeometryReader { geo in
+                let fillWidth = max(0, geo.size.width * clampedLevel)
+                let minVisibleWidth = min(geo.size.width, max(18, fillWidth))
 
-            Capsule()
-                .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
-                .overlay(alignment: .leading) {
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Theme.chipBackground(for: colorScheme))
+
                     if battery.isBatteryLevelAvailable && clampedLevel > 0 {
                         Capsule()
                             .fill(
                                 LinearGradient(
                                     colors: [
                                         activeStatusColor,
-                                        activeStatusColor.opacity(0.75)
+                                        activeStatusColor.opacity(0.78)
                                     ],
                                     startPoint: .leading,
                                     endPoint: .trailing
@@ -125,52 +112,132 @@ struct BatteryHeroCard: View {
                             )
                             .overlay(
                                 Capsule()
-                                    .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                                    .stroke(Color.white.opacity(0.18), lineWidth: 0.5)
                             )
-                            .scaleEffect(x: max(0.02, CGFloat(clampedLevel)), y: 1.0, anchor: .leading)
+                            .frame(width: minVisibleWidth)
                     }
                 }
-                .clipShape(Capsule())
-                .frame(height: 18)
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: battery.batteryLevel)
-                .accessibilityHidden(true)
+            }
+            .frame(height: 18)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: battery.batteryLevel)
+            .accessibilityHidden(true)
 
             // ETA & Live Power Sub-row
-            HStack(spacing: SpacingTheme.tight) {
-                Image(systemName: "clock.fill")
-                    .font(IconTheme.tileLeading)
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+                    etaRow
+                    wattageRow
+                }
+                .padding(.top, SpacingTheme.micro)
+            } else {
+                HStack(spacing: SpacingTheme.tight) {
+                    etaRow
+                    Spacer(minLength: SpacingTheme.compact)
+                    wattageRow
+                }
+                .padding(.top, SpacingTheme.micro)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var batteryPercentReadout: some View {
+        HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
+            Text(battery.isBatteryLevelAvailable ? "\(battery.batteryLevelPercent)" : "--")
+                .font(Typography.displayHero)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .foregroundStyle(activeStatusColor)
+
+            if battery.isBatteryLevelAvailable {
+                Text("%")
+                    .font(Typography.title1)
+                    .foregroundStyle(activeStatusColor.opacity(0.85))
+            } else {
+                Text(L10n.Battery.unavailableReading)
+                    .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                Text(battery.etaCountdownString)
+                    .padding(.leading, SpacingTheme.tight)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func remainingCapacityReadout(alignment: HorizontalAlignment) -> some View {
+        VStack(alignment: alignment, spacing: SpacingTheme.micro) {
+            Text(L10n.Battery.remainingEnergy)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+
+            HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
+                Text(battery.isBatteryLevelAvailable ? "\(battery.currentRemainingMah)" : "--")
+                    .font(Typography.headlineValue)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .lineLimit(1)
+
+                Text("/ \(battery.effectiveDesignCapacityMah) mAh")
                     .font(Typography.calloutLabel)
+                    .monospacedDigit()
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
-
-                Spacer(minLength: SpacingTheme.compact)
-
-                HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: battery.isPluggedIn ? "bolt.fill" : "bolt.badge.automatic.fill")
-                        .font(IconTheme.badgeInline)
-                        .foregroundStyle(activeStatusColor)
-                    Text(String(format: "%+.1f W", battery.liveWattage.isFinite ? battery.liveWattage : 0.0))
-                        .font(Typography.captionMono)
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                        .lineLimit(1)
-                }
             }
-            .padding(.top, SpacingTheme.micro)
         }
+    }
+
+    @ViewBuilder
+    private var etaRow: some View {
+        HStack(spacing: SpacingTheme.tight) {
+            Image(systemName: "clock.fill")
+                .font(IconTheme.tileLeading)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .accessibilityHidden(true)
+
+            Text(battery.etaCountdownString)
+                .font(Typography.calloutLabel)
+                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var wattageRow: some View {
+        let wattValue = String(format: "%+.1f W", battery.liveWattage.isFinite ? battery.liveWattage : 0.0)
+
+        HStack(spacing: SpacingTheme.tight) {
+            Image(systemName: battery.isPluggedIn ? "bolt.fill" : "bolt.badge.automatic.fill")
+                .font(IconTheme.badgeInline)
+                .foregroundStyle(activeStatusColor)
+                .accessibilityHidden(true)
+
+            Text(wattValue)
+                .font(Typography.captionMono)
+                .monospacedDigit()
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .lineLimit(1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L10n.Battery.livePowerTitle)
+        .accessibilityValue(wattValue)
     }
 
     // MARK: - Dynamic Status Color
     private var activeStatusColor: Color {
+        if battery.isPluggedIn {
+            return Theme.readableAccent(appState.accentColor, for: colorScheme)
+        }
         if battery.isLowPowerMode {
             return Theme.readableYellow(for: colorScheme)
         }
-        if battery.isBatteryLevelAvailable && battery.batteryLevel <= 0.20 && !battery.isPluggedIn {
-            return .red
+        if battery.isBatteryLevelAvailable && battery.batteryLevel <= 0.20 {
+            return Theme.readableRed(for: colorScheme)
         }
-        return appState.accentColor
+        return Theme.readableAccent(appState.accentColor, for: colorScheme)
     }
 }
 

@@ -11,8 +11,13 @@ import SwiftUI
 struct SpiritLevelDetailView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
+
+    private var accentFg: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     // MARK: - Body
     var body: some View {
@@ -22,42 +27,31 @@ struct SpiritLevelDetailView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: SpacingTheme.cardStack) {
                     if !tools.isMotionAvailable {
-                        HStack(spacing: SpacingTheme.tight) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(Color.orange)
-                            Text(L10n.Tools.motionHardwareUnavailable)
-                                .font(Typography.caption)
-                                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                                .multilineTextAlignment(.leading)
-                        }
-                        .padding(SpacingTheme.cardInternal)
-                        .background(
-                            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+                        ToolNoticeBanner(
+                            icon: "exclamationmark.triangle.fill",
+                            message: L10n.Tools.motionHardwareUnavailable
                         )
                     }
 
                     // Top Angle Metrics HUD
                     angleMetricsHud
 
-                    Spacer(minLength: 0)
+                    Spacer(minLength: SpacingTheme.standard)
 
                     // Center Bullseye Reticle / Bubble
                     centerBubbleReticle(size: reticleSize)
 
-                    Spacer(minLength: 0)
+                    Spacer(minLength: SpacingTheme.standard)
 
                     // Bottom Controls (Calibrate, Mode, Beep, Lock)
                     bottomControlsBar
                 }
                 .padding(.horizontal, SpacingTheme.cardStack)
                 .padding(.vertical, SpacingTheme.rowStandard)
+                .frame(maxWidth: LayoutTheme.maxContentWidth)
                 .frame(maxWidth: .infinity, minHeight: geo.size.height)
             }
+            .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         }
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.spiritLevel)
@@ -80,24 +74,27 @@ struct SpiritLevelDetailView: View {
         let safeRoll = tools.spiritLevel.rollDegrees.isFinite ? tools.spiritLevel.rollDegrees : 0.0
         let safePitch = tools.spiritLevel.pitchDegrees.isFinite ? tools.spiritLevel.pitchDegrees : 0.0
         let safeSlope = tools.spiritLevel.slopePercent.isFinite ? tools.spiritLevel.slopePercent : 0.0
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: SpacingTheme.compact))
+            : AnyLayout(HStackLayout(spacing: SpacingTheme.standard))
 
-        HStack(spacing: SpacingTheme.standard) {
+        layout {
             angleTile(
                 title: L10n.Tools.rollAxis,
                 value: String(format: "%+.1f°", safeRoll),
-                color: appState.accentColor
+                color: accentFg
             )
 
             angleTile(
                 title: L10n.Tools.pitchAxis,
                 value: String(format: "%+.1f°", safePitch),
-                color: appState.accentColor
+                color: accentFg
             )
 
             angleTile(
                 title: L10n.Tools.slope,
                 value: String(format: "%.1f%%", safeSlope),
-                color: tools.spiritLevel.isLevel ? Color.green : appState.accentColor
+                color: tools.spiritLevel.isLevel ? Theme.readableGreen(for: colorScheme) : accentFg
             )
         }
     }
@@ -114,19 +111,22 @@ struct SpiritLevelDetailView: View {
             Text(value)
                 .font(Typography.headlineValue)
                 .fontDesign(.monospaced)
+                .monospacedDigit()
+                .contentTransition(.numericText())
                 .foregroundStyle(color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, SpacingTheme.compact)
+        .padding(.horizontal, SpacingTheme.tight)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.tileBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(title)
@@ -158,24 +158,29 @@ struct SpiritLevelDetailView: View {
     @ViewBuilder
     private func centerBubbleReticle(size: CGFloat) -> some View {
         let isLevel = tools.spiritLevel.isLevel
-        let activeColor = isLevel ? Color.green : appState.accentColor
+        let activeColor = isLevel ? Theme.readableGreen(for: colorScheme) : accentFg
         let maxRadius = size * 0.42
         let bubbleOffset = computeBubbleOffset(maxRadius: maxRadius)
         let safeTilt = tools.spiritLevel.tiltDegrees.isFinite ? tools.spiritLevel.tiltDegrees : 0.0
+        let tiltString = String(format: "%.1f°", safeTilt)
+        let bubbleTranslation = CGSize(
+            width: isLevel ? 0 : bubbleOffset.x,
+            height: isLevel ? 0 : bubbleOffset.y
+        )
 
         ZStack {
             // Outer Ring
             Circle()
-                .strokeBorder(Theme.cardBorder(for: colorScheme), lineWidth: 2)
+                .strokeBorder(Theme.tileBorder(for: colorScheme), lineWidth: 2)
                 .frame(width: size, height: size)
                 .background(
                     Circle()
-                        .fill(Theme.cardBackground(for: colorScheme).opacity(0.4))
+                        .fill(Theme.tileBackground(for: colorScheme))
                 )
 
             // 15-degree Inner Ring
             Circle()
-                .strokeBorder(Theme.cardBorder(for: colorScheme).opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                .strokeBorder(Theme.tileBorder(for: colorScheme), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 .frame(width: size * 0.55, height: size * 0.55)
 
             // Center Target Crosshair
@@ -206,22 +211,31 @@ struct SpiritLevelDetailView: View {
                         )
                     )
                     .frame(width: 44, height: 44)
-                    .shadow(color: activeColor.opacity(isLevel ? 0.7 : 0.3), radius: isLevel ? 12 : 6)
+                    .shadow(color: activeColor.opacity(isLevel ? 0.65 : 0.25), radius: isLevel ? 12 : 6)
 
-                Text(String(format: "%.1f°", safeTilt))
+                Text(tiltString)
                     .font(Typography.badgeTagMono)
                     .fontWeight(.bold)
+                    .monospacedDigit()
                     .foregroundStyle(Theme.contrastingForeground(for: activeColor))
             }
-            .offset(x: isLevel ? 0 : bubbleOffset.x, y: isLevel ? 0 : bubbleOffset.y)
-            .animation(.spring(response: 0.2, dampingFraction: 0.75), value: safeTilt)
+            .offset(bubbleTranslation)
+            .animation(.spring(response: 0.2, dampingFraction: 0.75), value: bubbleTranslation)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.Tools.spiritLevel)
+        .accessibilityValue(isLevel ? "\(L10n.Tools.levelBalanced), \(tiltString)" : tiltString)
     }
 
     @ViewBuilder
     private var bottomControlsBar: some View {
+        let orangeAccent = Theme.readableOrange(for: colorScheme)
+        let rowLayout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: SpacingTheme.compact))
+            : AnyLayout(HStackLayout(spacing: SpacingTheme.standard))
+
         VStack(spacing: SpacingTheme.standard) {
-            HStack(spacing: SpacingTheme.standard) {
+            rowLayout {
                 // Calibrate / Tare Zero Button
                 Button {
                     tools.calibrateSpiritLevel()
@@ -229,24 +243,28 @@ struct SpiritLevelDetailView: View {
                     HStack(spacing: SpacingTheme.tight) {
                         Image(systemName: "scope")
                             .font(IconTheme.actionButton)
+                            .accessibilityHidden(true)
                         Text(L10n.Tools.calibrate)
                             .font(Typography.captionBold)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
-                    .foregroundStyle(tools.isSpiritLevelCalibrated ? appState.accentColor : Theme.textPrimary(for: colorScheme))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 40)
+                    .foregroundStyle(tools.isSpiritLevelCalibrated ? accentFg : Theme.textPrimary(for: colorScheme))
+                    .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+                    .padding(.horizontal, SpacingTheme.tight)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .fill(tools.isSpiritLevelCalibrated ? appState.accentColor.opacity(0.12) : Theme.cardBackground(for: colorScheme).opacity(0.6))
+                            .fill(tools.isSpiritLevelCalibrated ? accentFg.opacity(0.14) : Theme.tileBackground(for: colorScheme))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .stroke(tools.isSpiritLevelCalibrated ? appState.accentColor.opacity(0.4) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                            .stroke(tools.isSpiritLevelCalibrated ? accentFg.opacity(0.45) : Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
                     )
+                    .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BentoCardButtonStyle())
                 .accessibilityLabel(L10n.Tools.calibrate)
+                .accessibilityAddTraits(tools.isSpiritLevelCalibrated ? .isSelected : [])
 
                 if tools.isSpiritLevelCalibrated {
                     Button {
@@ -255,29 +273,33 @@ struct SpiritLevelDetailView: View {
                         HStack(spacing: SpacingTheme.tight) {
                             Image(systemName: "arrow.counterclockwise")
                                 .font(IconTheme.actionButton)
+                                .accessibilityHidden(true)
                             Text(L10n.Tools.resetTare)
                                 .font(Typography.captionBold)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.85)
                         }
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
+                        .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+                        .padding(.horizontal, SpacingTheme.tight)
                         .background(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                                .fill(Theme.tileBackground(for: colorScheme))
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
                         )
+                        .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(BentoCardButtonStyle())
                     .accessibilityLabel(L10n.Tools.resetTare)
                 }
             }
 
-            HStack(spacing: SpacingTheme.standard) {
+            rowLayout {
                 // Mode Switcher
+                let modeLabel = tools.spiritLevel.orientation == .flat ? L10n.Tools.flatMode : L10n.Tools.verticalMode
                 Button {
                     Haptics.selection()
                     tools.toggleSpiritLevelOrientation()
@@ -285,24 +307,27 @@ struct SpiritLevelDetailView: View {
                     HStack(spacing: SpacingTheme.tight) {
                         Image(systemName: tools.spiritLevel.orientation == .flat ? "table.furniture.fill" : "ruler.fill")
                             .font(IconTheme.actionButton)
-                        Text(tools.spiritLevel.orientation == .flat ? L10n.Tools.flatMode : L10n.Tools.verticalMode)
+                            .accessibilityHidden(true)
+                        Text(modeLabel)
                             .font(Typography.captionBold)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 42)
+                    .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+                    .padding(.horizontal, SpacingTheme.tight)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                            .fill(Theme.tileBackground(for: colorScheme))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                            .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
                     )
+                    .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(tools.spiritLevel.orientation == .flat ? L10n.Tools.flatMode : L10n.Tools.verticalMode)
+                .buttonStyle(BentoCardButtonStyle())
+                .accessibilityLabel(modeLabel)
 
                 // Beep Sound Toggle
                 Button {
@@ -311,50 +336,59 @@ struct SpiritLevelDetailView: View {
                     HStack(spacing: SpacingTheme.tight) {
                         Image(systemName: tools.spiritLevel.isBeepEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
                             .font(IconTheme.actionButton)
+                            .accessibilityHidden(true)
                         Text(L10n.Tools.soundBeep)
                             .font(Typography.captionBold)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
-                    .foregroundStyle(tools.spiritLevel.isBeepEnabled ? appState.accentColor : Theme.textSecondary(for: colorScheme))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 42)
+                    .foregroundStyle(tools.spiritLevel.isBeepEnabled ? accentFg : Theme.textSecondary(for: colorScheme))
+                    .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+                    .padding(.horizontal, SpacingTheme.tight)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .fill(tools.spiritLevel.isBeepEnabled ? appState.accentColor.opacity(0.12) : Theme.cardBackground(for: colorScheme).opacity(0.6))
+                            .fill(tools.spiritLevel.isBeepEnabled ? accentFg.opacity(0.14) : Theme.tileBackground(for: colorScheme))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .stroke(tools.spiritLevel.isBeepEnabled ? appState.accentColor.opacity(0.4) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                            .stroke(tools.spiritLevel.isBeepEnabled ? accentFg.opacity(0.45) : Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
                     )
+                    .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BentoCardButtonStyle())
                 .accessibilityLabel(L10n.Tools.soundBeep)
+                .accessibilityAddTraits(tools.spiritLevel.isBeepEnabled ? .isSelected : [])
 
                 // Lock / Hold Button
+                let lockLabel = tools.spiritLevel.isLocked ? L10n.Tools.unlockedAngle : L10n.Tools.lockAngle
                 Button {
                     tools.toggleLevelLock()
                 } label: {
                     HStack(spacing: SpacingTheme.tight) {
                         Image(systemName: tools.spiritLevel.isLocked ? "lock.fill" : "lock.open.fill")
                             .font(IconTheme.actionButton)
-                        Text(tools.spiritLevel.isLocked ? L10n.Tools.unlockedAngle : L10n.Tools.lockAngle)
+                            .accessibilityHidden(true)
+                        Text(lockLabel)
                             .font(Typography.captionBold)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
-                    .foregroundStyle(tools.spiritLevel.isLocked ? Color.orange : Theme.textPrimary(for: colorScheme))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 42)
+                    .foregroundStyle(tools.spiritLevel.isLocked ? orangeAccent : Theme.textPrimary(for: colorScheme))
+                    .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+                    .padding(.horizontal, SpacingTheme.tight)
                     .background(
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .fill(tools.spiritLevel.isLocked ? Color.orange.opacity(0.14) : Theme.cardBackground(for: colorScheme).opacity(0.6))
+                            .fill(tools.spiritLevel.isLocked ? orangeAccent.opacity(0.14) : Theme.tileBackground(for: colorScheme))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .stroke(tools.spiritLevel.isLocked ? Color.orange.opacity(0.4) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                            .stroke(tools.spiritLevel.isLocked ? orangeAccent.opacity(0.45) : Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
                     )
+                    .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(tools.spiritLevel.isLocked ? L10n.Tools.unlockedAngle : L10n.Tools.lockAngle)
+                .buttonStyle(BentoCardButtonStyle())
+                .accessibilityLabel(lockLabel)
+                .accessibilityAddTraits(tools.spiritLevel.isLocked ? .isSelected : [])
             }
         }
     }

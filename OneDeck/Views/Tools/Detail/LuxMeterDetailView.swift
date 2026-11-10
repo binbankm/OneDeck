@@ -12,7 +12,7 @@ import SwiftUI
 struct LuxMeterDetailView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
-    @Bindable private var appState = AppState.shared
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var tools = ToolsViewModel.shared
 
     // MARK: - Body
@@ -20,9 +20,16 @@ struct LuxMeterDetailView: View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: SpacingTheme.cardStack) {
                 if tools.luxStatus == .permissionDenied || tools.isCameraPermissionDenied {
-                    luxPermissionDeniedBanner
+                    ToolPermissionDeniedBanner(
+                        icon: "camera.fill",
+                        message: L10n.Tools.luxCameraPermissionDenied,
+                        onOpenSettings: tools.openAppSettings
+                    )
                 } else if tools.luxStatus == .hardwareUnavailable {
-                    luxHardwareUnavailableBanner
+                    ToolNoticeBanner(
+                        icon: "exclamationmark.triangle.fill",
+                        message: L10n.Tools.cameraHardwareUnavailable
+                    )
                 }
 
                 // Dual KPI Hero Cards
@@ -34,9 +41,12 @@ struct LuxMeterDetailView: View {
                 // Photometric Standard Benchmarks
                 benchmarkStandardsCard
             }
+            .frame(maxWidth: LayoutTheme.maxContentWidth)
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, SpacingTheme.cardStack)
             .padding(.vertical, SpacingTheme.rowStandard)
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .vertical)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.luxMeter)
         .navigationBarTitleDisplayMode(.inline)
@@ -50,69 +60,23 @@ struct LuxMeterDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private var luxPermissionDeniedBanner: some View {
-        VStack(spacing: SpacingTheme.compact) {
-            HStack(spacing: SpacingTheme.tight) {
-                Image(systemName: "camera.fill")
-                    .foregroundStyle(Color.orange)
-                Text(L10n.Tools.luxCameraPermissionDenied)
-                    .font(Typography.caption)
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .multilineTextAlignment(.leading)
-            }
-
-            Button {
-                tools.openAppSettings()
-            } label: {
-                Text(L10n.Tools.openSettings)
-                    .font(Typography.captionBold)
-                    .padding(.horizontal, SpacingTheme.standard)
-                    .padding(.vertical, SpacingTheme.tight)
-                    .background(Color.orange)
-                    .foregroundStyle(Color.white)
-                    .clipShape(Capsule())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(SpacingTheme.cardInternal)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
-        )
-    }
-
-    @ViewBuilder
-    private var luxHardwareUnavailableBanner: some View {
-        HStack(spacing: SpacingTheme.tight) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(Color.orange)
-            Text(L10n.Tools.cameraHardwareUnavailable)
-                .font(Typography.caption)
-                .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .multilineTextAlignment(.leading)
-        }
-        .padding(SpacingTheme.cardInternal)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
-        )
-    }
-
     // MARK: - Dual Metrics Hero
     @ViewBuilder
     private var dualMetricsHero: some View {
         let yellowAccent = Theme.readableYellow(for: colorScheme)
+        let safeLux = tools.luxMeter.lux.isFinite ? tools.luxMeter.lux : 0.0
+        let safeEv = tools.luxMeter.ev.isFinite ? tools.luxMeter.ev : 0.0
+        let safeFc = tools.luxMeter.footCandles.isFinite ? tools.luxMeter.footCandles : 0.0
+        let luxString = String(format: "%.0f", safeLux)
+        let evString = String(format: "%@: %.1f", L10n.Tools.exposureValueTitle, safeEv)
+        let fcString = String(format: "%.1f", safeFc)
+        let envString = tools.luxMeter.environmentDescription.isEmpty ? "--" : tools.luxMeter.environmentDescription
 
-        HStack(spacing: SpacingTheme.standard) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: SpacingTheme.standard))
+            : AnyLayout(HStackLayout(spacing: SpacingTheme.standard))
+
+        layout {
             // Lux Tile
             VStack(alignment: .leading, spacing: SpacingTheme.tight) {
                 Text(L10n.Tools.illuminanceTitle)
@@ -121,15 +85,16 @@ struct LuxMeterDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                let safeLux = tools.luxMeter.lux.isFinite ? tools.luxMeter.lux : 0.0
-                Text(String(format: "%.0f", safeLux))
+                Text(luxString)
                     .font(Typography.heroSubValueMono)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
                     .foregroundStyle(yellowAccent)
                     .lineLimit(1)
 
-                let safeEv = tools.luxMeter.ev.isFinite ? tools.luxMeter.ev : 0.0
-                Text(String(format: "%@: %.1f", L10n.Tools.exposureValueTitle, safeEv))
+                Text(evString)
                     .font(Typography.captionMono)
+                    .monospacedDigit()
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
@@ -138,12 +103,15 @@ struct LuxMeterDetailView: View {
             .padding(SpacingTheme.rowStandard)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                    .fill(Theme.tileBackground(for: colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Tools.illuminanceTitle)
+            .accessibilityValue("\(luxString) Lux, \(evString)")
 
             // Foot-Candles Tile
             VStack(alignment: .leading, spacing: SpacingTheme.tight) {
@@ -153,13 +121,13 @@ struct LuxMeterDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                let safeFc = tools.luxMeter.footCandles.isFinite ? tools.luxMeter.footCandles : 0.0
-                Text(String(format: "%.1f", safeFc))
+                Text(fcString)
                     .font(Typography.heroSubValueMono)
+                    .monospacedDigit()
                     .foregroundStyle(yellowAccent)
                     .lineLimit(1)
 
-                Text(tools.luxMeter.environmentDescription.isEmpty ? "--" : tools.luxMeter.environmentDescription)
+                Text(envString)
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
@@ -169,12 +137,15 @@ struct LuxMeterDetailView: View {
             .padding(SpacingTheme.rowStandard)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                    .fill(Theme.tileBackground(for: colorScheme))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
             )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Tools.footCandlesTitle)
+            .accessibilityValue("\(fcString) fc, \(envString)")
         }
     }
 
@@ -199,30 +170,35 @@ struct LuxMeterDetailView: View {
                     Circle()
                         .fill(yellowAccent)
                         .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
                     Text(String(format: "%.0f Lux", safeCurrentLux))
                         .font(Typography.captionMono)
+                        .monospacedDigit()
                         .foregroundStyle(yellowAccent)
                 }
             }
 
             if history.isEmpty {
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
-                    .frame(height: 160)
+                BentoEmptyStateView(
+                    icon: "sun.max.fill",
+                    message: L10n.Tools.waitingForSamples,
+                    showsProgress: tools.luxMeter.isSampling,
+                    height: 160
+                )
             } else {
                 Chart {
                     ForEach(history) { pt in
                         LineMark(
-                            x: .value("Time", pt.timestamp),
-                            y: .value("Lux", pt.value)
+                            x: .value(L10n.Tools.chartTimeAxis, pt.timestamp),
+                            y: .value(L10n.Tools.chartLuxAxis, pt.value)
                         )
                         .foregroundStyle(yellowAccent)
                         .lineStyle(StrokeStyle(lineWidth: ChartTheme.lineWidth, lineCap: .round, lineJoin: .round))
                         .interpolationMethod(.monotone)
 
                         AreaMark(
-                            x: .value("Time", pt.timestamp),
-                            y: .value("Lux", pt.value)
+                            x: .value(L10n.Tools.chartTimeAxis, pt.timestamp),
+                            y: .value(L10n.Tools.chartLuxAxis, pt.value)
                         )
                         .foregroundStyle(
                             LinearGradient(
@@ -250,17 +226,21 @@ struct LuxMeterDetailView: View {
                     }
                 }
                 .frame(height: 160)
+                .accessibilityHidden(true)
             }
         }
         .padding(SpacingTheme.rowStandard)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.tileBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L10n.Tools.luxTrend)
+        .accessibilityValue(history.isEmpty ? L10n.Tools.waitingForSamples : String(format: "%.0f Lux", safeCurrentLux))
     }
 
     // MARK: - Benchmark Standards Card
@@ -279,34 +259,54 @@ struct LuxMeterDetailView: View {
                 .font(Typography.badgeTagMono)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
 
-            ForEach(benchmarks, id: \.0) { item in
-                HStack(spacing: SpacingTheme.standard) {
-                    Image(systemName: item.2)
-                        .font(IconTheme.badgeInline)
-                        .foregroundStyle(Theme.readableYellow(for: colorScheme))
-                        .frame(width: 20)
+            ForEach(Array(benchmarks.enumerated()), id: \.offset) { idx, item in
+                Group {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: SpacingTheme.micro) {
+                            Text(item.0)
+                                .font(Typography.caption)
+                                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                            Text(item.1)
+                                .font(Typography.captionMono)
+                                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        }
+                    } else {
+                        HStack(spacing: SpacingTheme.standard) {
+                            Image(systemName: item.2)
+                                .font(IconTheme.badgeInline)
+                                .foregroundStyle(Theme.readableYellow(for: colorScheme))
+                                .frame(width: 20)
+                                .accessibilityHidden(true)
 
-                    Text(item.0)
-                        .font(Typography.caption)
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                            Text(item.0)
+                                .font(Typography.caption)
+                                .foregroundStyle(Theme.textPrimary(for: colorScheme))
 
-                    Spacer()
+                            Spacer(minLength: SpacingTheme.compact)
 
-                    Text(item.1)
-                        .font(Typography.captionMono)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                            Text(item.1)
+                                .font(Typography.captionMono)
+                                .monospacedDigit()
+                                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        }
+                    }
                 }
-                .padding(.vertical, SpacingTheme.micro)
+                .padding(.vertical, SpacingTheme.tight)
+                .accessibilityElement(children: .combine)
+
+                if idx < benchmarks.count - 1 {
+                    BentoHairlineDivider()
+                }
             }
         }
         .padding(SpacingTheme.rowStandard)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                .fill(Theme.tileBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.8)
         )
     }
 }

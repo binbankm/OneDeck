@@ -12,6 +12,7 @@ struct OverviewSectionHeader: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
     @Bindable private var appState = AppState.shared
+    @ScaledMetric(relativeTo: .subheadline) private var iconSize: CGFloat = 22
 
     // MARK: - Configuration Properties
     let title: String
@@ -20,7 +21,7 @@ struct OverviewSectionHeader: View {
     var accentColor: Color?
 
     private var activeAccent: Color {
-        accentColor ?? appState.accentColor
+        Theme.readableAccent(accentColor ?? appState.accentColor, for: colorScheme)
     }
 
     // MARK: - Body
@@ -29,24 +30,29 @@ struct OverviewSectionHeader: View {
             Image(systemName: icon)
                 .font(IconTheme.sectionHeader)
                 .foregroundStyle(activeAccent)
-                .frame(width: 22, height: 22, alignment: .center)
+                .frame(width: iconSize, height: iconSize, alignment: .center)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(title)
                     .font(Typography.sectionHeader)
                     .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .lineLimit(1)
+                    .lineLimit(2)
                     .minimumScaleFactor(0.85)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if let subtitle {
                     Text(subtitle)
                         .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                        .lineLimit(1)
+                        .lineLimit(2)
                         .minimumScaleFactor(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 }
 

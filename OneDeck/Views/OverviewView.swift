@@ -11,15 +11,13 @@ import SwiftUI
 struct OverviewView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
-    @Bindable private var appState = AppState.shared
-    @Bindable private var system = SystemViewModel.shared
 
     // MARK: - Body
     var body: some View {
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 cardStack
-                    .frame(maxWidth: 680)
+                    .frame(maxWidth: LayoutTheme.maxContentWidth)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, SpacingTheme.cardStack)
                     .padding(.vertical, SpacingTheme.rowStandard)

@@ -13,6 +13,7 @@ import UIKit
 struct BatteryLongevityCard: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var battery = BatteryViewModel.shared
     @Bindable private var system = SystemViewModel.shared
@@ -20,6 +21,10 @@ struct BatteryLongevityCard: View {
     // MARK: - State
     @State private var showCopiedToast: Bool = false
     @State private var toastDismissTask: Task<Void, Never>?
+
+    private var readableAccent: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
 
     // MARK: - Static Apple Standard Specification Curve (500 cycles -> 80%)
     private static let appleStandardCurve: [DegradationPoint] = [
@@ -35,48 +40,52 @@ struct BatteryLongevityCard: View {
 
     // MARK: - Body
     var body: some View {
+        let accent = readableAccent
+        let green = Theme.readableGreen(for: colorScheme)
+
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
             // MARK: - 1. Header Row: Section Title & Health Grade Badge
-            HStack(alignment: .center) {
+            HStack(alignment: .center, spacing: SpacingTheme.standard) {
                 OverviewSectionHeader(title: L10n.Battery.longevityTitle, icon: "waveform.path.badge.plus")
+                    .layoutPriority(1)
 
-                Spacer()
+                Spacer(minLength: SpacingTheme.compact)
 
                 // Overall Health Grade Badge
                 HStack(spacing: SpacingTheme.tight) {
                     Circle()
                         .fill(gradeColor)
                         .frame(width: 6, height: 6)
+                        .accessibilityHidden(true)
 
                     Text(gradeText)
-                        .font(Typography.caption)
-                        .fontWeight(.semibold)
+                        .font(Typography.captionBold)
                         .foregroundStyle(gradeColor)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 .padding(.horizontal, SpacingTheme.standard)
                 .padding(.vertical, SpacingTheme.micro)
                 .background(gradeColor.opacity(0.12))
                 .clipShape(Capsule())
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(L10n.Battery.diagnosticGrade): \(gradeText)")
             }
 
             // MARK: - Capacity Degradation Chart
             degradationCurveSection
 
             // MARK: - 3. 2-Tile Scientific Longevity Metrics
-            HStack(spacing: SpacingTheme.row) {
-                // Metric 1: Degradation Rate Per Cycle
-                LongevityTile(
+            Group {
+                let rateTile = LongevityTile(
                     icon: "chart.line.downtrend.xyaxis",
                     label: L10n.Battery.cycleDegradationRate,
                     value: degradationRateText,
                     unit: "/ \(L10n.Battery.cyclesUnit)",
                     subtitle: degradationSubText,
-                    accent: appState.accentColor
+                    accent: accent
                 )
-
-                // Metric 2: Margin to Apple 80% Service Threshold
-                LongevityTile(
+                let marginTile = LongevityTile(
                     icon: "shield.lefthalf.filled.badge.checkmark",
                     label: L10n.Battery.serviceThresholdMargin,
                     value: serviceMarginText,
@@ -84,6 +93,18 @@ struct BatteryLongevityCard: View {
                     subtitle: serviceMarginSubText,
                     accent: gradeColor
                 )
+
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(spacing: SpacingTheme.row) {
+                        rateTile
+                        marginTile
+                    }
+                } else {
+                    HStack(spacing: SpacingTheme.row) {
+                        rateTile
+                        marginTile
+                    }
+                }
             }
 
             // MARK: - 4. Scientific Battery Care Guidelines
@@ -94,33 +115,41 @@ struct BatteryLongevityCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(SpacingTheme.row)
-            .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+            .background(Theme.tileBackground(for: colorScheme))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+            )
 
             // MARK: - 5. Export Diagnostic Report Action Button
+            let buttonTint = showCopiedToast ? green : accent
+
             Button {
                 exportDiagnosticReport()
             } label: {
                 HStack(spacing: SpacingTheme.compact) {
                     Image(systemName: showCopiedToast ? "checkmark.circle.fill" : "doc.on.doc.fill")
                         .font(IconTheme.actionButton)
+                        .accessibilityHidden(true)
 
                     Text(showCopiedToast ? L10n.Battery.reportCopied : L10n.Battery.exportReportButton)
                         .font(Typography.calloutBold)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, SpacingTheme.row)
-                .background(showCopiedToast ? Color.green.opacity(0.15) : appState.accentColor.opacity(0.12))
-                .foregroundStyle(showCopiedToast ? Color.green : appState.accentColor)
+                .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+                .padding(.horizontal, SpacingTheme.row)
+                .background(buttonTint.opacity(showCopiedToast ? 0.15 : 0.12))
+                .foregroundStyle(buttonTint)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                        .stroke((showCopiedToast ? Color.green : appState.accentColor).opacity(0.3), lineWidth: 0.8)
+                        .stroke(buttonTint.opacity(0.3), lineWidth: 0.8)
                 )
+                .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(BentoCardButtonStyle())
             .accessibilityLabel(showCopiedToast ? L10n.Battery.reportCopied : L10n.Battery.exportReportButton)
         }
         .bentoCard(accent: appState.accentColor)
@@ -133,6 +162,10 @@ struct BatteryLongevityCard: View {
     // MARK: - Degradation Curve Section
     @ViewBuilder
     private var degradationCurveSection: some View {
+        let chartAccessibilitySummary = battery.hasRealTelemetry && battery.cycleCountDisplay > 0
+            ? "\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit), \(String(format: "%.1f%%", battery.healthPercentDisplay)), \(gradeText)"
+            : L10n.Battery.degradationImportHint
+
         VStack(alignment: .leading, spacing: SpacingTheme.row) {
             chartLegendHeaderRow
             BatteryAgingCurveChart(
@@ -144,16 +177,26 @@ struct BatteryLongevityCard: View {
                 projectedDegradationCurve: projectedDegradationCurve,
                 appleStandardCurve: Self.appleStandardCurve
             )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(L10n.Battery.degradationChartTitle)
+            .accessibilityValue(chartAccessibilitySummary)
             insightCapsuleRow
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(SpacingTheme.row)
-        .background(colorScheme == .dark ? Color.white.opacity(0.025) : Color.black.opacity(0.02))
+        .background(Theme.tileBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+        )
     }
 
     @ViewBuilder
     private var chartLegendHeaderRow: some View {
+        let accent = readableAccent
+        let red = Theme.readableRed(for: colorScheme)
+
         VStack(alignment: .leading, spacing: SpacingTheme.compact) {
             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(L10n.Battery.degradationChartTitle)
@@ -168,45 +211,41 @@ struct BatteryLongevityCard: View {
                     .minimumScaleFactor(0.85)
             }
 
-            // Legend Row (Dedicated Full-Width, Zero Crowding, Zero Word Breaking)
-            HStack(spacing: SpacingTheme.standard) {
+            FlowLayout(spacing: SpacingTheme.standard) {
                 HStack(spacing: SpacingTheme.tight) {
                     Circle()
-                        .fill(appState.accentColor)
+                        .fill(accent)
                         .frame(width: 5, height: 5)
+                        .accessibilityHidden(true)
                     Text(L10n.Battery.degradationActualCurve)
                         .font(Typography.microAxis)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                         .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
                 }
-
-                Spacer(minLength: 0)
 
                 HStack(spacing: SpacingTheme.tight) {
                     Rectangle()
                         .fill(Theme.textTertiary(for: colorScheme))
                         .frame(width: 8, height: 1.5)
+                        .accessibilityHidden(true)
                     Text(L10n.Battery.degradationAppleBaseline)
                         .font(Typography.microAxis)
                         .foregroundStyle(Theme.textTertiary(for: colorScheme))
                         .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
                 }
-
-                Spacer(minLength: 0)
 
                 HStack(spacing: SpacingTheme.tight) {
                     Rectangle()
-                        .fill(Color.red.opacity(0.85))
+                        .fill(red.opacity(0.9))
                         .frame(width: 8, height: 1.5)
+                        .accessibilityHidden(true)
                     Text(L10n.Battery.degradationServiceThreshold)
                         .font(Typography.microAxis)
-                        .foregroundStyle(Color.red.opacity(0.85))
+                        .foregroundStyle(red.opacity(0.9))
                         .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
                 }
             }
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -217,7 +256,7 @@ struct BatteryLongevityCard: View {
             let specHealthAtCurrent: Double = max(60.0, 100.0 - (currentCycle / 500.0) * 20.0)
             let delta: Double = battery.healthPercentDisplay - specHealthAtCurrent
             let isPositive: Bool = delta >= 0
-            let badgeColor: Color = isPositive ? appState.accentColor : Theme.readableYellow(for: colorScheme)
+            let badgeColor: Color = isPositive ? readableAccent : Theme.readableYellow(for: colorScheme)
             let deltaFormatted = String(format: "%.1f%%", delta)
             let deltaText: String = isPositive ? "\(L10n.Battery.baselineAbove) +\(deltaFormatted)" : "\(L10n.Battery.baselineBelow) \(deltaFormatted)"
 
@@ -225,30 +264,37 @@ struct BatteryLongevityCard: View {
                 Image(systemName: isPositive ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill")
                     .font(IconTheme.badgeInline)
                     .foregroundStyle(badgeColor)
+                    .accessibilityHidden(true)
 
                 Text(deltaText)
                     .font(Typography.badgeTag)
                     .foregroundStyle(badgeColor)
+                    .lineLimit(2)
 
-                Spacer()
+                Spacer(minLength: SpacingTheme.compact)
 
                 Text(gradeText)
                     .font(Typography.badgeTag)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    .lineLimit(1)
             }
             .padding(.horizontal, SpacingTheme.standard)
             .padding(.vertical, SpacingTheme.tight)
             .background(badgeColor.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
+            .accessibilityElement(children: .combine)
         } else if !battery.hasRealTelemetry {
             HStack(spacing: SpacingTheme.tight) {
                 Image(systemName: "info.circle.fill")
                     .font(IconTheme.badgeInline)
+                    .accessibilityHidden(true)
                 Text(L10n.Battery.degradationImportHint)
                     .font(Typography.caption)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .foregroundStyle(Theme.textTertiary(for: colorScheme))
             .padding(.top, SpacingTheme.micro)
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -317,8 +363,9 @@ struct BatteryLongevityCard: View {
         HStack(alignment: .top, spacing: SpacingTheme.standard) {
             Image(systemName: icon)
                 .font(IconTheme.tileLeading)
-                .foregroundStyle(appState.accentColor)
+                .foregroundStyle(readableAccent)
                 .frame(width: 14, height: 14)
+                .accessibilityHidden(true)
 
             Text(text)
                 .font(Typography.caption)
@@ -327,6 +374,7 @@ struct BatteryLongevityCard: View {
                 .lineSpacing(2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Computed Properties
@@ -342,12 +390,12 @@ struct BatteryLongevityCard: View {
 
     private var gradeColor: Color {
         if !battery.hasRealTelemetry {
-            return .orange
+            return Theme.readableOrange(for: colorScheme)
         }
         let health = battery.healthPercentDisplay
-        if health >= 85 { return appState.accentColor }
+        if health >= 85 { return readableAccent }
         if health >= 80 { return Theme.readableYellow(for: colorScheme) }
-        return .orange
+        return Theme.readableOrange(for: colorScheme)
     }
 
     private var degradationRateText: String {
@@ -460,6 +508,9 @@ private struct BatteryAgingCurveChart: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let readableAccent = Theme.readableAccent(appState.accentColor, for: colorScheme)
+        let readableRed = Theme.readableRed(for: colorScheme)
+
         Chart {
             // 1. Apple Official Standard Degradation Baseline (Dashed)
             ForEach(appleStandardCurve) { pt in
@@ -473,9 +524,9 @@ private struct BatteryAgingCurveChart: View {
             }
 
             // 2. Apple 80% Service Threshold Rule Line
-            RuleMark(y: .value("Service Limit", 80.0))
+            RuleMark(y: .value(L10n.Battery.degradationServiceThreshold, 80.0))
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
-                .foregroundStyle(Color.red.opacity(0.75))
+                .foregroundStyle(readableRed.opacity(0.8))
 
             // 3. Device Actual Degradation Path (when BMS or Hardware Telemetry data loaded)
             if battery.hasRealTelemetry && battery.cycleCountDisplay > 0 {
@@ -487,7 +538,7 @@ private struct BatteryAgingCurveChart: View {
                     )
                     .interpolationMethod(.monotone)
                     .lineStyle(StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(readableAccent)
 
                     AreaMark(
                         x: .value(L10n.Battery.degradationCycleAxis, pt.cycle),
@@ -495,7 +546,7 @@ private struct BatteryAgingCurveChart: View {
                         yEnd: .value(L10n.Battery.degradationHealthAxis, pt.health)
                     )
                     .interpolationMethod(.monotone)
-                    .foregroundStyle(ChartTheme.areaGradient(for: appState.accentColor))
+                    .foregroundStyle(ChartTheme.areaGradient(for: readableAccent))
                 }
 
                 // Predictive Future Trajectory
@@ -506,7 +557,7 @@ private struct BatteryAgingCurveChart: View {
                     )
                     .interpolationMethod(.monotone)
                     .lineStyle(StrokeStyle(lineWidth: 1.6, dash: [3, 3]))
-                    .foregroundStyle(appState.accentColor.opacity(0.65))
+                    .foregroundStyle(readableAccent.opacity(0.65))
                 }
 
                 // Current Point Pin (Glow Halo & PointMark)
@@ -516,7 +567,7 @@ private struct BatteryAgingCurveChart: View {
                         y: .value(L10n.Battery.degradationHealthAxis, battery.healthPercentDisplay)
                     )
                     .symbolSize(36)
-                    .foregroundStyle(appState.accentColor)
+                    .foregroundStyle(readableAccent)
                     .annotation(
                         position: battery.healthPercentDisplay >= 92.0 ? .bottom : .top,
                         alignment: .center,
@@ -533,11 +584,11 @@ private struct BatteryAgingCurveChart: View {
                         .padding(.horizontal, SpacingTheme.compact)
                         .padding(.vertical, SpacingTheme.micro)
                         .background(colorScheme == .dark ? Color(white: 0.10).opacity(0.92) : Color.white.opacity(0.95))
-                        .foregroundStyle(appState.accentColor)
+                        .foregroundStyle(readableAccent)
                         .clipShape(Capsule())
                         .overlay(
                             Capsule()
-                                .stroke(appState.accentColor.opacity(0.4), lineWidth: 0.8)
+                                .stroke(readableAccent.opacity(0.4), lineWidth: 0.8)
                         )
                     }
                 }
@@ -569,7 +620,7 @@ private struct BatteryAgingCurveChart: View {
                             .font(ChartTheme.axisLabelFont)
                             .foregroundStyle(
                                 health == 80.0
-                                    ? Color.red.opacity(0.85)
+                                    ? readableRed.opacity(0.9)
                                     : ChartTheme.axisLabelColor(for: colorScheme)
                             )
                             .frame(width: 28, alignment: .trailing)
@@ -598,6 +649,7 @@ private struct LongevityTile: View {
                 Image(systemName: icon)
                     .font(IconTheme.tileLeading)
                     .foregroundStyle(accent)
+                    .accessibilityHidden(true)
 
                 Text(label)
                     .font(Typography.caption)
@@ -631,8 +683,12 @@ private struct LongevityTile: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.standard)
-        .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+        .background(Theme.tileBackground(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.tileBorder(for: colorScheme), lineWidth: 0.5)
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
         .accessibilityValue("\(value)\(unit.isEmpty ? "" : " \(unit)"), \(subtitle)")

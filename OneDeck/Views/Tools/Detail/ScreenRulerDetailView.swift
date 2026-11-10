@@ -18,6 +18,7 @@ struct CaliperBenchmark: Identifiable {
 struct ScreenRulerDetailView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
     @Bindable private var system = SystemViewModel.shared
@@ -31,13 +32,17 @@ struct ScreenRulerDetailView: View {
     @State private var showHistorySheet: Bool = false
     @State private var hasInitializedPositions: Bool = false
 
+    private var accentFg: Color {
+        Theme.readableAccent(appState.accentColor, for: colorScheme)
+    }
+
     // Benchmark Objects
     private var benchmarks: [CaliperBenchmark] {
         [
             CaliperBenchmark(id: "c1", name: L10n.Tools.benchmark1YuanCoin, sizeMm: 25.0),
             CaliperBenchmark(id: "c5", name: L10n.Tools.benchmark5JiaoCoin, sizeMm: 20.5),
-            CaliperBenchmark(id: "sim", name: "Nano SIM", sizeMm: 12.3),
-            CaliperBenchmark(id: "typec", name: "Type-C", sizeMm: 8.3),
+            CaliperBenchmark(id: "sim", name: L10n.Tools.rulerNanoSim, sizeMm: 12.3),
+            CaliperBenchmark(id: "typec", name: L10n.Tools.rulerTypeC, sizeMm: 8.3),
             CaliperBenchmark(id: "card", name: L10n.Tools.benchmarkCreditCard, sizeMm: 85.6)
         ]
     }
@@ -68,6 +73,7 @@ struct ScreenRulerDetailView: View {
         VStack(spacing: SpacingTheme.none) {
             // Top Digital Caliper LCD Console
             digitalLcdConsole
+                .frame(maxWidth: LayoutTheme.maxContentWidth)
                 .padding(.horizontal, SpacingTheme.cardStack)
                 .padding(.top, SpacingTheme.compact)
                 .padding(.bottom, SpacingTheme.tight)
@@ -85,12 +91,13 @@ struct ScreenRulerDetailView: View {
                     measurementDimensionOverlay(width: stageWidth)
 
                     // Anvil Top Jaw (Fixed 0mm or Floating)
-                    caliperTopJaw(stageWidth: stageWidth)
+                    caliperTopJaw(stageHeight: currentStageHeight, stageWidth: stageWidth)
 
                     // Slider Bottom Jaw with Knurled Thumb Grip
                     caliperBottomJaw(stageHeight: currentStageHeight, stageWidth: stageWidth)
                 }
                 .frame(width: stageWidth, height: currentStageHeight)
+                .coordinateSpace(name: "caliperStage")
                 .clipped()
                 .onAppear {
                     stageHeight = currentStageHeight
@@ -110,19 +117,23 @@ struct ScreenRulerDetailView: View {
                     }
                 }
             }
+            .frame(maxWidth: LayoutTheme.maxContentWidth)
             .layoutPriority(1)
 
             // Reference Object Benchmarks Row
             benchmarkChipsRow
+                .frame(maxWidth: LayoutTheme.maxContentWidth)
                 .padding(.horizontal, SpacingTheme.cardStack)
                 .padding(.vertical, SpacingTheme.tight)
 
             // Pinned Bottom Industrial Action Bar
             bottomControlsBar
+                .frame(maxWidth: LayoutTheme.maxContentWidth)
                 .padding(.horizontal, SpacingTheme.cardStack)
                 .padding(.top, SpacingTheme.micro)
                 .padding(.bottom, SpacingTheme.row)
         }
+        .frame(maxWidth: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.screenRuler)
         .navigationBarTitleDisplayMode(.inline)
@@ -140,53 +151,72 @@ struct ScreenRulerDetailView: View {
     // MARK: - 1. Digital Caliper LCD Console
     @ViewBuilder
     private var digitalLcdConsole: some View {
+        let orangeAccent = Theme.readableOrange(for: colorScheme)
+        let headerLayout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: SpacingTheme.compact))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: SpacingTheme.standard))
+        let controlsLayout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: SpacingTheme.compact))
+            : AnyLayout(HStackLayout(spacing: SpacingTheme.compact))
+
         VStack(spacing: SpacingTheme.standard) {
             // Main LCD Digital Readout Row
-            HStack(alignment: .center, spacing: SpacingTheme.standard) {
+            headerLayout {
                 VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                     HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.compact) {
                         Text(measuredDisplay)
                             .font(Typography.heroSubValueMono)
-                            .foregroundStyle(isMeasurementLocked ? Color.orange : appState.accentColor)
+                            .foregroundStyle(isMeasurementLocked ? orangeAccent : accentFg)
                             .monospacedDigit()
+                            .contentTransition(.numericText())
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
 
                         if isMeasurementLocked {
                             Image(systemName: "lock.fill")
                                 .font(IconTheme.badgeInline)
-                                .foregroundStyle(Color.orange)
+                                .foregroundStyle(orangeAccent)
+                                .accessibilityHidden(true)
                         }
                     }
 
                     HStack(spacing: SpacingTheme.standard) {
-                        Text(String(format: "1:1 PPI: %d", Int(system.hardwareSpecs.ppi)))
+                        Text(L10n.Tools.rulerPpiBadge(Int(system.hardwareSpecs.ppi)))
                             .font(Typography.microAxis)
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
 
                         if tools.caliperTareOffsetMm > 0 {
                             Text("\(L10n.Tools.tare): \(String(format: "%.1f mm", tools.caliperTareOffsetMm))")
                                 .font(Typography.microAxis)
-                                .foregroundStyle(Color.orange)
+                                .monospacedDigit()
+                                .foregroundStyle(orangeAccent)
                         }
                     }
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(L10n.Tools.screenRuler)
+                .accessibilityValue(measuredDisplay)
 
-                Spacer()
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Spacer(minLength: 0)
+                }
 
                 // Unit Selector (mm | cm | in)
                 Picker(L10n.Tools.screenRuler, selection: $tools.caliperUnit) {
-                    ForEach(ScreenCaliperUnit.allCases) { u in
-                        Text(u.title).tag(u)
+                    ForEach(ScreenCaliperUnit.allCases) { unit in
+                        Text(unit.title).tag(unit)
                     }
                 }
                 .pickerStyle(.segmented)
                 .accessibilityLabel(L10n.Tools.screenRuler)
-                .frame(width: 130)
+                .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : 140)
+                .onChange(of: tools.caliperUnit) { _, _ in
+                    Haptics.selection()
+                }
             }
 
             // Sub-Millimeter Stepper Controls & Jaw Mode Toggle
-            HStack(spacing: SpacingTheme.compact) {
+            controlsLayout {
                 // Top Jaw Mode Switch (Anchor 0mm vs Dual Jaws)
                 Button {
                     Haptics.selection()
@@ -199,21 +229,30 @@ struct ScreenRulerDetailView: View {
                     HStack(spacing: SpacingTheme.tight) {
                         Image(systemName: isTopAnchored ? "pin.fill" : "arrow.up.and.down.circle.fill")
                             .font(IconTheme.badgeInline)
+                            .accessibilityHidden(true)
                         Text(isTopAnchored ? L10n.Tools.anchorTopJaw : L10n.Tools.dualFloatingJaws)
                             .font(Typography.badgeTagMono)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     }
-                    .foregroundStyle(isTopAnchored ? appState.accentColor : Theme.textPrimary(for: colorScheme))
+                    .foregroundStyle(isTopAnchored ? accentFg : Theme.textPrimary(for: colorScheme))
                     .padding(.horizontal, SpacingTheme.standard)
-                    .padding(.vertical, SpacingTheme.compact)
-                    .background(isTopAnchored ? appState.accentColor.opacity(0.14) : Theme.cardBackground(for: colorScheme).opacity(0.6))
+                    .frame(minHeight: LayoutTheme.minTapTarget)
+                    .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
+                    .background(isTopAnchored ? accentFg.opacity(0.14) : Theme.chipBackground(for: colorScheme))
                     .clipShape(Capsule())
                     .overlay(
-                        Capsule().stroke(isTopAnchored ? appState.accentColor.opacity(0.5) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                        Capsule()
+                            .stroke(isTopAnchored ? accentFg.opacity(0.5) : Theme.chipBorder(for: colorScheme), lineWidth: 0.8)
                     )
+                    .contentShape(Capsule())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BentoCardButtonStyle())
+                .accessibilityAddTraits(isTopAnchored ? .isSelected : [])
 
-                Spacer()
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Spacer(minLength: 0)
+                }
 
                 // Fine-Tuning Step Buttons (±0.1mm & ±1.0mm)
                 HStack(spacing: SpacingTheme.tight) {
@@ -228,13 +267,13 @@ struct ScreenRulerDetailView: View {
         .padding(.vertical, SpacingTheme.standard)
         .background(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(Theme.cardBackground(for: colorScheme).opacity(0.95))
+                .fill(Theme.cardBackground(for: colorScheme))
         )
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .stroke(appState.accentColor.opacity(0.35), lineWidth: 1)
+                .stroke(accentFg.opacity(0.35), lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(0.12), radius: 6, y: 3)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.06), radius: 6, y: 3)
     }
 
     @ViewBuilder
@@ -248,17 +287,23 @@ struct ScreenRulerDetailView: View {
         } label: {
             Text(label)
                 .font(Typography.badgeTagMono)
+                .monospacedDigit()
                 .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                .padding(.horizontal, SpacingTheme.compact)
-                .padding(.vertical, SpacingTheme.compact)
-                .background(Theme.cardBackground(for: colorScheme).opacity(0.7))
+                .frame(minWidth: dynamicTypeSize.isAccessibilitySize ? 0 : 40, minHeight: LayoutTheme.minTapTarget)
+                .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
+                .padding(.horizontal, SpacingTheme.tight)
+                .background(Theme.chipBackground(for: colorScheme))
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous)
-                        .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                        .stroke(Theme.chipBorder(for: colorScheme), lineWidth: 0.8)
                 )
+                .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BentoCardButtonStyle())
+        .disabled(isMeasurementLocked)
+        .opacity(isMeasurementLocked ? 0.45 : 1.0)
+        .accessibilityLabel("\(L10n.Tools.fineTuneStep) \(label) mm")
     }
 
     // MARK: - 2. Dual-Side Laser-Etched Ruler Beam Canvas
@@ -271,8 +316,8 @@ struct ScreenRulerDetailView: View {
             let totalMm = max(0, Int(size.height / ppm))
             let pointsPerInch = ppm * 25.4
             let totalInches = max(0, Int(size.height / pointsPerInch))
-            let tickColor = colorScheme == .dark ? Color.white.opacity(0.3) : Color.black.opacity(0.25)
-            let majorColor = colorScheme == .dark ? Color.white.opacity(0.75) : Color.black.opacity(0.7)
+            let tickColor = colorScheme == .dark ? Color.white.opacity(0.32) : Color.black.opacity(0.28)
+            let majorColor = colorScheme == .dark ? Color.white.opacity(0.8) : Color.black.opacity(0.75)
 
             // --- Left Edge: Metric Millimeter & Centimeter Scale ---
             for mm in 0 ... totalMm {
@@ -297,7 +342,7 @@ struct ScreenRulerDetailView: View {
                 }
             }
 
-            // --- Right Edge: Imperial Inch Scale (1/10" & 1/16") ---
+            // --- Right Edge: Imperial Inch Scale (1/10") ---
             for inchTenth in 0 ... (totalInches * 10 + 10) {
                 let y = CGFloat(inchTenth) * (pointsPerInch / 10.0)
                 guard y <= size.height else { break }
@@ -323,6 +368,7 @@ struct ScreenRulerDetailView: View {
             }
         }
         .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     // MARK: - 3. Measurement Dimension Overlay with Crosshairs
@@ -334,122 +380,170 @@ struct ScreenRulerDetailView: View {
         ZStack {
             // Workpiece Shading
             Rectangle()
-                .fill(appState.accentColor.opacity(0.07))
+                .fill(accentFg.opacity(0.08))
                 .frame(width: max(0, width - 96), height: span)
                 .position(x: width / 2, y: top + span / 2)
 
             // Center Dimension Leader Line with Arrows
-            if span > 24 {
+            if span > 36 {
                 VStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "arrow.up")
                         .font(IconTheme.badgeInline)
-                        .foregroundStyle(appState.accentColor)
+                        .foregroundStyle(accentFg)
 
                     Text(measuredDisplay)
                         .font(Typography.badgeTagMono)
-                        .foregroundStyle(appState.accentColor)
+                        .monospacedDigit()
+                        .foregroundStyle(accentFg)
                         .padding(.horizontal, SpacingTheme.compact)
                         .padding(.vertical, SpacingTheme.micro)
-                        .background(Theme.cardBackground(for: colorScheme).opacity(0.85))
+                        .background(Theme.cardBackground(for: colorScheme).opacity(0.92))
                         .clipShape(Capsule())
 
                     Image(systemName: "arrow.down")
                         .font(IconTheme.badgeInline)
-                        .foregroundStyle(appState.accentColor)
+                        .foregroundStyle(accentFg)
                 }
                 .position(x: width / 2, y: top + span / 2)
             }
         }
         .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     // MARK: - 4. Precision Top Jaw (Anvil Reference)
     @ViewBuilder
-    private func caliperTopJaw(stageWidth: CGFloat) -> some View {
-        ZStack(alignment: .top) {
-            // Stainless Precision Ground Blade Line
-            Rectangle()
-                .fill(appState.accentColor)
-                .frame(width: stageWidth, height: 2.5)
+    private func caliperTopJaw(stageHeight: CGFloat, stageWidth: CGFloat) -> some View {
+        let bladeY = min(max(0, jawTopY), max(0, stageHeight - 2.5))
+        let pillTopY = min(max(4, jawTopY + 4), max(4, stageHeight - 28))
 
-            // Jaw Handle / Reference Pill
+        ZStack(alignment: .topLeading) {
+            // Stainless Precision Ground Blade Line (exact top measuring edge at jawTopY)
+            Rectangle()
+                .fill(accentFg)
+                .frame(width: stageWidth, height: 2.5)
+                .offset(y: bladeY)
+
+            // Jaw Handle / Reference Pill + generous 44pt drag strip
             HStack(spacing: SpacingTheme.tight) {
                 if isTopAnchored {
                     Image(systemName: "lock.fill")
                         .font(IconTheme.badgeInline)
+                        .accessibilityHidden(true)
                     Text(L10n.Tools.zeroMmBenchmark)
                         .font(Typography.badgeTagMono)
                 } else {
                     Image(systemName: "arrowtriangle.down.fill")
                         .font(IconTheme.badgeInline)
+                        .accessibilityHidden(true)
                     Text(L10n.Tools.jawA)
                         .font(Typography.badgeTagMono)
                 }
             }
-            .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
+            .foregroundStyle(Theme.contrastingForeground(for: accentFg))
             .padding(.horizontal, SpacingTheme.standard)
-            .padding(.vertical, SpacingTheme.micro)
-            .background(appState.accentColor)
+            .padding(.vertical, SpacingTheme.tight)
+            .background(accentFg)
             .clipShape(Capsule())
-            .offset(y: 4)
-        }
-        .frame(width: stageWidth)
-        .position(x: stageWidth / 2, y: jawTopY)
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    guard !isTopAnchored && !isMeasurementLocked else { return }
-                    jawTopY = max(0, min(jawBottomY - 14, value.location.y))
-                    tools.setCaliperRawMm(rawSpanMm)
+            .frame(maxWidth: stageWidth, minHeight: LayoutTheme.minTapTarget, alignment: .top)
+            .offset(y: pillTopY)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .named("caliperStage"))
+                    .onChanged { value in
+                        guard !isTopAnchored && !isMeasurementLocked else { return }
+                        jawTopY = max(0, min(jawBottomY - 14, value.location.y))
+                        tools.setCaliperRawMm(rawSpanMm)
+                    }
+            )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(L10n.Tools.jawA)
+            .accessibilityValue(isTopAnchored ? L10n.Tools.zeroMmBenchmark : measuredDisplay)
+            .accessibilityAdjustableAction { direction in
+                guard !isTopAnchored && !isMeasurementLocked else { return }
+                let step = pointsPerMm
+                switch direction {
+                case .increment:
+                    jawTopY = max(0, min(jawBottomY - 14, jawTopY - step))
+                case .decrement:
+                    jawTopY = max(0, min(jawBottomY - 14, jawTopY + step))
+                @unknown default:
+                    break
                 }
-        )
+                tools.setCaliperRawMm(rawSpanMm)
+            }
+        }
     }
 
     // MARK: - 5. Precision Bottom Jaw (Slider with Knurled Grip)
     @ViewBuilder
     private func caliperBottomJaw(stageHeight: CGFloat, stageWidth: CGFloat) -> some View {
-        let jawForeground = Theme.contrastingForeground(for: appState.accentColor)
-        ZStack(alignment: .bottom) {
-            // Horizontal Measuring Blade
+        let jawForeground = Theme.contrastingForeground(for: accentFg)
+        let bladeY = max(0, min(stageHeight - 2.5, jawBottomY - 2.5))
+        let gripHeight: CGFloat = 36
+        let gripTopY = jawBottomY + 2 <= stageHeight - gripHeight
+            ? jawBottomY + 2
+            : max(0, jawBottomY - gripHeight - 4)
+
+        ZStack(alignment: .topLeading) {
+            // Horizontal Measuring Blade (exact measuring edge at jawBottomY)
             Rectangle()
-                .fill(appState.accentColor)
+                .fill(accentFg)
                 .frame(width: stageWidth, height: 2.5)
+                .offset(y: bladeY)
 
             // Slider Body with Knurled Thumb Grip Lines
             VStack(spacing: SpacingTheme.micro) {
                 HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "arrowtriangle.up.fill")
                         .font(IconTheme.badgeInline)
+                        .accessibilityHidden(true)
                     Text(L10n.Tools.jawB)
                         .font(Typography.badgeTagMono)
                 }
 
-                // Knurled grip grooves (3 tactile visual ribs)
+                // Knurled grip grooves (4 tactile visual ribs)
                 HStack(spacing: SpacingTheme.micro) {
-                    ForEach(0 ..< 4) { _ in
+                    ForEach(0 ..< 4, id: \.self) { _ in
                         Rectangle()
-                            .fill(jawForeground.opacity(0.4))
+                            .fill(jawForeground.opacity(0.45))
                             .frame(width: 1.5, height: 6)
                     }
                 }
             }
             .foregroundStyle(jawForeground)
             .padding(.horizontal, SpacingTheme.rowStandard)
-            .padding(.vertical, SpacingTheme.micro)
-            .background(appState.accentColor)
+            .padding(.vertical, SpacingTheme.tight)
+            .background(accentFg)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
-            .offset(y: -4)
-        }
-        .frame(width: stageWidth)
-        .position(x: stageWidth / 2, y: jawBottomY)
-        .gesture(
-            DragGesture()
-                .onChanged { value in
-                    guard !isMeasurementLocked else { return }
-                    jawBottomY = max(jawTopY + 14, min(stageHeight, value.location.y))
-                    tools.setCaliperRawMm(rawSpanMm)
+            .frame(maxWidth: stageWidth, minHeight: LayoutTheme.minTapTarget, alignment: .top)
+            .offset(y: gripTopY)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .named("caliperStage"))
+                    .onChanged { value in
+                        guard !isMeasurementLocked else { return }
+                        jawBottomY = max(jawTopY + 14, min(stageHeight, value.location.y))
+                        tools.setCaliperRawMm(rawSpanMm)
+                    }
+            )
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(L10n.Tools.jawB)
+            .accessibilityValue(measuredDisplay)
+            .accessibilityAdjustableAction { direction in
+                guard !isMeasurementLocked else { return }
+                let step = pointsPerMm
+                switch direction {
+                case .increment:
+                    jawBottomY = max(jawTopY + 14, min(stageHeight, jawBottomY + step))
+                case .decrement:
+                    jawBottomY = max(jawTopY + 14, min(stageHeight, jawBottomY - step))
+                @unknown default:
+                    break
                 }
-        )
+                tools.setCaliperRawMm(rawSpanMm)
+            }
+        }
     }
 
     // MARK: - 6. Benchmark Chips Row
@@ -478,16 +572,20 @@ struct ScreenRulerDetailView: View {
                     } label: {
                         Text("\(bm.name) (\(String(format: "%.1f", bm.sizeMm))mm)")
                             .font(Typography.microAxis)
+                            .monospacedDigit()
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                            .padding(.horizontal, SpacingTheme.compact)
-                            .padding(.vertical, SpacingTheme.tight)
-                            .background(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                            .padding(.horizontal, SpacingTheme.row)
+                            .frame(minHeight: LayoutTheme.minTapTarget)
+                            .background(Theme.chipBackground(for: colorScheme))
                             .clipShape(Capsule())
                             .overlay(
-                                Capsule().stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.6)
+                                Capsule().stroke(Theme.chipBorder(for: colorScheme), lineWidth: 0.8)
                             )
+                            .contentShape(Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(BentoCardButtonStyle())
+                    .disabled(isMeasurementLocked)
+                    .opacity(isMeasurementLocked ? 0.5 : 1.0)
                 }
             }
         }
@@ -496,102 +594,144 @@ struct ScreenRulerDetailView: View {
     // MARK: - 7. Pinned Bottom Action Bar
     @ViewBuilder
     private var bottomControlsBar: some View {
-        HStack(spacing: SpacingTheme.standard) {
-            // Tare / Zero Reset Button
-            Button {
-                Haptics.selection()
-                if tools.caliperTareOffsetMm > 0 {
-                    tools.resetTare()
-                } else {
-                    tools.tareCaliper()
+        let orangeAccent = Theme.readableOrange(for: colorScheme)
+        let isTared = tools.caliperTareOffsetMm > 0
+
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(spacing: SpacingTheme.compact) {
+                HStack(spacing: SpacingTheme.compact) {
+                    tareButton(orangeAccent: orangeAccent, isTared: isTared)
+                    lockButton(orangeAccent: orangeAccent)
                 }
-            } label: {
-                HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
-                        .font(IconTheme.actionButton)
-                    Text(tools.caliperTareOffsetMm > 0 ? L10n.Tools.resetTare : L10n.Tools.tare)
-                        .font(Typography.captionBold)
+                HStack(spacing: SpacingTheme.compact) {
+                    saveButton
+                    historyButton
                 }
-                .foregroundStyle(tools.caliperTareOffsetMm > 0 ? Color.orange : Theme.textPrimary(for: colorScheme))
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
+            }
+        } else {
+            HStack(spacing: SpacingTheme.standard) {
+                tareButton(orangeAccent: orangeAccent, isTared: isTared)
+                lockButton(orangeAccent: orangeAccent)
+                saveButton
+                historyButton
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tareButton(orangeAccent: Color, isTared: Bool) -> some View {
+        Button {
+            Haptics.selection()
+            if isTared {
+                tools.resetTare()
+            } else {
+                tools.tareCaliper()
+            }
+        } label: {
+            HStack(spacing: SpacingTheme.tight) {
+                Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                    .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
+                Text(isTared ? L10n.Tools.resetTare : L10n.Tools.tare)
+                    .font(Typography.captionBold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .foregroundStyle(isTared ? orangeAccent : Theme.textPrimary(for: colorScheme))
+            .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .fill(isTared ? orangeAccent.opacity(0.14) : Theme.cardBackground(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .stroke(isTared ? orangeAccent.opacity(0.5) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        }
+        .buttonStyle(BentoCardButtonStyle())
+        .accessibilityAddTraits(isTared ? .isSelected : [])
+    }
+
+    @ViewBuilder
+    private func lockButton(orangeAccent: Color) -> some View {
+        Button {
+            Haptics.selection()
+            isMeasurementLocked.toggle()
+        } label: {
+            HStack(spacing: SpacingTheme.tight) {
+                Image(systemName: isMeasurementLocked ? "lock.fill" : "lock.open.fill")
+                    .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
+                Text(isMeasurementLocked ? L10n.Tools.unlockedAngle : L10n.Tools.lockAngle)
+                    .font(Typography.captionBold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .foregroundStyle(isMeasurementLocked ? orangeAccent : Theme.textPrimary(for: colorScheme))
+            .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .fill(isMeasurementLocked ? orangeAccent.opacity(0.14) : Theme.cardBackground(for: colorScheme))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .stroke(isMeasurementLocked ? orangeAccent.opacity(0.5) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        }
+        .buttonStyle(BentoCardButtonStyle())
+        .accessibilityAddTraits(isMeasurementLocked ? .isSelected : [])
+    }
+
+    @ViewBuilder
+    private var saveButton: some View {
+        Button {
+            tools.saveCurrentCaliperMeasurement()
+        } label: {
+            HStack(spacing: SpacingTheme.tight) {
+                Image(systemName: "tray.and.arrow.down.fill")
+                    .font(IconTheme.actionButton)
+                    .accessibilityHidden(true)
+                Text(L10n.Tools.saveRecord)
+                    .font(Typography.captionBold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
+            .frame(maxWidth: .infinity, minHeight: LayoutTheme.minTapTarget)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .fill(appState.accentColor)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        }
+        .buttonStyle(BentoCardButtonStyle())
+    }
+
+    @ViewBuilder
+    private var historyButton: some View {
+        Button {
+            Haptics.selection()
+            showHistorySheet = true
+        } label: {
+            Image(systemName: "list.bullet.circle.fill")
+                .font(IconTheme.actionButton)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .frame(minWidth: LayoutTheme.minTapTarget, minHeight: LayoutTheme.minTapTarget)
+                .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
                 .background(
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                        .fill(Theme.cardBackground(for: colorScheme).opacity(0.95))
+                        .fill(Theme.cardBackground(for: colorScheme))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                         .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
                 )
-            }
-            .buttonStyle(.plain)
-
-            // Hold / Lock Measurement Button
-            Button {
-                Haptics.selection()
-                isMeasurementLocked.toggle()
-            } label: {
-                HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: isMeasurementLocked ? "lock.fill" : "lock.open.fill")
-                        .font(IconTheme.actionButton)
-                    Text(isMeasurementLocked ? L10n.Tools.unlockedAngle : L10n.Tools.lockAngle)
-                        .font(Typography.captionBold)
-                }
-                .foregroundStyle(isMeasurementLocked ? Color.orange : Theme.textPrimary(for: colorScheme))
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                        .fill(isMeasurementLocked ? Color.orange.opacity(0.15) : Theme.cardBackground(for: colorScheme).opacity(0.95))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                        .stroke(isMeasurementLocked ? Color.orange.opacity(0.5) : Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
-                )
-            }
-            .buttonStyle(.plain)
-
-            // Save Record Button
-            Button {
-                tools.saveCurrentCaliperMeasurement()
-            } label: {
-                HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "tray.and.arrow.down.fill")
-                        .font(IconTheme.actionButton)
-                    Text(L10n.Tools.saveRecord)
-                        .font(Typography.captionBold)
-                }
-                .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                        .fill(appState.accentColor)
-                )
-            }
-            .buttonStyle(.plain)
-
-            // History Sheet Button
-            Button {
-                Haptics.selection()
-                showHistorySheet = true
-            } label: {
-                Image(systemName: "list.bullet.circle.fill")
-                    .font(IconTheme.actionButton)
-                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                    .frame(width: 44, height: 44)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .fill(Theme.cardBackground(for: colorScheme).opacity(0.95))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
-                    )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L10n.Tools.historyRecords)
+                .contentShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
         }
+        .buttonStyle(BentoCardButtonStyle())
+        .accessibilityLabel(L10n.Tools.historyRecords)
     }
 
     // MARK: - 8. History Records Sheet
@@ -609,7 +749,8 @@ struct ScreenRulerDetailView: View {
                             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                                 Text(record.note)
                                     .font(Typography.bodyValueMono)
-                                    .foregroundStyle(appState.accentColor)
+                                    .monospacedDigit()
+                                    .foregroundStyle(accentFg)
                                 Text(record.timestamp.formatted(date: .numeric, time: .shortened))
                                     .font(Typography.caption)
                                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
@@ -629,11 +770,13 @@ struct ScreenRulerDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(L10n.Common.done) {
+                        Haptics.selection()
                         showHistorySheet = false
                     }
                 }
             }
         }
+        .presentationDragIndicator(.visible)
     }
 }
 

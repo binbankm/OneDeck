@@ -321,6 +321,51 @@ final class OneDeckTests: XCTestCase {
     }
 
     @MainActor
+    func testThemeReadableAccentAndSemanticContrast() {
+        let lightCardLum = Theme.relativeLuminance(of: Theme.cardBackground(for: .light))
+        let darkCardLum = Theme.relativeLuminance(of: Theme.cardBackground(for: .dark))
+
+        func contrastRatio(_ lumA: Double, _ lumB: Double) -> Double {
+            let lighter = max(lumA, lumB)
+            let darker = min(lumA, lumB)
+            return (lighter + 0.05) / (darker + 0.05)
+        }
+
+        let testColors: [Color] = ThemePreset.allPresets.map { Color(hex: $0.hex) } + [.white, .black, .yellow, .cyan]
+        for baseColor in testColors {
+            let lightFg = Theme.readableAccent(baseColor, for: .light)
+            let darkFg = Theme.readableAccent(baseColor, for: .dark)
+
+            let lightRatio = contrastRatio(lightCardLum, Theme.relativeLuminance(of: lightFg))
+            let darkRatio = contrastRatio(Theme.relativeLuminance(of: darkFg), darkCardLum)
+
+            XCTAssertGreaterThanOrEqual(lightRatio, 4.5, "Light contrast too low for \(baseColor.toHex()): \(lightRatio)")
+            XCTAssertGreaterThanOrEqual(darkRatio, 4.5, "Dark contrast too low for \(baseColor.toHex()): \(darkRatio)")
+        }
+
+        for intensity in SeismicIntensity.allCases {
+            let lightColor = intensity.readableColor(for: .light)
+            let darkColor = intensity.readableColor(for: .dark)
+            XCTAssertGreaterThanOrEqual(contrastRatio(lightCardLum, Theme.relativeLuminance(of: lightColor)), 4.0)
+            XCTAssertGreaterThanOrEqual(contrastRatio(Theme.relativeLuminance(of: darkColor), darkCardLum), 4.0)
+        }
+
+        for scheme in [ColorScheme.light, ColorScheme.dark] {
+            let cardLum = scheme == .light ? lightCardLum : darkCardLum
+            for color in [
+                Theme.readableYellow(for: scheme),
+                Theme.readableCyan(for: scheme),
+                Theme.readableGreen(for: scheme),
+                Theme.readableOrange(for: scheme),
+                Theme.readableRed(for: scheme)
+            ] {
+                let ratio = contrastRatio(cardLum, Theme.relativeLuminance(of: color))
+                XCTAssertGreaterThanOrEqual(ratio, 4.0, "Semantic color contrast failed in \(scheme): \(ratio)")
+            }
+        }
+    }
+
+    @MainActor
     func testViewModelMvvMBoundaryHelpers() {
         let tools = ToolsViewModel.shared
         let savedBleState = tools.bleRadar.bluetoothState

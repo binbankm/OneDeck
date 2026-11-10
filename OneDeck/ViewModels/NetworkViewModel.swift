@@ -135,6 +135,8 @@ public final class NetworkViewModel: @unchecked Sendable {
         PortScanItem(port: 8080, serviceName: "HTTP Alt", isOpen: false, latencyMs: 0)
     ]
     public var isScanningPorts: Bool = false
+    public var hasScannedPorts: Bool = false
+    public var portScanError: String?
 
     // MARK: - 8. Active Bandwidth Speed Test Engine
     public var speedTestStage: SpeedTestStage = .idle
@@ -1318,7 +1320,7 @@ public final class NetworkViewModel: @unchecked Sendable {
 
         let sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)
         guard sock >= 0 else {
-            return (false, "Socket Creation Failed")
+            return (false, L10n.Network.wolSocketFailed)
         }
         defer { close(sock) }
 
@@ -1331,7 +1333,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         addr.sin_family = sa_family_t(AF_INET)
         addr.sin_port = in_port_t(9).bigEndian
         guard inet_pton(AF_INET, targetBroadcast, &addr.sin_addr) == 1 else {
-            return (false, "Invalid Broadcast Address")
+            return (false, L10n.Network.wolInvalidBroadcast)
         }
 
         let sent = withUnsafePointer(to: &addr) {
@@ -1344,7 +1346,7 @@ public final class NetworkViewModel: @unchecked Sendable {
             Haptics.success()
             return (true, L10n.Network.wolSuccess)
         } else {
-            return (false, "UDP Dispatch Error")
+            return (false, L10n.Network.wolDispatchError)
         }
     }
 
@@ -1486,6 +1488,7 @@ public final class NetworkViewModel: @unchecked Sendable {
         portScanGeneration &+= 1
         let gen = portScanGeneration
         isScanningPorts = true
+        portScanError = nil
 
         let cleanedProvided = targetHost.map { Self.normalizeLookupHost($0) }
         let host: String
@@ -1509,6 +1512,25 @@ public final class NetworkViewModel: @unchecked Sendable {
 
         workerQueue.async { [weak self] in
             guard let self else { return }
+
+            var hints = addrinfo()
+            hints.ai_family = AF_UNSPEC
+            hints.ai_socktype = SOCK_STREAM
+            var resolved: UnsafeMutablePointer<addrinfo>?
+            let resolveStatus = getaddrinfo(host, nil, &hints, &resolved)
+            if let resolved {
+                freeaddrinfo(resolved)
+            }
+            guard resolveStatus == 0 else {
+                Task { @MainActor [weak self] in
+                    guard let self, self.portScanGeneration == gen, self.isScanningPorts else { return }
+                    self.portScanError = L10n.Network.portHostResolveFailed
+                    self.isScanningPorts = false
+                    Haptics.error()
+                }
+                return
+            }
+
             let group = DispatchGroup()
             let lock = NSLock()
             var results: [PortScanItem] = []
@@ -1532,6 +1554,8 @@ public final class NetworkViewModel: @unchecked Sendable {
             Task { @MainActor [weak self] in
                 guard let self, self.portScanGeneration == gen, self.isScanningPorts else { return }
                 self.portScanResults = finalScanResults
+                self.hasScannedPorts = true
+                self.portScanError = nil
                 self.isScanningPorts = false
                 Haptics.tick()
             }
