@@ -69,7 +69,7 @@ struct OverviewHeroCard: View {
                 Circle()
                     .fill(appState.accentColor.opacity(0.12))
                     .frame(width: 44, height: 44)
-                Image(systemName: "iphone.gen3")
+                Image(systemName: UIDevice.current.userInterfaceIdiom == .pad ? "ipad.gen2" : "iphone.gen3")
                     .font(IconTheme.heroAvatar)
                     .foregroundStyle(appState.accentColor)
             }
@@ -90,14 +90,14 @@ struct OverviewHeroCard: View {
                 badge(
                     text: system.osVersion,
                     textColor: Theme.textSecondary(for: colorScheme),
-                    bgColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04),
+                    bgColor: Theme.chipBackground(for: colorScheme),
                     isMonospaced: true
                 )
 
                 badge(
                     text: system.salesTypeDescription,
                     textColor: Theme.textSecondary(for: colorScheme),
-                    bgColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04),
+                    bgColor: Theme.chipBackground(for: colorScheme),
                     isMonospaced: false
                 )
             }
@@ -113,14 +113,14 @@ struct OverviewHeroCard: View {
                 badge(
                     text: system.osVersion,
                     textColor: Theme.textSecondary(for: colorScheme),
-                    bgColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04),
+                    bgColor: Theme.chipBackground(for: colorScheme),
                     isMonospaced: true
                 )
 
                 badge(
                     text: system.salesTypeDescription,
                     textColor: Theme.textSecondary(for: colorScheme),
-                    bgColor: colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04),
+                    bgColor: Theme.chipBackground(for: colorScheme),
                     isMonospaced: false
                 )
             }
@@ -129,13 +129,14 @@ struct OverviewHeroCard: View {
 
     @ViewBuilder
     private var hudRow: some View {
+        let safeCpu = system.totalCpuUsage.isFinite ? system.totalCpuUsage : 0.0
         HStack(spacing: SpacingTheme.standard) {
             hudMetricTile(
                 icon: "cpu.fill",
                 label: "CPU",
-                value: String(format: "%.0f%%", system.totalCpuUsage),
+                value: String(format: "%.0f%%", safeCpu),
                 subtitle: "\(system.coreCount) " + L10n.Overview.hudCoresSuffix,
-                highlight: system.totalCpuUsage > 75 ? .orange : appState.accentColor
+                highlight: safeCpu > 75 ? .orange : appState.accentColor
             )
 
             hudMetricTile(
@@ -202,6 +203,9 @@ struct OverviewHeroCard: View {
         .padding(.vertical, SpacingTheme.standard)
         .background(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue("\(value), \(subtitle)")
     }
 }
 

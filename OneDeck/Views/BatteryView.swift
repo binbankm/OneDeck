@@ -27,12 +27,6 @@ struct BatteryView: View {
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Battery.title)
-            .onAppear {
-                battery.startMonitoring()
-            }
-            .onDisappear {
-                battery.stopMonitoring()
-            }
         }
     }
 

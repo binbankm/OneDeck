@@ -10,7 +10,7 @@ import Foundation
 import LocalAuthentication
 
 // MARK: - Metric History Data Point
-public struct MetricPoint: Identifiable, Hashable, Sendable {
+public nonisolated struct MetricPoint: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let timestamp: Date
     public let value: Double
@@ -23,7 +23,7 @@ public struct MetricPoint: Identifiable, Hashable, Sendable {
 }
 
 // MARK: - Core Load Snapshot
-public struct CoreLoad: Sendable {
+public nonisolated struct CoreLoad: Sendable {
     public var user: UInt32 = 0
     public var system: UInt32 = 0
     public var idle: UInt32 = 0
@@ -36,8 +36,8 @@ public struct CoreLoad: Sendable {
         self.nice = nice
     }
 
-    public var total: UInt32 {
-        user + system + idle + nice
+    public var total: UInt64 {
+        UInt64(user) + UInt64(system) + UInt64(idle) + UInt64(nice)
     }
 }
 
@@ -117,11 +117,12 @@ public enum NeuralEngineTier: Sendable {
 // MARK: - Full Hardware Specs Structure
 public struct DetailedHardwareSpecs: Sendable {
     // Display
-    public var physicalWidth: Int = 1179
-    public var physicalHeight: Int = 2556
-    public var maxFps: Int = 60
-    public var ppi: Int = 460
-    public var scale: Int = 3
+    public var physicalWidth: Int = 0
+    public var physicalHeight: Int = 0
+    public var maxFps: Int = 0
+    public var ppi: Int = 0
+    public var scale: Int = 0
+    public var nativeScaleValue: Double = 0.0
     public var panelType: DisplayPanelType = .retina
 
     // SoC Architecture
@@ -153,10 +154,12 @@ public struct DetailedHardwareSpecs: Sendable {
 
     // Dynamic Localized Computed Properties
     public var physicalResolution: String {
-        "\(physicalWidth) × \(physicalHeight)"
+        guard physicalWidth > 0, physicalHeight > 0 else { return "--" }
+        return "\(physicalWidth) × \(physicalHeight)"
     }
 
     public var maxRefreshRate: String {
+        guard maxFps > 0 else { return "--" }
         if maxFps >= 120 {
             return L10n.Overview.refreshRate120
         } else {
@@ -165,7 +168,12 @@ public struct DetailedHardwareSpecs: Sendable {
     }
 
     public var ppiAndScale: String {
-        "\(ppi) ppi (@\(scale)x)"
+        guard ppi > 0, nativeScaleValue > 0 else { return "--" }
+        let rounded = nativeScaleValue.rounded()
+        if abs(nativeScaleValue - rounded) < 0.01 {
+            return "\(ppi) ppi (@\(Int(rounded))x)"
+        }
+        return String(format: "%d ppi (@%.2fx)", ppi, nativeScaleValue)
     }
 
     public var displayTechnology: String {
@@ -173,7 +181,12 @@ public struct DetailedHardwareSpecs: Sendable {
     }
 
     public var processNode: String {
-        L10n.tr(zh: processNodeZh, en: processNodeEn, hant: processNodeZh.replacingOccurrences(of: "台积电", with: "台積電").replacingOccurrences(of: "高性能工艺", with: "高效能工藝"))
+        let hant = processNodeZh
+            .replacingOccurrences(of: "台积电", with: "台積電")
+            .replacingOccurrences(of: "高性能工艺", with: "高效能工藝")
+            .replacingOccurrences(of: "先进", with: "先進")
+            .replacingOccurrences(of: "半导体制程", with: "半導體製程")
+        return L10n.tr(zh: processNodeZh, en: processNodeEn, hant: hant)
     }
 
     public var isaArchitecture: String {
@@ -203,15 +216,20 @@ public struct DetailedHardwareSpecs: Sendable {
     public var pageSize: String {
         let size = vm_kernel_page_size
         let kb = size / 1024
+        #if arch(x86_64)
+        return "\(kb) KB (x86_64)"
+        #else
         return "\(kb) KB (ARM64)"
+        #endif
     }
 
     public var darwinKernel: String {
         var systemInfo = utsname()
         uname(&systemInfo)
-        let release = withUnsafePointer(to: &systemInfo.release) {
-            $0.withMemoryRebound(to: CChar.self, capacity: 1) { ptr in
-                String(cString: ptr)
+        let releaseCapacity = MemoryLayout.size(ofValue: systemInfo.release)
+        let release = withUnsafePointer(to: systemInfo.release) { ptr in
+            ptr.withMemoryRebound(to: CChar.self, capacity: releaseCapacity) { cPtr in
+                String(cString: cPtr)
             }
         }
         return "Darwin \(release)"
@@ -254,8 +272,10 @@ public struct DetailedHardwareSpecs: Sendable {
             return L10n.Overview.portUsbC10G
         } else if isUsbC480M {
             return L10n.Overview.portUsbC480M
-        } else {
+        } else if isLightning {
             return L10n.Overview.portLightning
+        } else {
+            return "--"
         }
     }
 }

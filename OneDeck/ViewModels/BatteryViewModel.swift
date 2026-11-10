@@ -17,17 +17,20 @@ public final class BatteryViewModel {
 
     // MARK: - Real-time Telemetry
     public var batteryLevel: Double = 1.0 // 0.0 - 1.0
+    public var isBatteryLevelAvailable: Bool = true
     public var batteryLevelPercent: Int { Int(round(batteryLevel * 100)) }
     public var batteryState: UIDevice.BatteryState = .unplugged
     public var isLowPowerMode: Bool = false
     public var batteryTemperature: Double = 28.5 // Celsius
+    public var isThermalEstimated: Bool = false
 
     // Power Flow Modeling
     public var liveWattage: Double = 0.0 // W (+ when charging, - when discharging)
     public var liveVoltageMv: Int = 4150 // mV
     public var liveCurrentMa: Int = 0 // mA (+ when charging, - when discharging)
-    public var chargingProtocolName: String = ""
-    public var etaCountdownString: String = ""
+    public var chargingProtocolName: String = "--"
+    public var etaCountdownString: String = "--"
+    public private(set) var isPluggedIn: Bool = false
 
     // Hardware Probe Telemetry (IOPS & AppleSmartBattery Direct Access)
     public var isHardwareDirectWattage: Bool = false
@@ -112,6 +115,8 @@ public final class BatteryViewModel {
     private var timer: Timer?
     private var isMonitoring: Bool = false
     private var samplingTask: Task<Void, Never>?
+    private var lastIsPluggedIn: Bool = false
+    private var lastIsFullyCharged: Bool = false
     private let userDefaultsKeys = (
         customEnabled: "onedeck_battery_custom_enabled",
         customCapacity: "onedeck_battery_custom_mah",
@@ -151,11 +156,30 @@ public final class BatteryViewModel {
         )
 
         scheduleAsyncTelemetrySnapshot()
+        scheduleTelemetryTimer()
+    }
 
+    @MainActor
+    public func applyPowerSavingPreference() {
+        guard isMonitoring else { return }
+        scheduleTelemetryTimer()
+        scheduleAsyncTelemetrySnapshot(force: true)
+    }
+
+    @MainActor
+    private func scheduleTelemetryTimer() {
+        timer?.invalidate()
         let interval: TimeInterval = AppState.shared.isSensorPowerSaving ? 4.0 : 1.5
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        let scheduledTimer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             self?.scheduleAsyncTelemetrySnapshot()
         }
+        RunLoop.main.add(scheduledTimer, forMode: .common)
+        timer = scheduledTimer
+    }
+
+    @MainActor
+    public func refreshLocalizedStrings() {
+        updateLocalizedPowerStrings(isPluggedIn: lastIsPluggedIn, isFullyCharged: lastIsFullyCharged)
     }
 
     @MainActor
@@ -165,6 +189,7 @@ public final class BatteryViewModel {
         timer = nil
         samplingTask?.cancel()
         samplingTask = nil
+        UIDevice.current.isBatteryMonitoringEnabled = false
         NotificationCenter.default.removeObserver(self)
     }
 
@@ -181,18 +206,18 @@ public final class BatteryViewModel {
     }
 
     @MainActor
-    public func updateTelemetrySnapshot() {
-        scheduleAsyncTelemetrySnapshot()
+    public func updateTelemetrySnapshot(force: Bool = false) {
+        scheduleAsyncTelemetrySnapshot(force: force)
     }
 
-    private func scheduleAsyncTelemetrySnapshot() {
-        guard isMonitoring else { return }
+    private func scheduleAsyncTelemetrySnapshot(force: Bool = false) {
+        guard force || isMonitoring else { return }
         samplingTask?.cancel()
         samplingTask = Task.detached(priority: .utility) { [weak self] in
             let hw = HardwareBatteryProbe.sample()
             if Task.isCancelled { return }
             await MainActor.run { [weak self] in
-                guard let self, self.isMonitoring else { return }
+                guard let self, force || self.isMonitoring else { return }
                 self.applyTelemetrySnapshot(hw: hw)
             }
         }
@@ -203,12 +228,15 @@ public final class BatteryViewModel {
         // 1. Battery Percentage
         if let cur = hw.currentCapacityMah, let maxCap = hw.maxCapacityMah, maxCap > 0 {
             self.batteryLevel = min(1.0, max(0.0, Double(cur) / Double(maxCap)))
+            self.isBatteryLevelAvailable = true
         } else {
             let rawLevel = UIDevice.current.batteryLevel
             if rawLevel >= 0 {
                 self.batteryLevel = Double(rawLevel)
+                self.isBatteryLevelAvailable = true
             } else {
-                self.batteryLevel = 0.78 // Fallback for simulator
+                self.batteryLevel = 0.0
+                self.isBatteryLevelAvailable = false
             }
         }
 
@@ -226,8 +254,10 @@ public final class BatteryViewModel {
         self.isLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
         if let hwTemp = hw.temperatureCelsius {
             self.batteryTemperature = hwTemp
+            self.isThermalEstimated = false
         } else {
             self.batteryTemperature = SystemService.shared.batteryTemperature
+            self.isThermalEstimated = SystemService.shared.isThermalEstimated
         }
         if let soc = hw.socTemperatureCelsius {
             SystemService.shared.socTemperature = soc
@@ -242,14 +272,22 @@ public final class BatteryViewModel {
         self.adapterName = hw.adapterName
 
         let isPluggedIn = (batteryState == .charging || batteryState == .full || hw.isExternalConnected == true || hw.adapterWatts != nil)
+        let isFullyCharged = (batteryState == .full || hw.isFullyCharged == true)
+        self.isPluggedIn = isPluggedIn
+        self.lastIsPluggedIn = isPluggedIn
+        self.lastIsFullyCharged = isFullyCharged
 
         // 6. Voltage & Amperage
         var physicalV = hw.voltageMv ?? 0
         if physicalV <= 2500 {
             // Open-circuit voltage model fallback if hardware register is unreadable
-            let baseV = 3650 + Int(self.batteryLevel * 650.0)
             let chargingIrDrop: Int = isPluggedIn ? 120 : 0
-            physicalV = baseV + chargingIrDrop
+            if isBatteryLevelAvailable {
+                let baseV = 3650 + Int(self.batteryLevel * 650.0)
+                physicalV = baseV + chargingIrDrop
+            } else {
+                physicalV = 3800 + chargingIrDrop
+            }
         }
         self.liveVoltageMv = physicalV
         let voltageVolts: Double = max(3.0, Double(self.liveVoltageMv) / 1000.0)
@@ -257,12 +295,10 @@ public final class BatteryViewModel {
         // 7. Power Flow & Protocol Logic
         let hwAmps = hw.instantAmperageMa ?? hw.amperageMa
 
-        if batteryState == .full || (hw.isFullyCharged == true) {
+        if isFullyCharged {
             self.liveCurrentMa = 0
             self.liveWattage = 0.0
-            self.isHardwareDirectWattage = true
-            self.chargingProtocolName = L10n.Battery.stateFull
-            self.etaCountdownString = L10n.Battery.fullyChargedText
+            self.isHardwareDirectWattage = (hwAmps != nil)
             self.pathLossWatts = 0.0
         } else if isPluggedIn {
             // Charging or External Power Connected
@@ -296,27 +332,12 @@ public final class BatteryViewModel {
                 self.isHardwareDirectWattage = false
             }
 
-            // Protocol Name formatting: Keep stable to prevent pill jumping between ticks
             if let watts = hw.adapterWatts, watts > 0 {
-                if watts <= 6 {
-                    self.chargingProtocolName = L10n.Battery.adapterTypeSlow
-                } else if let name = hw.adapterName, name.lowercased().contains("wireless") || name.lowercased().contains("magsafe") {
-                    self.chargingProtocolName = L10n.Battery.adapterTypeWireless
-                } else {
-                    self.chargingProtocolName = L10n.Battery.protocolFastPD(watt: watts)
-                }
                 let inputW = Double(watts)
                 self.pathLossWatts = max(0.0, ((inputW - abs(self.liveWattage)) * 10.0).rounded() / 10.0)
-            } else if batteryLevel >= 0.80 {
-                self.chargingProtocolName = L10n.Battery.protocolTrickle
-                self.pathLossWatts = 0.5
             } else {
-                self.chargingProtocolName = L10n.Battery.protocolStandardPD
-                self.pathLossWatts = 1.8
+                self.pathLossWatts = 0.0
             }
-
-            let remainingMins = Int(round((1.0 - batteryLevel) * 85.0))
-            self.etaCountdownString = L10n.Battery.etaToFull(mins: max(5, remainingMins))
         } else {
             // Discharging on Battery
             if let amps = hwAmps, amps < 0 {
@@ -338,14 +359,9 @@ public final class BatteryViewModel {
                 self.liveCurrentMa = -dischargeMa
             }
             self.pathLossWatts = 0.0
-            self.chargingProtocolName = isLowPowerMode ? L10n.Battery.protocolLowPower : L10n.Battery.protocolDischarge
-
-            let drainMaPerMin: Double = max(1.0, Double(abs(self.liveCurrentMa))) / 60.0
-            let availableMins = Int(Double(currentRemainingMah) / drainMaPerMin)
-            let hours: Int = max(0, availableMins / 60)
-            let mins: Int = max(0, availableMins % 60)
-            self.etaCountdownString = L10n.Battery.etaRemaining(h: hours, m: mins)
         }
+
+        updateLocalizedPowerStrings(isPluggedIn: isPluggedIn, isFullyCharged: isFullyCharged)
 
         // Rolling 30s Sparkline
         let currentPlotW = abs(liveWattage)
@@ -355,15 +371,56 @@ public final class BatteryViewModel {
         }
     }
 
+    @MainActor
+    private func updateLocalizedPowerStrings(isPluggedIn: Bool, isFullyCharged: Bool) {
+        if isFullyCharged {
+            self.chargingProtocolName = L10n.Battery.stateFull
+            self.etaCountdownString = L10n.Battery.fullyChargedText
+        } else if isPluggedIn {
+            if let watts = adapterWatts, watts > 0 {
+                if watts <= 6 {
+                    self.chargingProtocolName = L10n.Battery.adapterTypeSlow
+                } else if let name = adapterName, name.lowercased().contains("wireless") || name.lowercased().contains("magsafe") {
+                    self.chargingProtocolName = L10n.Battery.adapterTypeWireless
+                } else {
+                    self.chargingProtocolName = L10n.Battery.protocolFastPD(watt: watts)
+                }
+            } else if batteryLevel >= 0.80 {
+                self.chargingProtocolName = L10n.Battery.protocolTrickle
+            } else {
+                self.chargingProtocolName = L10n.Battery.protocolStandardPD
+            }
+
+            if !isBatteryLevelAvailable {
+                self.etaCountdownString = L10n.Battery.unavailableReading
+            } else {
+                let remainingMins = Int(round((1.0 - batteryLevel) * 85.0))
+                self.etaCountdownString = L10n.Battery.etaToFull(mins: max(5, remainingMins))
+            }
+        } else {
+            self.chargingProtocolName = isLowPowerMode ? L10n.Battery.protocolLowPower : L10n.Battery.protocolDischarge
+            if !isBatteryLevelAvailable {
+                self.etaCountdownString = L10n.Battery.unavailableReading
+            } else {
+                let drainMaPerMin: Double = max(1.0, Double(abs(self.liveCurrentMa))) / 60.0
+                let availableMins = Int(Double(currentRemainingMah) / drainMaPerMin)
+                let hours: Int = max(0, availableMins / 60)
+                let mins: Int = max(0, availableMins % 60)
+                self.etaCountdownString = L10n.Battery.etaRemaining(h: hours, m: mins)
+            }
+        }
+    }
+
     // MARK: - Third-Party Custom Cell Configuration
     public func setCustomBattery(enabled: Bool, customMah: Int? = nil) {
         self.isCustomBattery = enabled
-        if let customMah, customMah > 500 {
-            self.customCapacityMah = customMah
+        if let customMah, customMah >= 500 {
+            self.customCapacityMah = min(20000, max(500, customMah))
         }
         UserDefaults.standard.set(enabled, forKey: userDefaultsKeys.customEnabled)
         UserDefaults.standard.set(self.customCapacityMah, forKey: userDefaultsKeys.customCapacity)
-        updateTelemetrySnapshot()
+        updateTelemetrySnapshot(force: true)
+        updateLocalizedPowerStrings(isPluggedIn: lastIsPluggedIn, isFullyCharged: lastIsFullyCharged)
     }
 
     // MARK: - Apple Analytics Log Parser (.ips / .ips.ca.synced)
@@ -393,7 +450,7 @@ public final class BatteryViewModel {
     public func clearAnalyticsRecord() {
         self.analyticsRecord = nil
         UserDefaults.standard.removeObject(forKey: userDefaultsKeys.analyticsData)
-        updateTelemetrySnapshot()
+        updateTelemetrySnapshot(force: true)
     }
 
     @MainActor
@@ -466,10 +523,10 @@ public final class BatteryViewModel {
 
         // 4. Maximum Capacity Percent (Health %)
         let healthPatterns = [
-            #"\"last_value_MaximumCapacityPercent\"\s*:\s*(\d+)"#,
-            #"\"MaximumCapacityPercent\"\s*:\s*(\d+)"#,
-            #"\"maximum_capacity_percent\"\s*:\s*(\d+)"#,
-            #"\"MaximumCapacityPercent\"\s*=\s*(\d+)"#
+            #"\"last_value_MaximumCapacityPercent\"\s*:\s*(\d+(?:\.\d+)?)"#,
+            #"\"MaximumCapacityPercent\"\s*:\s*(\d+(?:\.\d+)?)"#,
+            #"\"maximum_capacity_percent\"\s*:\s*(\d+(?:\.\d+)?)"#,
+            #"\"MaximumCapacityPercent\"\s*=\s*(\d+(?:\.\d+)?)"#
         ]
         for pattern in healthPatterns {
             if let match = regexFirstMatch(pattern: pattern, text: targetText), let val = Double(match) {
@@ -478,8 +535,8 @@ public final class BatteryViewModel {
             }
         }
 
-        // Validate findings (allow cycles from NCC if cycle key is alternate)
-        guard let finalCycles = cycleCount ?? (nominalChargeCapacity != nil ? 0 : nil) else {
+        // Require explicit cycle count key (never synthesize 0 cycles without CycleCount)
+        guard let finalCycles = cycleCount else {
             return .failure(NSError(domain: "OneDeckBattery", code: -2, userInfo: [NSLocalizedDescriptionKey: L10n.Battery.errCycleNotFound]))
         }
 
@@ -498,7 +555,7 @@ public final class BatteryViewModel {
 
         self.analyticsRecord = record
         persistAnalyticsRecord(record)
-        updateTelemetrySnapshot()
+        updateTelemetrySnapshot(force: true)
         return .success(record)
     }
 
@@ -514,8 +571,8 @@ public final class BatteryViewModel {
     private func loadPersistedSettings() {
         self.isCustomBattery = UserDefaults.standard.bool(forKey: userDefaultsKeys.customEnabled)
         let savedCap = UserDefaults.standard.integer(forKey: userDefaultsKeys.customCapacity)
-        if savedCap > 500 {
-            self.customCapacityMah = savedCap
+        if savedCap >= 500 {
+            self.customCapacityMah = min(20000, max(500, savedCap))
         }
 
         if let data = UserDefaults.standard.data(forKey: userDefaultsKeys.analyticsData),
@@ -530,36 +587,14 @@ public final class BatteryViewModel {
         }
     }
 
-    // MARK: - Machine Fallback Estimates
-    private var estimatedCyclesFromMachine: Int {
-        // Safe baseline estimate based on chip generation if no log imported
-        let id = SystemService.shared.machineIdentifier
-        if id.hasPrefix("iPhone11") { return 420 } // XS generation
-        if id.hasPrefix("iPhone12") { return 360 } // 11 generation
-        if id.hasPrefix("iPhone13") { return 290 } // 12 generation
-        if id.hasPrefix("iPhone14") { return 210 } // 13 generation
-        if id.hasPrefix("iPhone15") { return 160 } // 14 generation
-        if id.hasPrefix("iPhone16") { return 110 } // 15 generation
-        if id.hasPrefix("iPhone17") { return 35 } // 16 generation
-        return 120
-    }
-
-    private var estimatedHealthFromMachine: Double {
-        let id = SystemService.shared.machineIdentifier
-        if id.hasPrefix("iPhone11") { return 84.5 }
-        if id.hasPrefix("iPhone12") { return 87.0 }
-        if id.hasPrefix("iPhone13") { return 89.5 }
-        if id.hasPrefix("iPhone14") { return 92.0 }
-        if id.hasPrefix("iPhone15") { return 95.0 }
-        if id.hasPrefix("iPhone16") { return 98.5 }
-        if id.hasPrefix("iPhone17") { return 100.0 }
-        return 96.0
-    }
-
     // MARK: - Hardware Design Capacity Database
     private func resolveDeviceDesignCapacity() {
         var size = 0
         sysctlbyname("hw.machine", nil, &size, nil, 0)
+        guard size > 0 else {
+            self.officialDesignCapacityMah = Self.lookupDesignCapacity(identifier: "")
+            return
+        }
         var machine = [CChar](repeating: 0, count: size)
         sysctlbyname("hw.machine", &machine, &size, nil, 0)
         let identifier = String(cString: machine)
@@ -627,11 +662,30 @@ public final class BatteryViewModel {
         case "iPhone8,2": return 2750 // 6s Plus
         case "iPhone8,4": return 1624 // SE (1st)
         // iPad Models
-        case let id where id.hasPrefix("iPad16,3") || id.hasPrefix("iPad16,4"): return 8160 // iPad Pro 11 M4
-        case let id where id.hasPrefix("iPad16,5") || id.hasPrefix("iPad16,6"): return 10290 // iPad Pro 13 M4
-        case let id where id.hasPrefix("iPad14,3") || id.hasPrefix("iPad14,4"): return 7538 // iPad Pro 11 M2
-        case let id where id.hasPrefix("iPad14,5") || id.hasPrefix("iPad14,6"): return 10758 // iPad Pro 12.9 M2
-        case let id where id.hasPrefix("iPad14,1") || id.hasPrefix("iPad14,2"): return 5124 // iPad mini 6
+        case "iPad17,1", "iPad17,2": return 8160 // iPad Pro 11 M5
+        case "iPad17,3", "iPad17,4": return 10290 // iPad Pro 13 M5
+        case "iPad16,8", "iPad16,9": return 7606 // iPad Air 11 M4
+        case "iPad16,10", "iPad16,11": return 9705 // iPad Air 13 M4
+        case "iPad16,3", "iPad16,4": return 8160 // iPad Pro 11 M4
+        case "iPad16,5", "iPad16,6": return 10290 // iPad Pro 13 M4
+        case "iPad16,1", "iPad16,2": return 5078 // iPad mini (A17 Pro)
+        case "iPad15,3", "iPad15,4": return 7606 // iPad Air 11 M3
+        case "iPad15,5", "iPad15,6": return 9705 // iPad Air 13 M3
+        case "iPad15,1", "iPad15,2", "iPad15,7", "iPad15,8": return 7606 // iPad (11th gen)
+        case "iPad14,8", "iPad14,9": return 7606 // iPad Air 11 M2
+        case "iPad14,10", "iPad14,11": return 9705 // iPad Air 13 M2
+        case "iPad14,3", "iPad14,4": return 7538 // iPad Pro 11 M2
+        case "iPad14,5", "iPad14,6": return 10758 // iPad Pro 12.9 M2
+        case "iPad14,1", "iPad14,2": return 5124 // iPad mini 6
+        case "iPad13,4", "iPad13,5", "iPad13,6", "iPad13,7": return 7538 // iPad Pro 11 M1
+        case "iPad13,8", "iPad13,9", "iPad13,10", "iPad13,11": return 10835 // iPad Pro 12.9 M1
+        case "iPad13,16", "iPad13,17": return 7606 // iPad Air 5 M1
+        case "iPad13,1", "iPad13,2": return 7606 // iPad Air 4
+        case "iPad13,18", "iPad13,19": return 7606 // iPad (10th gen)
+        case "iPad12,1", "iPad12,2": return 8557 // iPad (9th gen)
+        case "iPad11,1", "iPad11,2": return 5124 // iPad mini 5
+        case "iPad11,3", "iPad11,4": return 8134 // iPad Air 3
+        case "iPad11,6", "iPad11,7": return 8557 // iPad (8th gen)
         default:
             return 3000
         }

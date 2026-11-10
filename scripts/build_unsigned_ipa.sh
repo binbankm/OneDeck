@@ -33,13 +33,33 @@ xcodebuild clean build \
     CODE_SIGNING_REQUIRED=NO \
     CODE_SIGN_IDENTITY="" \
     EXPANDED_CODE_SIGN_IDENTITY="" \
-    BUILD_DIR="$BUILD_DIR" \
-    -quiet
+    BUILD_DIR="$BUILD_DIR"
 
 if [[ ! -d "$APP_PATH" ]]; then
     echo "❌ Error: OneDeck.app not found at $APP_PATH"
     exit 1
 fi
+
+# 2b. Validate bundle metadata, privacy manifest, and localized InfoPlist strings
+echo "▶ 2b. Verifying Info.plist, PrivacyInfo.xcprivacy, and localizations..."
+if [[ ! -f "$APP_PATH/Info.plist" ]]; then
+    echo "❌ Error: Info.plist missing from $APP_PATH"
+    exit 1
+fi
+plutil -lint "$APP_PATH/Info.plist" >/dev/null
+
+if [[ ! -f "$APP_PATH/PrivacyInfo.xcprivacy" ]]; then
+    echo "❌ Error: PrivacyInfo.xcprivacy missing from $APP_PATH"
+    exit 1
+fi
+plutil -lint "$APP_PATH/PrivacyInfo.xcprivacy" >/dev/null
+
+for lproj in en.lproj zh-Hans.lproj zh-Hant.lproj; do
+    if [[ ! -f "$APP_PATH/$lproj/InfoPlist.strings" ]]; then
+        echo "❌ Error: $lproj/InfoPlist.strings missing from $APP_PATH"
+        exit 1
+    fi
+done
 
 # 3. Strip any residual signature or provisioning profiles
 echo "▶ 3. Stripping any signature metadata..."

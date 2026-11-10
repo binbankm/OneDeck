@@ -6,7 +6,6 @@
 //  Acoustic sound pressure level (SPL) and noise spectrum workspace.
 //
 
-import AVFAudio
 import Charts
 import SwiftUI
 
@@ -16,36 +15,40 @@ struct DecibelMeterDetailView: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
-    private var isMicDenied: Bool {
-        AVAudioApplication.shared.recordPermission == .denied
-    }
-
     // MARK: - Body
     var body: some View {
-        VStack(spacing: SpacingTheme.cardStack) {
-            // Top KPI Summary Cards (Peak, Avg, Floor)
-            kpiSummaryRow
+        GeometryReader { geo in
+            let gaugeSize = max(150, min(230, geo.size.width - 64, geo.size.height * 0.36))
 
-            if isMicDenied {
-                micPermissionDeniedBanner
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: SpacingTheme.cardStack) {
+                    // Top KPI Summary Cards (Peak, Avg, Floor)
+                    kpiSummaryRow
+
+                    if tools.isMicrophonePermissionDenied || tools.decibelStatus == .permissionDenied {
+                        micPermissionDeniedBanner
+                    } else if tools.decibelStatus == .hardwareUnavailable {
+                        micHardwareUnavailableBanner
+                    }
+
+                    Spacer(minLength: 0)
+
+                    // Center Decibel Circular Gauge
+                    decibelGauge(size: gaugeSize)
+
+                    Spacer(minLength: 0)
+
+                    // Rolling Sound History Chart
+                    historyChart
+
+                    // Master Start / Stop Button
+                    primaryToggleButton
+                }
+                .padding(.horizontal, SpacingTheme.cardStack)
+                .padding(.vertical, SpacingTheme.rowStandard)
+                .frame(maxWidth: .infinity, minHeight: geo.size.height)
             }
-
-            Spacer()
-
-            // Center Decibel Circular Gauge
-            decibelGauge(size: 230)
-
-            Spacer()
-
-            // Rolling Sound History Chart
-            historyChart
-
-            // Master Start / Stop Button
-            primaryToggleButton
         }
-        .padding(.horizontal, SpacingTheme.cardStack)
-        .padding(.vertical, SpacingTheme.rowStandard)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.decibelMeter)
         .navigationBarTitleDisplayMode(.inline)
@@ -72,9 +75,7 @@ struct DecibelMeterDetailView: View {
             }
 
             Button {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
+                tools.openAppSettings()
             } label: {
                 Text(L10n.Tools.openSettings)
                     .font(Typography.captionBold)
@@ -84,6 +85,28 @@ struct DecibelMeterDetailView: View {
                     .foregroundStyle(Color.white)
                     .clipShape(Capsule())
             }
+            .buttonStyle(.plain)
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+        )
+    }
+
+    @ViewBuilder
+    private var micHardwareUnavailableBanner: some View {
+        HStack(spacing: SpacingTheme.tight) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.orange)
+            Text(L10n.Tools.microphoneHardwareUnavailable)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .multilineTextAlignment(.leading)
         }
         .padding(SpacingTheme.cardInternal)
         .background(
@@ -186,18 +209,20 @@ struct DecibelMeterDetailView: View {
     // MARK: - History Chart
     @ViewBuilder
     private var historyChart: some View {
+        let validHistory = tools.decibelMeter.history.filter { $0.value.isFinite }
+
         VStack(alignment: .leading, spacing: SpacingTheme.micro) {
             Text(L10n.Tools.soundTimeline)
                 .font(Typography.badgeTagMono)
                 .foregroundStyle(Theme.textTertiary(for: colorScheme))
 
-            if tools.decibelMeter.history.isEmpty {
+            if validHistory.isEmpty {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                     .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
                     .frame(height: 70)
             } else {
                 Chart {
-                    ForEach(tools.decibelMeter.history) { pt in
+                    ForEach(validHistory) { pt in
                         LineMark(
                             x: .value("Time", pt.timestamp),
                             y: .value("dB", pt.value)
@@ -238,10 +263,10 @@ struct DecibelMeterDetailView: View {
             HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: isRunning ? "stop.fill" : "mic.fill")
                     .font(IconTheme.actionButton)
-                Text(isRunning ? L10n.Tools.stopEject : L10n.Tools.startMeter)
+                Text(isRunning ? L10n.Common.stop : L10n.Tools.startMeter)
                     .font(Typography.headlineValue)
             }
-            .foregroundStyle(Color.white)
+            .foregroundStyle(isRunning ? Color.white : Theme.contrastingForeground(for: appState.accentColor))
             .frame(maxWidth: .infinity)
             .frame(height: 50)
             .background(

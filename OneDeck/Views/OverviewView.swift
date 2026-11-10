@@ -27,12 +27,6 @@ struct OverviewView: View {
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Overview.title)
-            .onAppear {
-                system.startMonitoring()
-            }
-            .onDisappear {
-                system.stopMonitoring()
-            }
         }
     }
 

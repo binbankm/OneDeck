@@ -173,6 +173,9 @@ struct OverviewCpuCard: View {
                         .foregroundStyle(clampedUsage > 85 ? Color.orange : Theme.textSecondary(for: colorScheme))
                 }
                 .frame(maxWidth: .infinity)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(coreTag)
+                .accessibilityValue(String(format: "%.0f%%", clampedUsage))
             }
         }
         .padding(.top, SpacingTheme.tight)

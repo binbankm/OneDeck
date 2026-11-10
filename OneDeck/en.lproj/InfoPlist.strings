@@ -1,0 +1,9 @@
+"CFBundleDisplayName" = "OneDeck";
+"NSBluetoothAlwaysUsageDescription" = "OneDeck uses Bluetooth to scan nearby BLE peripherals and estimate signal distance.";
+"NSBluetoothPeripheralUsageDescription" = "OneDeck uses Bluetooth to scan nearby BLE peripherals and radar telemetry.";
+"NSCameraUsageDescription" = "OneDeck uses the camera for optical pulse (PPG) measurement, macro magnification, and ambient lux detection.";
+"NSLocalNetworkUsageDescription" = "OneDeck accesses your local network to discover Bonjour/mDNS devices, probe gateways, and send Wake-on-LAN packets.";
+"NSLocationWhenInUseUsageDescription" = "OneDeck uses your location while in use to compute true north heading and GNSS coordinates.";
+"NSMicrophoneUsageDescription" = "OneDeck uses the microphone to measure real-time ambient sound pressure levels (dB).";
+"NSMotionUsageDescription" = "OneDeck uses motion sensors and the barometer for spirit level tilt, relative altitude, and vibration telemetry.";
+

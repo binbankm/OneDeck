@@ -56,16 +56,18 @@ struct OverviewHardwareCard: View {
                     .background(
                         selectedCategory == category
                             ? appState.accentColor
-                            : (colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.04))
+                            : Theme.chipBackground(for: colorScheme)
                     )
                     .foregroundStyle(
                         selectedCategory == category
-                            ? Color.black
+                            ? Theme.contrastingForeground(for: appState.accentColor)
                             : Theme.textSecondary(for: colorScheme)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 }
                 .buttonStyle(CategoryTabButtonStyle())
+                .accessibilityLabel(category.title)
+                .accessibilityAddTraits(selectedCategory == category ? [.isSelected] : [])
             }
         }
     }
@@ -274,6 +276,9 @@ struct OverviewHardwareCard: View {
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue(value)
     }
 }
 

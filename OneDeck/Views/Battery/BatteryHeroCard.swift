@@ -33,14 +33,14 @@ struct BatteryHeroCard: View {
 
             // State & Protocol Capsule
             HStack(spacing: SpacingTheme.tight) {
-                if battery.batteryState == .charging {
+                if battery.isPluggedIn {
                     Image(systemName: "bolt.fill")
                         .font(IconTheme.badgeInline)
                         .foregroundStyle(activeStatusColor)
                 } else if battery.isLowPowerMode {
                     Image(systemName: "battery.100.bolt")
                         .font(IconTheme.badgeInline)
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(Theme.readableYellow(for: colorScheme))
                 }
 
                 Text(battery.chargingProtocolName)
@@ -60,15 +60,22 @@ struct BatteryHeroCard: View {
     private var gaugeSection: some View {
         VStack(spacing: SpacingTheme.row) {
             HStack(alignment: .firstTextBaseline) {
-                Text("\(battery.batteryLevelPercent)")
+                Text(battery.isBatteryLevelAvailable ? "\(battery.batteryLevelPercent)" : "--")
                     .font(Typography.displayHero)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                     .foregroundStyle(activeStatusColor)
 
-                Text("%")
-                    .font(Typography.title1)
-                    .foregroundStyle(activeStatusColor.opacity(0.85))
+                if battery.isBatteryLevelAvailable {
+                    Text("%")
+                        .font(Typography.title1)
+                        .foregroundStyle(activeStatusColor.opacity(0.85))
+                } else {
+                    Text(L10n.Battery.unavailableReading)
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .padding(.leading, SpacingTheme.tight)
+                }
 
                 Spacer()
 
@@ -79,7 +86,7 @@ struct BatteryHeroCard: View {
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
                     HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
-                        Text("\(battery.currentRemainingMah)")
+                        Text(battery.isBatteryLevelAvailable ? "\(battery.currentRemainingMah)" : "--")
                             .font(Typography.headlineValue)
                             .monospacedDigit()
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
@@ -90,6 +97,13 @@ struct BatteryHeroCard: View {
                     }
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Battery.batteryStatus)
+            .accessibilityValue(
+                battery.isBatteryLevelAvailable
+                    ? "\(battery.batteryLevelPercent)%, \(battery.currentRemainingMah) / \(battery.effectiveDesignCapacityMah) mAh"
+                    : L10n.Battery.unavailableReading
+            )
 
             // Dynamic Smooth Capsule Gauge (GPU Accelerated Transform)
             let clampedLevel = min(1.0, max(0.0, battery.batteryLevel.isFinite ? Double(battery.batteryLevel) : 0.0))
@@ -97,26 +111,29 @@ struct BatteryHeroCard: View {
             Capsule()
                 .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
                 .overlay(alignment: .leading) {
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    activeStatusColor,
-                                    activeStatusColor.opacity(0.75)
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
+                    if battery.isBatteryLevelAvailable && clampedLevel > 0 {
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        activeStatusColor,
+                                        activeStatusColor.opacity(0.75)
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
-                        )
-                        .overlay(
-                            Capsule()
-                                .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
-                        )
-                        .scaleEffect(x: max(0.02, CGFloat(clampedLevel)), y: 1.0, anchor: .leading)
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                            )
+                            .scaleEffect(x: max(0.02, CGFloat(clampedLevel)), y: 1.0, anchor: .leading)
+                    }
                 }
                 .clipShape(Capsule())
                 .frame(height: 18)
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: battery.batteryLevel)
+                .accessibilityHidden(true)
 
             // ETA & Live Power Sub-row
             HStack(spacing: SpacingTheme.tight) {
@@ -132,10 +149,10 @@ struct BatteryHeroCard: View {
                 Spacer(minLength: SpacingTheme.compact)
 
                 HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: battery.batteryState == .charging ? "bolt.fill" : "bolt.badge.automatic.fill")
+                    Image(systemName: battery.isPluggedIn ? "bolt.fill" : "bolt.badge.automatic.fill")
                         .font(IconTheme.badgeInline)
                         .foregroundStyle(activeStatusColor)
-                    Text(String(format: "%+.1f W", battery.liveWattage))
+                    Text(String(format: "%+.1f W", battery.liveWattage.isFinite ? battery.liveWattage : 0.0))
                         .font(Typography.captionMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .lineLimit(1)
@@ -148,13 +165,10 @@ struct BatteryHeroCard: View {
     // MARK: - Dynamic Status Color
     private var activeStatusColor: Color {
         if battery.isLowPowerMode {
-            return .yellow
+            return Theme.readableYellow(for: colorScheme)
         }
-        if battery.batteryLevel <= 0.20 && battery.batteryState != .charging {
+        if battery.isBatteryLevelAvailable && battery.batteryLevel <= 0.20 && !battery.isPluggedIn {
             return .red
-        }
-        if battery.batteryState == .charging {
-            return appState.accentColor
         }
         return appState.accentColor
     }

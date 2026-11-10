@@ -55,6 +55,14 @@ public enum Theme {
     private static let darkTextTertiary = Color(hex: "#8E8E9C")
     private static let lightTextTertiary = Color(hex: "#666672")
 
+    private static let darkChipBg = Color.white.opacity(0.08)
+    private static let lightChipBg = Color(hex: "#ECEDF2")
+    private static let darkChipBorder = Color.white.opacity(0.10)
+    private static let lightChipBorder = Color.black.opacity(0.10)
+
+    private static let lightReadableYellow = Color(hex: "#B45309")
+    private static let lightReadableCyan = Color(hex: "#0369A1")
+
     // Canvas Background
     public static func background(for scheme: ColorScheme) -> Color {
         scheme == .dark ? darkCanvas : lightCanvas
@@ -68,6 +76,44 @@ public enum Theme {
     // Card Subtle Border
     public static func cardBorder(for scheme: ColorScheme) -> Color {
         scheme == .dark ? darkCardBorder : lightCardBorder
+    }
+
+    // Chip & Unselected Pill Surfaces
+    public static func chipBackground(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? darkChipBg : lightChipBg
+    }
+
+    public static func chipBorder(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? darkChipBorder : lightChipBorder
+    }
+
+    // Accessible Accent Variants for Light & Dark Surfaces
+    public static func readableYellow(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? .yellow : lightReadableYellow
+    }
+
+    public static func readableCyan(for scheme: ColorScheme) -> Color {
+        scheme == .dark ? .cyan : lightReadableCyan
+    }
+
+    public static func contrastingForeground(for background: Color) -> Color {
+        #if canImport(UIKit)
+        let uic = UIColor(background)
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+        guard uic.getRed(&r, green: &g, blue: &b, alpha: &a) else {
+            return .white
+        }
+        let cr = min(max(r, 0.0), 1.0)
+        let cg = min(max(g, 0.0), 1.0)
+        let cb = min(max(b, 0.0), 1.0)
+        let luminance = 0.2126 * cr + 0.7152 * cg + 0.0722 * cb
+        return luminance > 0.42 ? .black : .white
+        #else
+        return .white
+        #endif
     }
 
     // Text Colors - Fully calibrated for WCAG AA compliance (Contrast >= 4.5:1)
@@ -93,41 +139,41 @@ public enum Theme {
     }
 }
 
-// MARK: - Global Typography Design System Tokens
+// MARK: - Global Typography Design System Tokens (Dynamic Type Enabled)
 public enum Typography {
     /// Hero KPI Numbers (Battery %, Latency ms, Speedtest Mbps)
-    public static let displayHero: Font = .system(size: 40, weight: .bold, design: .rounded)
-    /// Large Sub-Hero Metric (Public IP 24pt, Model Name Headline)
-    public static let heroSubValue: Font = .system(size: 24, weight: .bold, design: .rounded)
-    public static let heroSubValueMono: Font = .system(size: 24, weight: .bold, design: .monospaced)
-    /// Top View Titles & Device Names (20pt)
-    public static let title1: Font = .system(size: 20, weight: .bold)
-    /// Secondary Section Projections (18pt)
-    public static let title2: Font = .system(size: 18, weight: .bold)
-    /// Primary Action Button Labels & Prominent Hero Metrics (16pt)
-    public static let headlineValue: Font = .system(size: 16, weight: .semibold)
-    /// Bento Card Section Headers (14pt)
-    public static let sectionHeader: Font = .system(size: 14, weight: .bold)
-    /// Core Metric Values in list tiles & gauges (13pt)
-    public static let bodyValue: Font = .system(size: 13, weight: .semibold)
-    public static let bodyMedium: Font = .system(size: 13, weight: .medium)
-    public static let bodyValueMono: Font = .system(size: 13, weight: .semibold, design: .monospaced)
-    /// List Row Field Labels & Property Names (12pt)
-    public static let calloutLabel: Font = .system(size: 12, weight: .medium)
-    public static let calloutBold: Font = .system(size: 12, weight: .semibold)
-    public static let calloutMono: Font = .system(size: 12, weight: .semibold, design: .monospaced)
-    /// Secondary descriptions, hardware specs & sub-details (11pt)
-    public static let caption: Font = .system(size: 11, weight: .medium)
-    public static let captionRegular: Font = .system(size: 11, weight: .regular)
-    public static let captionBold: Font = .system(size: 11, weight: .semibold)
-    public static let captionMono: Font = .system(size: 11, weight: .semibold, design: .monospaced)
-    /// Micro Badges, Tags & Pill Labels (10pt)
-    public static let badgeTag: Font = .system(size: 10, weight: .bold)
-    public static let badgeTagMedium: Font = .system(size: 10, weight: .medium)
-    public static let badgeTagMono: Font = .system(size: 10, weight: .bold, design: .monospaced)
-    public static let badgeTagMonoMedium: Font = .system(size: 10, weight: .medium, design: .monospaced)
-    /// Chart Axis Ticks & Viewfinder HUD indicators (8.5pt Strict Minimum Limit)
-    public static let microAxis: Font = .system(size: 8.5, weight: .semibold, design: .monospaced)
+    public static let displayHero: Font = .system(.largeTitle, design: .rounded, weight: .bold)
+    /// Large Sub-Hero Metric (Public IP, Model Name Headline)
+    public static let heroSubValue: Font = .system(.title2, design: .rounded, weight: .bold)
+    public static let heroSubValueMono: Font = .system(.title2, design: .monospaced, weight: .bold)
+    /// Top View Titles & Device Names
+    public static let title1: Font = .system(.title3, weight: .bold)
+    /// Secondary Section Projections
+    public static let title2: Font = .system(.headline, weight: .bold)
+    /// Primary Action Button Labels & Prominent Hero Metrics
+    public static let headlineValue: Font = .system(.callout, weight: .semibold)
+    /// Bento Card Section Headers
+    public static let sectionHeader: Font = .system(.subheadline, weight: .bold)
+    /// Core Metric Values in list tiles & gauges
+    public static let bodyValue: Font = .system(.footnote, weight: .semibold)
+    public static let bodyMedium: Font = .system(.footnote, weight: .medium)
+    public static let bodyValueMono: Font = .system(.footnote, design: .monospaced, weight: .semibold)
+    /// List Row Field Labels & Property Names
+    public static let calloutLabel: Font = .system(.caption, weight: .medium)
+    public static let calloutBold: Font = .system(.caption, weight: .semibold)
+    public static let calloutMono: Font = .system(.caption, design: .monospaced, weight: .semibold)
+    /// Secondary descriptions, hardware specs & sub-details
+    public static let caption: Font = .system(.caption2, weight: .medium)
+    public static let captionRegular: Font = .system(.caption2, weight: .regular)
+    public static let captionBold: Font = .system(.caption2, weight: .semibold)
+    public static let captionMono: Font = .system(.caption2, design: .monospaced, weight: .semibold)
+    /// Micro Badges, Tags & Pill Labels
+    public static let badgeTag: Font = .system(.caption2, weight: .bold)
+    public static let badgeTagMedium: Font = .system(.caption2, weight: .medium)
+    public static let badgeTagMono: Font = .system(.caption2, design: .monospaced, weight: .bold)
+    public static let badgeTagMonoMedium: Font = .system(.caption2, design: .monospaced, weight: .medium)
+    /// Chart Axis Ticks & Viewfinder HUD indicators
+    public static let microAxis: Font = .system(.caption2, design: .monospaced, weight: .semibold)
 }
 
 // MARK: - Spacing Design System Tokens (8pt Grid System)
@@ -248,20 +294,37 @@ public struct HorizontalDashedLine: Shape {
 
 // MARK: - Color Hex Extensions
 extension Color {
+    public static func normalizedValidHex(_ rawHex: String) -> String? {
+        let stripped = rawHex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted).uppercased()
+        guard stripped.count == 3 || stripped.count == 6 || stripped.count == 8,
+              stripped.allSatisfy(\.isHexDigit) else {
+            return nil
+        }
+        return "#\(stripped)"
+    }
+
     public init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        let clean = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        let isValid = (clean.count == 3 || clean.count == 6 || clean.count == 8) && clean.allSatisfy(\.isHexDigit)
         var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
+        let scanner = Scanner(string: clean)
+        let parsed = isValid && scanner.scanHexInt64(&int) && scanner.isAtEnd
+
         let a, r, g, b: UInt64
-        switch hex.count {
-        case 3: // RGB (12-bit)
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6: // RGB (24-bit)
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8: // ARGB (32-bit)
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (255, 0, 245, 160) // default emerald
+        if parsed {
+            switch clean.count {
+            case 3: // RGB (12-bit)
+                (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+            case 6: // RGB (24-bit)
+                (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+            case 8: // ARGB (32-bit)
+                (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+            default:
+                (a, r, g, b) = (255, 59, 130, 246)
+            }
+        } else {
+            // Fall back to default blue preset (#3B82F6) rather than opaque black
+            (a, r, g, b) = (255, 59, 130, 246)
         }
 
         self.init(
@@ -281,7 +344,15 @@ extension Color {
         var b: CGFloat = 0
         var a: CGFloat = 0
         uic.getRed(&r, green: &g, blue: &b, alpha: &a)
-        return String(format: "#%02lX%02lX%02lX", lroundf(Float(r * 255)), lroundf(Float(g * 255)), lroundf(Float(b * 255)))
+        let clampedR = min(max(r, 0.0), 1.0)
+        let clampedG = min(max(g, 0.0), 1.0)
+        let clampedB = min(max(b, 0.0), 1.0)
+        return String(
+            format: "#%02lX%02lX%02lX",
+            lroundf(Float(clampedR * 255)),
+            lroundf(Float(clampedG * 255)),
+            lroundf(Float(clampedB * 255))
+        )
         #else
         return "#00F5A0"
         #endif
@@ -315,6 +386,7 @@ public struct BentoCardModifier: ViewModifier {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(padding)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .fill(Theme.cardBackground(for: colorScheme))
@@ -334,7 +406,6 @@ public struct BentoCardModifier: ViewModifier {
                         lineWidth: isHighlighted ? 1.0 : 0.5
                     )
             }
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .frame(maxWidth: .infinity)
     }
 }
@@ -380,14 +451,16 @@ public struct FlowLayout: Layout {
     }
 
     public func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? .infinity
+        let availableWidth = proposal.width ?? .infinity
         var currentX: CGFloat = 0
         var currentY: CGFloat = 0
         var lineHeight: CGFloat = 0
+        var maxRowWidth: CGFloat = 0
 
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
-            if currentX + size.width > width && currentX > 0 {
+            if currentX + size.width > availableWidth && currentX > 0 {
+                maxRowWidth = max(maxRowWidth, currentX - spacing)
                 currentX = 0
                 currentY += lineHeight + rowSpacing
                 lineHeight = 0
@@ -395,7 +468,11 @@ public struct FlowLayout: Layout {
             lineHeight = max(lineHeight, size.height)
             currentX += size.width + spacing
         }
-        return CGSize(width: width, height: currentY + lineHeight)
+        if currentX > 0 {
+            maxRowWidth = max(maxRowWidth, currentX - spacing)
+        }
+        let resolvedWidth = availableWidth.isFinite ? availableWidth : maxRowWidth
+        return CGSize(width: resolvedWidth, height: currentY + lineHeight)
     }
 
     public func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {

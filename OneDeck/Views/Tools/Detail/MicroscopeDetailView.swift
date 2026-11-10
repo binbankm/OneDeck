@@ -6,7 +6,6 @@
 //  Macro optical magnifier camera and digital zoom workspace.
 //
 
-import AVFoundation
 import SwiftUI
 
 struct MicroscopeDetailView: View {
@@ -14,12 +13,6 @@ struct MicroscopeDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
-
-    // MARK: - State & Permissions
-    private var isCameraDenied: Bool {
-        let status = AVCaptureDevice.authorizationStatus(for: .video)
-        return status == .denied || status == .restricted
-    }
 
     // MARK: - Body
     var body: some View {
@@ -57,19 +50,20 @@ struct MicroscopeDetailView: View {
             Color.black
 
             // Macro Optical Camera Hardware Live Feed
-            CameraPreviewRepresentable(session: MicroscopeCameraProbe.shared.captureSession)
+            tools.makeMicroscopePreview()
                 .clipped()
+
+            // Real-time CoreImage Filtered Frame (Inverted / Sobel Edge) or Frozen Snapshot
+            if let processedImage = tools.microscopeProcessedImage {
+                Image(uiImage: processedImage)
+                    .resizable()
+                    .scaledToFill()
+                    .clipped()
+                    .allowsHitTesting(false)
+            }
 
             // High-precision Measuring Reticle (Crosshairs & 0.1mm Graticule)
             reticleOverlay
-
-            // Filter Overlay Visual Effect
-            if tools.microscope.filterMode == .inverted {
-                Color.white.opacity(0.1)
-                    .blendMode(.difference)
-            } else if tools.microscope.filterMode == .edgeDetection {
-                Color.cyan.opacity(0.12)
-            }
 
             // HUD Top Badges
             VStack {
@@ -91,7 +85,8 @@ struct MicroscopeDetailView: View {
                     Spacer()
 
                     // Zoom Badge
-                    Text(String(format: "%.1fx", tools.microscope.zoomFactor))
+                    let safeZoom = tools.microscope.zoomFactor.isFinite ? tools.microscope.zoomFactor : 1.0
+                    Text(String(format: "%.1fx", safeZoom))
                         .font(Typography.captionMono)
                         .foregroundStyle(appState.accentColor)
                         .padding(.horizontal, SpacingTheme.standard)
@@ -115,7 +110,7 @@ struct MicroscopeDetailView: View {
                 }
             }
 
-            if isCameraDenied {
+            if tools.isCameraPermissionDenied || tools.microscopeStatus == .permissionDenied {
                 VStack(spacing: SpacingTheme.standard) {
                     Image(systemName: "camera.fill")
                         .font(Typography.displayHero)
@@ -128,18 +123,31 @@ struct MicroscopeDetailView: View {
                         .padding(.horizontal, SpacingTheme.cardStack)
 
                     Button {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            UIApplication.shared.open(url)
-                        }
+                        tools.openAppSettings()
                     } label: {
                         Text(L10n.Tools.openSettings)
                             .font(Typography.captionBold)
-                            .foregroundStyle(Color.black)
+                            .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
                             .padding(.horizontal, SpacingTheme.rowStandard)
                             .padding(.vertical, SpacingTheme.compact)
                             .background(appState.accentColor)
                             .clipShape(Capsule())
                     }
+                    .buttonStyle(.plain)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.black.opacity(0.88))
+            } else if tools.microscopeStatus == .hardwareUnavailable {
+                VStack(spacing: SpacingTheme.standard) {
+                    Image(systemName: "camera.fill")
+                        .font(Typography.displayHero)
+                        .foregroundStyle(Color.orange)
+
+                    Text(L10n.Tools.cameraHardwareUnavailable)
+                        .font(Typography.caption)
+                        .foregroundStyle(Color.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, SpacingTheme.cardStack)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.black.opacity(0.88))
@@ -198,6 +206,8 @@ struct MicroscopeDetailView: View {
     // MARK: - Zoom Control Card
     @ViewBuilder
     private var zoomControlCard: some View {
+        let safeZoom = tools.microscope.zoomFactor.isFinite ? tools.microscope.zoomFactor : 1.0
+
         VStack(spacing: SpacingTheme.tight) {
             HStack {
                 Text(L10n.Tools.macroMagnification)
@@ -206,14 +216,14 @@ struct MicroscopeDetailView: View {
 
                 Spacer()
 
-                Text(String(format: "%.1fx", tools.microscope.zoomFactor))
+                Text(String(format: "%.1fx", safeZoom))
                     .font(Typography.headlineValue)
                     .fontDesign(.monospaced)
                     .foregroundStyle(appState.accentColor)
             }
 
             Slider(value: Binding(
-                get: { Double(tools.microscope.zoomFactor) },
+                get: { Double(safeZoom) },
                 set: { tools.setMicroscopeZoom(CGFloat($0)) }
             ), in: 1.0 ... 15.0, step: 0.1)
                 .tint(appState.accentColor)
@@ -221,15 +231,16 @@ struct MicroscopeDetailView: View {
             // Preset Zoom Buttons
             HStack(spacing: SpacingTheme.compact) {
                 ForEach([1.0, 3.0, 5.0, 10.0, 15.0], id: \.self) { preset in
+                    let isSelected = abs(safeZoom - CGFloat(preset)) < 0.05
                     Button {
                         tools.setMicroscopeZoom(CGFloat(preset))
                     } label: {
                         Text("\(Int(preset))x")
                             .font(Typography.captionMono)
-                            .foregroundStyle(tools.microscope.zoomFactor == CGFloat(preset) ? Color.black : Theme.textPrimary(for: colorScheme))
+                            .foregroundStyle(isSelected ? Theme.contrastingForeground(for: appState.accentColor) : Theme.textPrimary(for: colorScheme))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, SpacingTheme.micro)
-                            .background(tools.microscope.zoomFactor == CGFloat(preset) ? appState.accentColor : Theme.cardBackground(for: colorScheme))
+                            .background(isSelected ? appState.accentColor : Theme.cardBackground(for: colorScheme))
                             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous))
                     }
                     .buttonStyle(.plain)
@@ -300,6 +311,7 @@ struct MicroscopeDetailView: View {
             .buttonStyle(.plain)
 
             // Freeze Frame Toggle
+            let freezeBg = tools.microscope.isFrozen ? Color.yellow : appState.accentColor
             Button {
                 tools.freezeMicroscopeFrame()
             } label: {
@@ -311,10 +323,10 @@ struct MicroscopeDetailView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                 }
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Theme.contrastingForeground(for: freezeBg))
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .background(tools.microscope.isFrozen ? Color.yellow : appState.accentColor)
+                .background(freezeBg)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
             }
             .buttonStyle(.plain)

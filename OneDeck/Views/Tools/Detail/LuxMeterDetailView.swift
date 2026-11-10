@@ -19,6 +19,12 @@ struct LuxMeterDetailView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: SpacingTheme.cardStack) {
+                if tools.luxStatus == .permissionDenied || tools.isCameraPermissionDenied {
+                    luxPermissionDeniedBanner
+                } else if tools.luxStatus == .hardwareUnavailable {
+                    luxHardwareUnavailableBanner
+                }
+
                 // Dual KPI Hero Cards
                 dualMetricsHero
 
@@ -44,9 +50,68 @@ struct LuxMeterDetailView: View {
         }
     }
 
+    @ViewBuilder
+    private var luxPermissionDeniedBanner: some View {
+        VStack(spacing: SpacingTheme.compact) {
+            HStack(spacing: SpacingTheme.tight) {
+                Image(systemName: "camera.fill")
+                    .foregroundStyle(Color.orange)
+                Text(L10n.Tools.luxCameraPermissionDenied)
+                    .font(Typography.caption)
+                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                    .multilineTextAlignment(.leading)
+            }
+
+            Button {
+                tools.openAppSettings()
+            } label: {
+                Text(L10n.Tools.openSettings)
+                    .font(Typography.captionBold)
+                    .padding(.horizontal, SpacingTheme.standard)
+                    .padding(.vertical, SpacingTheme.tight)
+                    .background(Color.orange)
+                    .foregroundStyle(Color.white)
+                    .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+        )
+    }
+
+    @ViewBuilder
+    private var luxHardwareUnavailableBanner: some View {
+        HStack(spacing: SpacingTheme.tight) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.orange)
+            Text(L10n.Tools.cameraHardwareUnavailable)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .multilineTextAlignment(.leading)
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+        )
+    }
+
     // MARK: - Dual Metrics Hero
     @ViewBuilder
     private var dualMetricsHero: some View {
+        let yellowAccent = Theme.readableYellow(for: colorScheme)
+
         HStack(spacing: SpacingTheme.standard) {
             // Lux Tile
             VStack(alignment: .leading, spacing: SpacingTheme.tight) {
@@ -59,7 +124,7 @@ struct LuxMeterDetailView: View {
                 let safeLux = tools.luxMeter.lux.isFinite ? tools.luxMeter.lux : 0.0
                 Text(String(format: "%.0f", safeLux))
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(Color.yellow)
+                    .foregroundStyle(yellowAccent)
                     .lineLimit(1)
 
                 let safeEv = tools.luxMeter.ev.isFinite ? tools.luxMeter.ev : 0.0
@@ -91,10 +156,10 @@ struct LuxMeterDetailView: View {
                 let safeFc = tools.luxMeter.footCandles.isFinite ? tools.luxMeter.footCandles : 0.0
                 Text(String(format: "%.1f", safeFc))
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(Color.yellow)
+                    .foregroundStyle(yellowAccent)
                     .lineLimit(1)
 
-                Text(tools.luxMeter.environmentDescription)
+                Text(tools.luxMeter.environmentDescription.isEmpty ? "--" : tools.luxMeter.environmentDescription)
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
@@ -116,8 +181,10 @@ struct LuxMeterDetailView: View {
     // MARK: - Lux Trend Chart
     @ViewBuilder
     private var luxTrendChart: some View {
-        let history = tools.luxMeter.history
-        let values = history.isEmpty ? [tools.luxMeter.lux] : history.map(\.value)
+        let yellowAccent = Theme.readableYellow(for: colorScheme)
+        let history = tools.luxMeter.history.filter { $0.value.isFinite }
+        let safeCurrentLux = tools.luxMeter.lux.isFinite ? tools.luxMeter.lux : 0.0
+        let values = history.isEmpty ? [safeCurrentLux] : history.map(\.value)
         let maxVal = max(100.0, (values.max() ?? 100.0) * 1.25)
 
         VStack(alignment: .leading, spacing: SpacingTheme.standard) {
@@ -130,11 +197,11 @@ struct LuxMeterDetailView: View {
 
                 HStack(spacing: SpacingTheme.tight) {
                     Circle()
-                        .fill(Color.yellow)
+                        .fill(yellowAccent)
                         .frame(width: 6, height: 6)
-                    Text(String(format: "%.0f Lux", tools.luxMeter.lux))
+                    Text(String(format: "%.0f Lux", safeCurrentLux))
                         .font(Typography.captionMono)
-                        .foregroundStyle(Color.yellow)
+                        .foregroundStyle(yellowAccent)
                 }
             }
 
@@ -144,12 +211,12 @@ struct LuxMeterDetailView: View {
                     .frame(height: 160)
             } else {
                 Chart {
-                    ForEach(Array(history.enumerated()), id: \.offset) { _, pt in
+                    ForEach(history) { pt in
                         LineMark(
                             x: .value("Time", pt.timestamp),
                             y: .value("Lux", pt.value)
                         )
-                        .foregroundStyle(Color.yellow)
+                        .foregroundStyle(yellowAccent)
                         .lineStyle(StrokeStyle(lineWidth: ChartTheme.lineWidth, lineCap: .round, lineJoin: .round))
                         .interpolationMethod(.monotone)
 
@@ -159,7 +226,7 @@ struct LuxMeterDetailView: View {
                         )
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [Color.yellow.opacity(0.35), Color.yellow.opacity(0.0)],
+                                colors: [yellowAccent.opacity(0.35), yellowAccent.opacity(0.0)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -216,7 +283,7 @@ struct LuxMeterDetailView: View {
                 HStack(spacing: SpacingTheme.standard) {
                     Image(systemName: item.2)
                         .font(IconTheme.badgeInline)
-                        .foregroundStyle(Color.yellow)
+                        .foregroundStyle(Theme.readableYellow(for: colorScheme))
                         .frame(width: 20)
 
                     Text(item.0)

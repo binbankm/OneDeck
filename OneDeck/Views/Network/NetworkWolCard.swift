@@ -18,6 +18,7 @@ struct NetworkWolCard: View {
     @AppStorage("onedeck_last_wol_mac") private var targetMac: String = "00:11:32:8A:2C:1F"
     @State private var feedbackMessage: String?
     @State private var isSuccess: Bool = true
+    @State private var feedbackDismissTask: Task<Void, Never>?
     @FocusState private var isFieldFocused: Bool
 
     // Quick Presets
@@ -39,6 +40,10 @@ struct NetworkWolCard: View {
             sendPacketButton
         }
         .bentoCard(accent: appState.accentColor)
+        .onDisappear {
+            feedbackDismissTask?.cancel()
+            feedbackDismissTask = nil
+        }
     }
 
     // MARK: - Header
@@ -78,9 +83,16 @@ struct NetworkWolCard: View {
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
                     .keyboardType(.asciiCapable)
+                    .submitLabel(.send)
                     .focused($isFieldFocused)
+                    .onSubmit {
+                        sendMagicPacket()
+                    }
                     .onChange(of: targetMac) { _, newVal in
-                        targetMac = newVal.uppercased()
+                        let upper = newVal.uppercased()
+                        if targetMac != upper {
+                            targetMac = upper
+                        }
                     }
 
                 if !targetMac.isEmpty {
@@ -91,6 +103,8 @@ struct NetworkWolCard: View {
                             .font(IconTheme.actionButton)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(L10n.Common.clearInput)
                 }
 
                 // Paste Button
@@ -104,6 +118,8 @@ struct NetworkWolCard: View {
                         .font(IconTheme.actionButton)
                         .foregroundStyle(appState.accentColor)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L10n.Network.pasteMac)
             }
             .padding(.horizontal, SpacingTheme.rowStandard)
             .padding(.vertical, SpacingTheme.row)
@@ -171,22 +187,34 @@ struct NetworkWolCard: View {
     }
 
     // MARK: - Send Magic Packet Button
+    private var hasEnoughMacHexDigits: Bool {
+        targetMac.filter(\.isHexDigit).count >= 12
+    }
+
+    private func sendMagicPacket() {
+        guard hasEnoughMacHexDigits else { return }
+        isFieldFocused = false
+        let result = net.sendWakeOnLan(macAddress: targetMac)
+        withAnimation(.easeInOut(duration: 0.25)) {
+            self.isSuccess = result.success
+            self.feedbackMessage = result.message
+        }
+        feedbackDismissTask?.cancel()
+        feedbackDismissTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3.0))
+            guard !Task.isCancelled else { return }
+            withAnimation {
+                if feedbackMessage == result.message {
+                    feedbackMessage = nil
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     private var sendPacketButton: some View {
         Button {
-            isFieldFocused = false
-            let result = net.sendWakeOnLan(macAddress: targetMac)
-            withAnimation(.easeInOut(duration: 0.25)) {
-                self.isSuccess = result.success
-                self.feedbackMessage = result.message
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                withAnimation {
-                    if feedbackMessage == result.message {
-                        feedbackMessage = nil
-                    }
-                }
-            }
+            sendMagicPacket()
         } label: {
             HStack(spacing: SpacingTheme.standard) {
                 Image(systemName: "bolt.fill")
@@ -195,7 +223,7 @@ struct NetworkWolCard: View {
                 Text(L10n.Network.sendWol)
                     .font(Typography.sectionHeader)
             }
-            .foregroundStyle(Color.white)
+            .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
             .frame(maxWidth: .infinity)
             .padding(.vertical, SpacingTheme.rowStandard)
             .background(
@@ -204,8 +232,8 @@ struct NetworkWolCard: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(targetMac.count < 12)
-        .opacity(targetMac.count < 12 ? 0.5 : 1.0)
+        .disabled(!hasEnoughMacHexDigits)
+        .opacity(hasEnoughMacHexDigits ? 1.0 : 0.5)
     }
 }
 

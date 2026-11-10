@@ -11,11 +11,13 @@ import SwiftUI
 struct PrecisionTorchDetailView: View {
     // MARK: - Dependencies & Environment
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
     // MARK: - State
     @State private var isSoftboxFullscreen: Bool = false
+    @State private var savedBrightness: CGFloat?
 
     // MARK: - Body
     var body: some View {
@@ -58,8 +60,10 @@ struct PrecisionTorchDetailView: View {
 
             Spacer()
 
-            // Master On/Off Toggle Button
-            primaryToggleButton
+            // Master On/Off Toggle Button (hidden in Softbox mode which opens fullscreen softbox directly)
+            if tools.torch.currentMode != .softbox {
+                primaryToggleButton
+            }
         }
         .padding(.horizontal, SpacingTheme.cardStack)
         .padding(.vertical, SpacingTheme.rowStandard)
@@ -70,25 +74,44 @@ struct PrecisionTorchDetailView: View {
             tools.enterDetailView(tool: .torch)
         }
         .onDisappear {
+            restoreSoftboxBrightness()
             tools.turnOffTorch()
             tools.leaveDetailView()
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard isSoftboxFullscreen else { return }
+            if newPhase == .active {
+                boostScreenForSoftbox()
+            } else {
+                restoreSoftboxBrightness()
+            }
+        }
         .fullScreenCover(isPresented: $isSoftboxFullscreen) {
             fullscreenSoftboxCover
+                .onAppear {
+                    boostScreenForSoftbox()
+                }
+                .onDisappear {
+                    restoreSoftboxBrightness()
+                }
         }
     }
 
     // MARK: - Mode Selector Bar
     @ViewBuilder
     private var modeSelectorBar: some View {
-        Picker("", selection: $tools.torch.currentMode) {
+        Picker(L10n.Tools.torchMode, selection: $tools.torch.currentMode) {
             Text(L10n.Tools.dimMode).tag(TorchWorkMode.continuous)
             Text(L10n.Tools.strobe).tag(TorchWorkMode.strobe)
             Text(L10n.Tools.sosMorse).tag(TorchWorkMode.sos)
             Text(L10n.Tools.softbox).tag(TorchWorkMode.softbox)
         }
         .pickerStyle(.segmented)
+        .labelsHidden()
         .onChange(of: tools.torch.currentMode) { _, newMode in
+            if newMode == .softbox {
+                tools.turnOffTorch()
+            }
             tools.setTorchMode(newMode)
         }
     }
@@ -174,7 +197,10 @@ struct PrecisionTorchDetailView: View {
                     Image(systemName: "minus.circle.fill")
                         .font(Typography.heroSubValue)
                         .foregroundStyle(appState.accentColor)
+                        .frame(minWidth: 44, minHeight: 44)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("-1 Hz")
 
                 Spacer()
 
@@ -191,7 +217,10 @@ struct PrecisionTorchDetailView: View {
                     Image(systemName: "plus.circle.fill")
                         .font(Typography.heroSubValue)
                         .foregroundStyle(appState.accentColor)
+                        .frame(minWidth: 44, minHeight: 44)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("+1 Hz")
             }
             .padding(.horizontal, SpacingTheme.rowStandard)
         }
@@ -238,16 +267,17 @@ struct PrecisionTorchDetailView: View {
                 Haptics.selection()
                 isSoftboxFullscreen = true
             } label: {
+                let softboxFill = kelvinColor(tools.torch.softboxKelvin)
                 HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                         .font(IconTheme.actionButton)
                     Text(L10n.Tools.fullscreenSoftbox)
                         .font(Typography.calloutBold)
                 }
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Theme.contrastingForeground(for: softboxFill))
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
-                .background(kelvinColor(tools.torch.softboxKelvin))
+                .background(softboxFill)
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
             }
             .buttonStyle(.plain)
@@ -259,6 +289,7 @@ struct PrecisionTorchDetailView: View {
     @ViewBuilder
     private var primaryToggleButton: some View {
         let isOn = tools.torch.isTorchOn
+        let buttonBg = isOn ? Color.orange : appState.accentColor
 
         Button {
             tools.toggleTorch()
@@ -269,12 +300,12 @@ struct PrecisionTorchDetailView: View {
                 Text(isOn ? L10n.Tools.turnOff : L10n.Tools.activate)
                     .font(Typography.headlineValue)
             }
-            .foregroundStyle(Color.white)
+            .foregroundStyle(Theme.contrastingForeground(for: buttonBg))
             .frame(maxWidth: .infinity)
             .frame(height: 50)
             .background(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
-                    .fill(isOn ? Color.orange : appState.accentColor)
+                    .fill(buttonBg)
             )
         }
         .buttonStyle(.plain)
@@ -294,13 +325,32 @@ struct PrecisionTorchDetailView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(Typography.title1)
-                            .foregroundStyle(Color.black.opacity(0.6))
+                            .foregroundStyle(Color.black.opacity(0.65))
+                            .frame(minWidth: 44, minHeight: 44)
                             .padding()
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(L10n.Tools.closeSoftbox)
                 }
                 Spacer()
             }
         }
+    }
+
+    private func boostScreenForSoftbox() {
+        guard let screen = SystemViewModel.activeDisplayScreen() else { return }
+        if savedBrightness == nil {
+            savedBrightness = screen.brightness
+        }
+        screen.brightness = 1.0
+    }
+
+    private func restoreSoftboxBrightness() {
+        guard let original = savedBrightness else { return }
+        if let screen = SystemViewModel.activeDisplayScreen() {
+            screen.brightness = original
+        }
+        savedBrightness = nil
     }
 
     // MARK: - Kelvin to Color Approximation

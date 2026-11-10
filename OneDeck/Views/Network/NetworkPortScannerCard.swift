@@ -16,6 +16,7 @@ struct NetworkPortScannerCard: View {
 
     // MARK: - State
     @State private var targetHostInput: String = ""
+    @FocusState private var isHostFieldFocused: Bool
 
     // MARK: - Body
     var body: some View {
@@ -38,7 +39,7 @@ struct NetworkPortScannerCard: View {
             // Trigger Scan Button
             Button {
                 Haptics.impact(.medium)
-                net.scanCommonPorts(targetHost: targetHostInput.isEmpty ? nil : targetHostInput)
+                triggerPortScan()
             } label: {
                 HStack(spacing: SpacingTheme.tight) {
                     if net.isScanningPorts {
@@ -61,6 +62,7 @@ struct NetworkPortScannerCard: View {
                 .background(appState.accentColor.opacity(0.12))
                 .clipShape(Capsule())
             }
+            .buttonStyle(.plain)
             .disabled(net.isScanningPorts)
         }
     }
@@ -81,6 +83,11 @@ struct NetworkPortScannerCard: View {
                     .keyboardType(.numbersAndPunctuation)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+                    .submitLabel(.go)
+                    .focused($isHostFieldFocused)
+                    .onSubmit {
+                        triggerPortScan()
+                    }
 
                 if !targetHostInput.isEmpty {
                     Button {
@@ -90,6 +97,8 @@ struct NetworkPortScannerCard: View {
                             .font(IconTheme.actionButton)
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(L10n.Common.clearInput)
                 }
             }
             .padding(.horizontal, SpacingTheme.row)
@@ -100,7 +109,7 @@ struct NetworkPortScannerCard: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                    .stroke(isHostFieldFocused ? appState.accentColor : Theme.cardBorder(for: colorScheme), lineWidth: isHostFieldFocused ? 1.1 : 0.8)
             )
 
             // Quick Presets
@@ -147,7 +156,7 @@ struct NetworkPortScannerCard: View {
 
                     Spacer(minLength: 0)
 
-                    if item.isOpen && item.latencyMs > 0 {
+                    if item.isOpen && item.latencyMs.isFinite && item.latencyMs > 0 {
                         Text(String(format: "%.0fms", item.latencyMs))
                             .font(Typography.badgeTagMono)
                             .foregroundStyle(appState.accentColor)
@@ -168,10 +177,17 @@ struct NetworkPortScannerCard: View {
         }
     }
 
-    // MARK: - Button Helper
+    // MARK: - Actions & Button Helper
+    private func triggerPortScan() {
+        isHostFieldFocused = false
+        let trimmed = targetHostInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        net.scanCommonPorts(targetHost: trimmed.isEmpty ? nil : trimmed)
+    }
+
     @ViewBuilder
     private func quickPresetButton(label: String, host: String) -> some View {
         Button {
+            isHostFieldFocused = false
             targetHostInput = host
             Haptics.tick()
         } label: {

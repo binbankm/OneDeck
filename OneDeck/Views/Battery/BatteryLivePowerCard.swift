@@ -45,7 +45,7 @@ struct BatteryLivePowerCard: View {
                     .padding(.vertical, SpacingTheme.micro)
                     .background(Color.green.opacity(0.12))
                     .clipShape(Capsule())
-                } else if battery.batteryState == .charging {
+                } else if battery.isPluggedIn {
                     HStack(spacing: SpacingTheme.tight) {
                         Image(systemName: "bolt.fill")
                             .font(IconTheme.badgeInline)
@@ -64,7 +64,7 @@ struct BatteryLivePowerCard: View {
 
             // Live Wattage Value
             HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.micro) {
-                Text(String(format: "%.1f", abs(battery.liveWattage)))
+                Text(String(format: "%.1f", battery.liveWattage.isFinite ? abs(battery.liveWattage) : 0.0))
                     .font(Typography.title2)
                     .monospacedDigit()
                     .contentTransition(.numericText())
@@ -81,7 +81,7 @@ struct BatteryLivePowerCard: View {
     private var waveformSection: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.compact) {
             HStack {
-                Text(battery.batteryState == .charging ? L10n.Battery.chargeWaveform : L10n.Battery.dischargeWaveform)
+                Text(battery.isPluggedIn ? L10n.Battery.chargeWaveform : L10n.Battery.dischargeWaveform)
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
@@ -94,7 +94,8 @@ struct BatteryLivePowerCard: View {
                     .lineLimit(1)
             }
 
-            let maxObserved = battery.powerHistory.reduce(2.5) { max($0, $1.value) }
+            let validHistory = battery.powerHistory.filter { $0.value.isFinite }
+            let maxObserved = validHistory.reduce(2.5) { max($0, $1.value) }
             let dynamicMaxY = max(2.5, maxObserved * 1.25)
             let topLabelText = String(format: dynamicMaxY >= 10 ? "%.0fW" : "%.1fW", dynamicMaxY)
             let midLabelText = String(format: (dynamicMaxY / 2.0) >= 10 ? "%.0fW" : "%.1fW", dynamicMaxY / 2.0)
@@ -132,7 +133,7 @@ struct BatteryLivePowerCard: View {
 
                 // Power Waveform Chart
                 Chart {
-                    ForEach(battery.powerHistory) { point in
+                    ForEach(validHistory) { point in
                         LineMark(
                             x: .value("Time", point.timestamp),
                             y: .value("Power", point.value)
@@ -179,7 +180,7 @@ struct BatteryLivePowerCard: View {
             electricalTile(
                 icon: "thermometer.sun.fill",
                 label: L10n.Battery.batteryTemp,
-                value: String(format: "%.1f", battery.batteryTemperature),
+                value: String(format: "%.1f", battery.batteryTemperature.isFinite ? battery.batteryTemperature : 0.0),
                 unit: "°C"
             )
         }
@@ -187,7 +188,7 @@ struct BatteryLivePowerCard: View {
 
     @ViewBuilder
     private var adapterBannerSection: some View {
-        if let rated = battery.adapterWatts, battery.batteryState == .charging {
+        if let rated = battery.adapterWatts, battery.isPluggedIn {
             HStack(spacing: SpacingTheme.standard) {
                 HStack(spacing: SpacingTheme.tight) {
                     Image(systemName: "powerplug.fill")
@@ -201,10 +202,12 @@ struct BatteryLivePowerCard: View {
 
                 Spacer()
 
-                HStack(spacing: SpacingTheme.tight) {
-                    Text("\(L10n.Battery.pathLoss): \(String(format: "%.1fW", battery.pathLossWatts))")
-                        .font(Typography.badgeTag)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                if battery.pathLossWatts > 0 {
+                    HStack(spacing: SpacingTheme.tight) {
+                        Text("\(L10n.Battery.pathLoss): \(String(format: "%.1fW", battery.pathLossWatts))")
+                            .font(Typography.badgeTag)
+                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                    }
                 }
             }
             .padding(.horizontal, SpacingTheme.row)
@@ -254,15 +257,18 @@ struct BatteryLivePowerCard: View {
         .padding(.vertical, SpacingTheme.standard)
         .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue("\(value) \(unit)")
     }
 
     // MARK: - Dynamic State Color
     private var powerColor: Color {
-        if battery.batteryState == .charging {
+        if battery.isPluggedIn {
             return appState.accentColor
         }
         if battery.isLowPowerMode {
-            return .yellow
+            return Theme.readableYellow(for: colorScheme)
         }
         return appState.accentColor
     }

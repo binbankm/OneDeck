@@ -6,7 +6,6 @@
 //  GNSS satellite constellation and geodetic coordinate workspace.
 //
 
-import CoreLocation
 import SwiftUI
 import UIKit
 
@@ -17,17 +16,13 @@ struct GnssHubDetailView: View {
     @Bindable private var tools = ToolsViewModel.shared
 
     @State private var copiedDatum: String? = nil
-
-    private var isLocationDenied: Bool {
-        let auth = CLLocationManager().authorizationStatus
-        return auth == .denied || auth == .restricted
-    }
+    @State private var copyToastTask: Task<Void, Never>?
 
     // MARK: - Body
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: SpacingTheme.cardStack) {
-                if isLocationDenied {
+                if tools.isGnssLocationDenied {
                     locationDeniedBanner
                 }
 
@@ -51,6 +46,8 @@ struct GnssHubDetailView: View {
             tools.startGnssHub()
         }
         .onDisappear {
+            copyToastTask?.cancel()
+            copyToastTask = nil
             tools.stopGnssHub()
             tools.leaveDetailView()
         }
@@ -139,7 +136,7 @@ struct GnssHubDetailView: View {
             datumRow(title: L10n.Tools.bd09Desc, value: tools.gnssHub.bd09Formatted, icon: "location.fill")
             Divider().foregroundStyle(Theme.cardBorder(for: colorScheme))
 
-            datumRow(title: L10n.Tools.mgrsDesc, value: tools.gnssHub.mgrsFormatted.isEmpty ? "Pending 3D Fix" : tools.gnssHub.mgrsFormatted, icon: "cross.circle.fill")
+            datumRow(title: L10n.Tools.mgrsDesc, value: tools.gnssHub.mgrsFormatted.isEmpty ? "--" : tools.gnssHub.mgrsFormatted, icon: "cross.circle.fill")
         }
         .padding(SpacingTheme.rowStandard)
         .background(
@@ -154,11 +151,17 @@ struct GnssHubDetailView: View {
 
     @ViewBuilder
     private func datumRow(title: String, value: String, icon: String) -> some View {
+        let isCopyable = value != "--" && !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
         Button {
+            guard isCopyable else { return }
             UIPasteboard.general.string = value
             Haptics.success()
             copiedDatum = title
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            copyToastTask?.cancel()
+            copyToastTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.5))
+                guard !Task.isCancelled else { return }
                 if copiedDatum == title {
                     copiedDatum = nil
                 }
@@ -182,18 +185,28 @@ struct GnssHubDetailView: View {
 
                 Spacer()
 
-                Image(systemName: copiedDatum == title ? "checkmark.circle.fill" : "doc.on.doc.fill")
-                    .font(IconTheme.badgeInline)
-                    .foregroundStyle(copiedDatum == title ? Color.green : Theme.textTertiary(for: colorScheme))
+                if isCopyable {
+                    Image(systemName: copiedDatum == title ? "checkmark.circle.fill" : "doc.on.doc.fill")
+                        .font(IconTheme.badgeInline)
+                        .foregroundStyle(copiedDatum == title ? Color.green : Theme.textTertiary(for: colorScheme))
+                }
             }
             .padding(.vertical, SpacingTheme.compact)
         }
         .buttonStyle(.plain)
+        .disabled(!isCopyable)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
+        .accessibilityValue(value)
+        .accessibilityHint(isCopyable ? L10n.Common.copyValue : "")
     }
 
     // MARK: - Precision DOP Matrix Card
     @ViewBuilder
     private var dopMatrixCard: some View {
+        let safeHdop = tools.gnssHub.hdop.isFinite ? tools.gnssHub.hdop : 1.0
+        let safeVdop = tools.gnssHub.vdop.isFinite ? tools.gnssHub.vdop : 1.0
+
         VStack(alignment: .leading, spacing: SpacingTheme.tight) {
             Text(L10n.Tools.dopTitle)
                 .font(Typography.badgeTagMono)
@@ -204,10 +217,10 @@ struct GnssHubDetailView: View {
                     Text(L10n.Tools.horizontalDop)
                         .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                    Text(String(format: "%.2f", tools.gnssHub.hdop))
+                    Text(String(format: "%.2f", safeHdop))
                         .font(Typography.headlineValue)
                         .fontDesign(.monospaced)
-                        .foregroundStyle(tools.gnssHub.hdop <= 2.0 ? Color.green : Color.orange)
+                        .foregroundStyle(safeHdop <= 2.0 ? Color.green : Color.orange)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -218,10 +231,10 @@ struct GnssHubDetailView: View {
                     Text(L10n.Tools.verticalDop)
                         .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                    Text(String(format: "%.2f", tools.gnssHub.vdop))
+                    Text(String(format: "%.2f", safeVdop))
                         .font(Typography.headlineValue)
                         .fontDesign(.monospaced)
-                        .foregroundStyle(tools.gnssHub.vdop <= 3.0 ? Color.green : Color.orange)
+                        .foregroundStyle(safeVdop <= 3.0 ? Color.green : Color.orange)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -251,9 +264,7 @@ struct GnssHubDetailView: View {
             }
 
             Button {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
+                tools.openAppSettings()
             } label: {
                 Text(L10n.Tools.openSettings)
                     .font(Typography.captionBold)
@@ -263,6 +274,7 @@ struct GnssHubDetailView: View {
                     .foregroundStyle(Color.white)
                     .clipShape(Capsule())
             }
+            .buttonStyle(.plain)
         }
         .padding(SpacingTheme.cardInternal)
         .background(

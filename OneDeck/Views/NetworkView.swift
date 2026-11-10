@@ -27,12 +27,6 @@ struct NetworkView: View {
             .scrollBounceBehavior(.basedOnSize, axes: .vertical)
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Network.title)
-            .onAppear {
-                net.startMonitoring()
-            }
-            .onDisappear {
-                net.stopMonitoring()
-            }
         }
     }
 

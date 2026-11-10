@@ -17,6 +17,7 @@ struct NetworkHeroCard: View {
 
     // MARK: - State
     @State private var copiedItem: String?
+    @State private var copyToastTask: Task<Void, Never>?
 
     // MARK: - Body
     var body: some View {
@@ -28,6 +29,10 @@ struct NetworkHeroCard: View {
             specsFooterSection
         }
         .bentoCard(accent: appState.accentColor)
+        .onDisappear {
+            copyToastTask?.cancel()
+            copyToastTask = nil
+        }
     }
 
     // MARK: - Subviews
@@ -123,12 +128,13 @@ struct NetworkHeroCard: View {
                     }
 
                     if net.isConstrained {
+                        let yellowColor = Theme.readableYellow(for: colorScheme)
                         Text(L10n.Network.lowDataMode)
                             .font(Typography.badgeTag)
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(yellowColor)
                             .padding(.horizontal, SpacingTheme.compact)
                             .padding(.vertical, SpacingTheme.micro)
-                            .background(Color.yellow.opacity(0.14))
+                            .background(yellowColor.opacity(0.14))
                             .clipShape(Capsule())
                     }
                 }
@@ -229,7 +235,10 @@ struct NetworkHeroCard: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 copiedItem = label
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            copyToastTask?.cancel()
+            copyToastTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.8))
+                guard !Task.isCancelled else { return }
                 withAnimation {
                     if copiedItem == label {
                         copiedItem = nil
@@ -277,6 +286,10 @@ struct NetworkHeroCard: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue(value)
+        .accessibilityHint((canCopy && value != "--" && !value.isEmpty) ? L10n.Common.copyValue : "")
     }
 }
 

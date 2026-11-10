@@ -95,8 +95,10 @@ struct TouchMatrixDetailView: View {
     // MARK: - Interactive Matrix Grid
     @ViewBuilder
     private func interactiveMatrixGrid(width: CGFloat, height: CGFloat) -> some View {
-        let cellWidth = width / CGFloat(columns)
-        let cellHeight = height / CGFloat(rows)
+        let safeWidth = max(1.0, width)
+        let safeHeight = max(1.0, height)
+        let cellWidth = safeWidth / CGFloat(columns)
+        let cellHeight = safeHeight / CGFloat(rows)
 
         ZStack {
             VStack(spacing: SpacingTheme.micro) {
@@ -117,10 +119,12 @@ struct TouchMatrixDetailView: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
+            .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
                         let loc = value.location
+                        guard loc.x.isFinite, loc.y.isFinite, cellWidth > 0, cellHeight > 0 else { return }
                         let c = Int(loc.x / cellWidth)
                         let r = Int(loc.y / cellHeight)
                         if c >= 0 && c < columns && r >= 0 && r < rows {

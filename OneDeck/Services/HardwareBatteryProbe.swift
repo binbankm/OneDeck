@@ -96,16 +96,21 @@ public enum HardwareBatteryProbe {
     private typealias GetDescFunc = @convention(c) (CFTypeRef, CFTypeRef) -> Unmanaged<CFDictionary>?
     private typealias CopyAdapterDetailsFunc = @convention(c) () -> Unmanaged<CFDictionary>?
 
-    private typealias IOServiceMatchingFunc = @convention(c) (UnsafePointer<CChar>) -> CFMutableDictionary?
-    private typealias IOServiceGetMatchingServiceFunc = @convention(c) (mach_port_t, CFDictionary) -> mach_port_t
-    private typealias IORegistryEntryCreateCFPropertiesFunc = @convention(c) (mach_port_t, UnsafeMutablePointer<Unmanaged<CFMutableDictionary>?>, CFAllocator?, UInt32) -> kern_return_t
+    private typealias IOServiceMatchingFunc = @convention(c) (UnsafePointer<CChar>) -> Unmanaged<CFMutableDictionary>?
+    private typealias IOServiceGetMatchingServiceFunc = @convention(c) (mach_port_t, Unmanaged<CFMutableDictionary>) -> mach_port_t
+    private typealias IORegistryEntryCreateCFPropertiesFunc = @convention(c) (
+        mach_port_t,
+        UnsafeMutablePointer<Unmanaged<CFMutableDictionary>?>,
+        CFAllocator?,
+        UInt32
+    ) -> kern_return_t
     private typealias IOObjectReleaseFunc = @convention(c) (mach_port_t) -> kern_return_t
 
     private typealias IOHIDEventSystemClientCreateFunc = @convention(c) (CFAllocator?) -> Unmanaged<CFTypeRef>?
     private typealias IOHIDEventSystemClientSetMatchingFunc = @convention(c) (CFTypeRef, CFDictionary) -> Void
     private typealias IOHIDEventSystemClientCopyServicesFunc = @convention(c) (CFTypeRef) -> Unmanaged<CFArray>?
     private typealias IOHIDServiceClientCopyPropertyFunc = @convention(c) (CFTypeRef, CFString) -> Unmanaged<CFTypeRef>?
-    private typealias IOHIDServiceClientCopyEventFunc = @convention(c) (CFTypeRef, Int64, Int32, Int64) -> Unmanaged<CFTypeRef>?
+    private typealias IOHIDServiceClientCopyEventFunc = @convention(c) (CFTypeRef, Int64, UnsafeRawPointer?, Int64) -> Unmanaged<CFTypeRef>?
     private typealias IOHIDEventGetFloatValueFunc = @convention(c) (CFTypeRef, Int32) -> Double
     private typealias MGCopyAnswerFunc = @convention(c) (CFString) -> Unmanaged<CFTypeRef>?
 
@@ -378,10 +383,10 @@ public enum HardwareBatteryProbe {
             for ref in refs {
                 let name = (copyProperty(ref, "Product" as CFString)?.takeRetainedValue() as? String ?? "").lowercased()
                 let usage = (copyProperty(ref, "PrimaryUsage" as CFString)?.takeRetainedValue() as? NSNumber)?.intValue ?? 0
-                if let eventUnmanaged = copyEvent(ref, 25 /* kIOHIDEventTypePower */, 0, 0) {
+                if let eventUnmanaged = copyEvent(ref, 25 /* kIOHIDEventTypePower */, nil, 0) {
                     let event = eventUnmanaged.takeRetainedValue()
                     let val = getFloat(event, 25 << 16)
-                    if val.isFinite {
+                    if val.isFinite && abs(val) < 1_000_000.0 {
                         if usage == 2 {
                             let ma = Int(val * 1000.0)
                             if name.contains("iq0b") || name.contains("batt") {
@@ -409,7 +414,7 @@ public enum HardwareBatteryProbe {
             let refs = refsUnmanaged.takeRetainedValue() as [AnyObject]
             for ref in refs {
                 let name = (copyProperty(ref, "Product" as CFString)?.takeRetainedValue() as? String ?? "").lowercased()
-                if let eventUnmanaged = copyEvent(ref, 15 /* kIOHIDEventTypeTemperature */, 0, 0) {
+                if let eventUnmanaged = copyEvent(ref, 15 /* kIOHIDEventTypeTemperature */, nil, 0) {
                     let event = eventUnmanaged.takeRetainedValue()
                     let val = getFloat(event, 15 << 16)
                     if val.isFinite && val > 15.0 && val < 90.0 {
@@ -422,28 +427,13 @@ public enum HardwareBatteryProbe {
         for (name, temp) in temps {
             if name.contains("batt") || name.contains("gauge") {
                 if result.temperatureCelsius == nil { result.temperatureCelsius = temp }
-            } else if name.contains("soc") || name.contains("tdie") || name.contains("cpu") || name.contains("gpu") {
+            } else if name.contains("soc") || name.contains("tdie") || name.contains("cpu") || name.contains("gpu") ||
+                name.contains("pacc") || name.contains("eacc") || name.contains("pmgr") {
                 result.socTemperatureCelsius = max(result.socTemperatureCelsius ?? 0, temp)
             } else if name.contains("pmu") || name.contains("pmic") || name.contains("tq0") || name.contains("chg") {
                 result.pmicTemperatureCelsius = temp
             } else if name.contains("wlc") || name.contains("coil") || name.contains("vq1") {
                 result.wirelessTemperatureCelsius = temp
-            }
-        }
-
-        if !temps.isEmpty {
-            let sorted = temps.map(\.temp).sorted()
-            if result.temperatureCelsius == nil {
-                result.temperatureCelsius = sorted[sorted.count / 2]
-            }
-            if result.socTemperatureCelsius == nil {
-                result.socTemperatureCelsius = sorted.last
-            }
-            if result.pmicTemperatureCelsius == nil, sorted.count >= 2 {
-                result.pmicTemperatureCelsius = sorted[min(sorted.count - 1, sorted.count * 3 / 4)]
-            }
-            if result.wirelessTemperatureCelsius == nil, sorted.count >= 3 {
-                result.wirelessTemperatureCelsius = sorted[sorted.count / 3]
             }
         }
     }
@@ -479,12 +469,7 @@ public enum HardwareBatteryProbe {
             power *= max(0.4, 1.0 - (excess * 0.05))
         }
 
-        // Natural electrical ripple (+- 0.15W) based on microsecond time
-        let tick = Int(Date().timeIntervalSince1970 * 2)
-        let noiseOffsets = [0.0, 0.12, -0.08, 0.15, -0.12, 0.05, -0.15]
-        let ripple = noiseOffsets[abs(tick) % noiseOffsets.count]
-        power = max(1.0, power + ripple)
-
+        power = max(1.0, power)
         return (power * 10.0).rounded() / 10.0
     }
 }

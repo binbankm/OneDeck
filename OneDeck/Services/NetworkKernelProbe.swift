@@ -9,6 +9,7 @@
 import CoreFoundation
 import Darwin
 import Foundation
+import os
 
 // MARK: - Darwin BSD Routing Socket & Header Constants (iOS SDK Private Mapping)
 private nonisolated let RTAX_DST: Int = 0
@@ -16,7 +17,7 @@ private nonisolated let RTAX_GATEWAY: Int = 1
 private nonisolated let RTAX_MAX: Int = 8
 private nonisolated let RTF_LLINFO: Int32 = 0x400
 
-private struct DarwinRtMsgHdr {
+internal struct DarwinRtMsgHdr {
     var rtm_msglen: UInt16
     var rtm_version: UInt8
     var rtm_type: UInt8
@@ -29,7 +30,10 @@ private struct DarwinRtMsgHdr {
     var rtm_errno: Int32
     var rtm_use: Int32
     var rtm_inits: UInt32
-    var rtm_rmx: (UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64) = (0, 0, 0, 0, 0, 0, 0)
+    var rtm_rmx: (
+        UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32,
+        UInt32, UInt32, UInt32, UInt32, UInt32, UInt32, UInt32
+    ) = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 }
 
 // MARK: - Darwin Resolv.h Dynamic Function Binding
@@ -71,38 +75,68 @@ public enum NetworkKernelProbe {
         defer { buf.deallocate() }
 
         guard sysctl(&mib, 6, buf, &len, nil, 0) == 0 else { return nil }
+        return parseDefaultGateway(from: UnsafeRawPointer(buf), length: len)
+    }
 
-        var ptr = buf
-        let end = buf.advanced(by: len)
+    internal nonisolated static func readSockaddrIn(from ptr: UnsafeRawPointer, available: Int) -> sockaddr_in? {
+        guard available >= 2 else { return nil }
+        let saLenRaw = Int(ptr.load(as: UInt8.self))
+        let saFamily = ptr.advanced(by: 1).load(as: UInt8.self)
+        if saLenRaw == 0 && (saFamily == 0 || saFamily == UInt8(AF_INET)) {
+            return sockaddr_in()
+        }
+        guard saFamily == UInt8(AF_INET) else { return nil }
+        let copyLen = min(available, MemoryLayout<sockaddr_in>.size, saLenRaw > 0 ? saLenRaw : available)
+        var sin = sockaddr_in()
+        withUnsafeMutableBytes(of: &sin) { dst in
+            let src = UnsafeRawBufferPointer(start: ptr, count: copyLen)
+            for idx in 0 ..< min(copyLen, dst.count) {
+                dst[idx] = src[idx]
+            }
+        }
+        sin.sin_family = sa_family_t(AF_INET)
+        return sin
+    }
 
-        while ptr < end {
-            guard ptr.distance(to: end) >= MemoryLayout<DarwinRtMsgHdr>.size else { break }
-            let rawPtr = UnsafeRawPointer(ptr)
+    internal nonisolated static func parseDefaultGateway(from buffer: UnsafeRawPointer, length: Int) -> String? {
+        guard length > 0 else { return nil }
+        var offset = 0
+        let hdrSize = MemoryLayout<DarwinRtMsgHdr>.size
+
+        while offset + hdrSize <= length {
+            let rawPtr = buffer.advanced(by: offset)
             let rtm = rawPtr.loadUnaligned(as: DarwinRtMsgHdr.self)
             let msgLen = Int(rtm.rtm_msglen)
-            guard msgLen > 0 else { break }
+            guard msgLen >= hdrSize, offset + msgLen <= length else { break }
 
-            var saPtr = rawPtr.advanced(by: MemoryLayout<DarwinRtMsgHdr>.size)
-            var dstAddr: sockaddr_in? = nil
-            var gwAddr: sockaddr_in? = nil
+            let msgEnd = rawPtr.advanced(by: msgLen)
+            var saPtr = rawPtr.advanced(by: hdrSize)
+            var hasDefaultDst = false
+            var gwAddr: sockaddr_in?
 
             for i in 0 ..< RTAX_MAX {
                 if (Int32(rtm.rtm_addrs) & (1 << i)) != 0 {
-                    guard saPtr < UnsafeRawPointer(end) else { break }
-                    let sa = saPtr.loadUnaligned(as: sockaddr.self)
-                    let saLen = sa.sa_len > 0 ? Int((Int(sa.sa_len) + 3) & ~3) : 4
+                    let saRemaining = saPtr.distance(to: msgEnd)
+                    guard saRemaining >= 2 else { break }
+                    let saLenRaw = saPtr.load(as: UInt8.self)
+                    let saFamily = saPtr.advanced(by: 1).load(as: UInt8.self)
+                    let saLen = saLenRaw > 0 ? ((Int(saLenRaw) + 3) & ~3) : 4
+                    guard saLen > 0, saLen <= saRemaining else { break }
 
-                    if i == RTAX_DST && sa.sa_family == UInt8(AF_INET) {
-                        dstAddr = saPtr.loadUnaligned(as: sockaddr_in.self)
-                    }
-                    if i == RTAX_GATEWAY && sa.sa_family == UInt8(AF_INET) {
-                        gwAddr = saPtr.loadUnaligned(as: sockaddr_in.self)
+                    if i == RTAX_DST {
+                        if saFamily == 0 && saLenRaw <= 4 {
+                            hasDefaultDst = true
+                        } else if let dst = readSockaddrIn(from: saPtr, available: saRemaining), dst.sin_addr.s_addr == 0 {
+                            hasDefaultDst = true
+                        }
+                    } else if i == RTAX_GATEWAY && saFamily == UInt8(AF_INET) {
+                        gwAddr = readSockaddrIn(from: saPtr, available: saRemaining)
                     }
                     saPtr = saPtr.advanced(by: saLen)
                 }
             }
 
-            if let dst = dstAddr, let gw = gwAddr, dst.sin_addr.s_addr == 0 {
+            if hasDefaultDst, let gw = gwAddr {
                 var gwStr = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
                 var sinAddr = gw.sin_addr
                 if inet_ntop(AF_INET, &sinAddr, &gwStr, socklen_t(gwStr.count)) != nil {
@@ -113,7 +147,7 @@ public enum NetworkKernelProbe {
                 }
             }
 
-            ptr = ptr.advanced(by: msgLen)
+            offset += msgLen
         }
         return nil
     }
@@ -122,6 +156,7 @@ public enum NetworkKernelProbe {
     private final nonisolated class ResolvBridge: @unchecked Sendable {
         static let shared = ResolvBridge()
 
+        let lock = OSAllocatedUnfairLock()
         let resInit: DarwinResInitFn?
         let resSymbol: UnsafeMutableRawPointer?
 
@@ -179,28 +214,31 @@ public enum NetworkKernelProbe {
 
     // MARK: - 2. Real System DNS Servers via Darwin libresolv (_res)
     public nonisolated static func queryDnsServers() -> [String] {
-        var results: [String] = []
-
         let bridge = ResolvBridge.shared
-        _ = bridge.resInit?()
+        return bridge.lock.withLock {
+            var results: [String] = []
+            _ = bridge.resInit?()
 
-        guard let sym = bridge.resSymbol else { return [] }
-        let nscount = sym.advanced(by: 16).load(as: Int32.self)
-        let listOffset = 20
+            guard let sym = bridge.resSymbol else { return [] }
+            let nscount = sym.advanced(by: 16).load(as: Int32.self)
+            let listOffset = 20
 
-        for i in 0 ..< min(4, max(0, Int(nscount))) {
-            let sinPtr = sym.advanced(by: listOffset + (i * MemoryLayout<sockaddr_in>.size))
-            let sin = sinPtr.load(as: sockaddr_in.self)
-            var ipBuf = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
-            var sinAddr = sin.sin_addr
-            if inet_ntop(AF_INET, &sinAddr, &ipBuf, socklen_t(ipBuf.count)) != nil {
-                let s = String(cString: ipBuf)
-                if !s.isEmpty && s != "0.0.0.0" && !results.contains(s) {
-                    results.append(s)
+            // Darwin <resolv.h> MAXNS is 3
+            for i in 0 ..< min(3, max(0, Int(nscount))) {
+                let sinPtr = sym.advanced(by: listOffset + (i * MemoryLayout<sockaddr_in>.size))
+                let sin = sinPtr.loadUnaligned(as: sockaddr_in.self)
+                guard sin.sin_family == UInt8(AF_INET) else { continue }
+                var ipBuf = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+                var sinAddr = sin.sin_addr
+                if inet_ntop(AF_INET, &sinAddr, &ipBuf, socklen_t(ipBuf.count)) != nil {
+                    let s = String(cString: ipBuf)
+                    if !s.isEmpty && s != "0.0.0.0" && !results.contains(s) {
+                        results.append(s)
+                    }
                 }
             }
+            return results
         }
-        return results
     }
 
     // MARK: - 3. Real Active Devices via Darwin Kernel ARP Cache (RTF_LLINFO)
@@ -213,48 +251,71 @@ public enum NetworkKernelProbe {
         defer { buf.deallocate() }
 
         guard sysctl(&mib, 6, buf, &len, nil, 0) == 0 else { return [] }
+        return parseArpTable(from: UnsafeRawPointer(buf), length: len)
+    }
+
+    internal nonisolated static func parseArpTable(from buffer: UnsafeRawPointer, length: Int) -> [KernelArpDevice] {
+        guard length > 0, let sdlDataOffset = MemoryLayout<sockaddr_dl>.offset(of: \sockaddr_dl.sdl_data) else {
+            return []
+        }
 
         var results: [KernelArpDevice] = []
-        var ptr = buf
-        let end = buf.advanced(by: len)
+        var offset = 0
+        let hdrSize = MemoryLayout<DarwinRtMsgHdr>.size
 
-        while ptr < end {
-            guard ptr.distance(to: end) >= MemoryLayout<DarwinRtMsgHdr>.size else { break }
-            let rawPtr = UnsafeRawPointer(ptr)
+        while offset + hdrSize <= length {
+            let rawPtr = buffer.advanced(by: offset)
             let rtm = rawPtr.loadUnaligned(as: DarwinRtMsgHdr.self)
             let msgLen = Int(rtm.rtm_msglen)
-            guard msgLen > 0 else { break }
+            guard msgLen >= hdrSize, offset + msgLen <= length else { break }
 
-            let sinPtr = rawPtr.advanced(by: MemoryLayout<DarwinRtMsgHdr>.size)
-            guard sinPtr < UnsafeRawPointer(end) else { break }
-            let sin = sinPtr.loadUnaligned(as: sockaddr_in.self)
-            let sinLen = sin.sin_len > 0 ? Int((Int(sin.sin_len) + 3) & ~3) : 16
+            let msgEnd = rawPtr.advanced(by: msgLen)
+            var saPtr = rawPtr.advanced(by: hdrSize)
+            var dstAddr: sockaddr_in?
+            var macStr: String?
 
-            let sdlPtr = sinPtr.advanced(by: sinLen)
-            guard sdlPtr < UnsafeRawPointer(end) else { break }
-            let sdl = sdlPtr.loadUnaligned(as: sockaddr_dl.self)
+            for i in 0 ..< RTAX_MAX {
+                if (Int32(rtm.rtm_addrs) & (1 << i)) != 0 {
+                    let saRemaining = saPtr.distance(to: msgEnd)
+                    guard saRemaining >= 2 else { break }
+                    let saLenRaw = saPtr.load(as: UInt8.self)
+                    let saFamily = saPtr.advanced(by: 1).load(as: UInt8.self)
+                    let saLen = saLenRaw > 0 ? ((Int(saLenRaw) + 3) & ~3) : 4
+                    guard saLen > 0, saLen <= saRemaining else { break }
 
-            if sin.sin_family == UInt8(AF_INET) && sdl.sdl_family == UInt8(AF_LINK) && sdl.sdl_alen == 6 {
+                    if i == RTAX_DST && saFamily == UInt8(AF_INET) {
+                        dstAddr = readSockaddrIn(from: saPtr, available: saRemaining)
+                    } else if i == RTAX_GATEWAY && saFamily == UInt8(AF_LINK) && saRemaining >= sdlDataOffset {
+                        let sdlNlen = Int(saPtr.advanced(by: 5).load(as: UInt8.self))
+                        let sdlAlen = Int(saPtr.advanced(by: 6).load(as: UInt8.self))
+                        let macOffset = sdlDataOffset + sdlNlen
+                        if sdlAlen == 6 && macOffset >= sdlDataOffset && (macOffset + 6) <= saRemaining {
+                            let macPtr = saPtr.advanced(by: macOffset)
+                            let macBytes = (0 ..< 6).map { idx in
+                                macPtr.advanced(by: idx).loadUnaligned(as: UInt8.self)
+                            }
+                            macStr = macBytes.map { String(format: "%02x", $0) }.joined(separator: ":")
+                        }
+                    }
+                    saPtr = saPtr.advanced(by: saLen)
+                }
+            }
+
+            if let sin = dstAddr, let mac = macStr {
                 var ipBuf = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
                 var sinAddr = sin.sin_addr
                 if inet_ntop(AF_INET, &sinAddr, &ipBuf, socklen_t(ipBuf.count)) != nil {
                     let ipStr = String(cString: ipBuf)
-                    let macOffset = MemoryLayout<sockaddr_dl>.offset(of: \sockaddr_dl.sdl_data)! + Int(sdl.sdl_nlen)
-                    let macPtr = sdlPtr.advanced(by: macOffset)
-                    let macBytes = (0 ..< 6).map { i in
-                        macPtr.advanced(by: i).loadUnaligned(as: UInt8.self)
-                    }
-                    let macStr = macBytes.map { String(format: "%02x", $0) }.joined(separator: ":")
-
                     // Filter out multicast, broadcast, and invalid entries
                     if !ipStr.hasPrefix("224.") && !ipStr.hasPrefix("239.") && !ipStr.hasPrefix("255.") &&
-                        macStr != "00:00:00:00:00:00" && !results.contains(where: { $0.ip == ipStr }) {
-                        let vendor = lookupMacVendor(mac: macStr)
-                        results.append(KernelArpDevice(ip: ipStr, mac: macStr, vendor: vendor))
+                        ipStr != "0.0.0.0" && mac != "00:00:00:00:00:00" && !results.contains(where: { $0.ip == ipStr }) {
+                        let vendor = lookupMacVendor(mac: mac)
+                        results.append(KernelArpDevice(ip: ipStr, mac: mac, vendor: vendor))
                     }
                 }
             }
-            ptr = ptr.advanced(by: msgLen)
+
+            offset += msgLen
         }
         return results
     }
@@ -342,7 +403,7 @@ public enum NetworkKernelProbe {
         }
 
         if let noiseDict = d["NOISE"] as? [String: Any], let n = noiseDict["NOISE_CTL_AGR"] as? Int {
-            result.noiseDbm = -n
+            result.noiseDbm = n > 0 ? -n : n
         }
 
         return result
@@ -350,8 +411,14 @@ public enum NetworkKernelProbe {
 
     // MARK: - 6. Comprehensive Apple Device Wi-Fi Generation & Radio Topology
     public nonisolated static func detectWifiHardware(machine: String) -> (generation: String, standard: String) {
-        // iPhone 16 family: Wi-Fi 7 (802.11be, 2.4/5/6 GHz, 320MHz, 4K-QAM)
-        if machine.hasPrefix("iPhone17,") {
+        // iPhone 16e: Wi-Fi 6 (802.11ax, 2x2 MIMO with Apple C1 modem)
+        if machine == "iPhone17,5" {
+            return ("Wi-Fi 6", "802.11ax")
+        }
+
+        // iPhone 16/17/18 family & iPad Pro M5: Wi-Fi 7 (802.11be)
+        if machine.hasPrefix("iPhone17,") || machine.hasPrefix("iPhone18,") || machine.hasPrefix("iPhone19,") ||
+            machine.hasPrefix("iPad17,") {
             return ("Wi-Fi 7", "802.11be")
         }
 
@@ -367,9 +434,8 @@ public enum NetworkKernelProbe {
             return ("Wi-Fi 6", "802.11ax")
         }
 
-        // iPad Pro M4, M2, iPad Air M2: Wi-Fi 6E (802.11ax)
-        if machine.hasPrefix("iPad16,3") || machine.hasPrefix("iPad16,4") ||
-            machine.hasPrefix("iPad16,5") || machine.hasPrefix("iPad16,6") ||
+        // iPad Pro M4, M2, iPad Air M4/M2, iPad mini A17 Pro: Wi-Fi 6E (802.11ax)
+        if machine.hasPrefix("iPad16,") ||
             machine.hasPrefix("iPad14,3") || machine.hasPrefix("iPad14,4") ||
             machine.hasPrefix("iPad14,5") || machine.hasPrefix("iPad14,6") ||
             machine.hasPrefix("iPad14,8") || machine.hasPrefix("iPad14,9") ||
@@ -378,7 +444,8 @@ public enum NetworkKernelProbe {
         }
 
         // iPad Pro M1, iPad Air 4/5, iPad mini 6, iPad 10th gen: Wi-Fi 6
-        if machine.hasPrefix("iPad13,") || machine.hasPrefix("iPad14,1") || machine.hasPrefix("iPad14,2") {
+        if machine.hasPrefix("iPad13,") || machine.hasPrefix("iPad14,1") || machine.hasPrefix("iPad14,2") ||
+            machine.hasPrefix("iPad15,") {
             return ("Wi-Fi 6", "802.11ax")
         }
 

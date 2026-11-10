@@ -13,17 +13,17 @@ struct SettingsSigningCard: View {
     // MARK: - Properties & State
     @Environment(\.colorScheme) private var colorScheme
     @Bindable private var appState = AppState.shared
-    private var probe = ProvisioningHardwareProbe.shared
+    @Bindable private var settings = SettingsViewModel.shared
 
     @State private var showDetailSheet = false
 
     private var statusColor: Color {
-        if probe.signingType == .trollStore {
+        if settings.isTrollStoreSigning {
             return appState.accentColor
         }
-        if probe.isExpired {
+        if settings.isExpired {
             return .red
-        } else if probe.isExpiringSoon {
+        } else if settings.isExpiringSoon {
             return .orange
         } else {
             return appState.accentColor
@@ -56,16 +56,16 @@ struct SettingsSigningCard: View {
                         .font(Typography.caption)
                         .foregroundStyle(Theme.textTertiary(for: colorScheme))
 
-                    if probe.signingType == .trollStore {
+                    if settings.isTrollStoreSigning {
                         Text(L10n.Settings.certPermanent)
                             .font(Typography.title2)
                             .foregroundStyle(appState.accentColor)
-                    } else if probe.isExpired {
+                    } else if settings.isExpired {
                         Text(L10n.Settings.certExpired)
                             .font(Typography.title2)
                             .foregroundStyle(Color.red)
-                    } else if probe.hasProvisionProfile {
-                        Text(L10n.Settings.certDaysHours(days: probe.remainingDays, hours: probe.remainingHours))
+                    } else if settings.hasProvisionProfile {
+                        Text(L10n.Settings.certDaysHours(days: settings.remainingDays, hours: settings.remainingHours))
                             .font(Typography.title2)
                             .foregroundStyle(statusColor)
                     } else {
@@ -83,7 +83,7 @@ struct SettingsSigningCard: View {
                         .fill(statusColor)
                         .frame(width: 6, height: 6)
 
-                    Text(probe.statusText)
+                    Text(settings.statusText)
                         .font(Typography.badgeTagMono)
                         .foregroundStyle(statusColor)
                 }
@@ -94,8 +94,8 @@ struct SettingsSigningCard: View {
             }
 
             // Visual Lifecycle Bar (for 7-day or 365-day certificates)
-            if probe.hasProvisionProfile {
-                let safeRatio = probe.progressRatio.isFinite ? min(1.0, max(0.0, probe.progressRatio)) : 0.0
+            if settings.hasProvisionProfile {
+                let safeRatio = settings.progressRatio.isFinite ? min(1.0, max(0.0, settings.progressRatio)) : 0.0
                 ProgressView(value: safeRatio)
                     .tint(statusColor)
                     .scaleEffect(x: 1, y: 1.4, anchor: .center)

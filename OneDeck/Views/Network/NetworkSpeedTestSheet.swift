@@ -15,12 +15,19 @@ struct NetworkSpeedTestSheet: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var net = NetworkViewModel.shared
 
+    private var uploadAccentColor: Color {
+        colorScheme == .dark ? ChartTheme.uploadColor : Theme.readableCyan(for: colorScheme)
+    }
+
     // MARK: - Body
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: SpacingTheme.cardStack) {
                     gaugeSection
+                    if let errorMessage = net.speedTestError, !errorMessage.isEmpty {
+                        speedTestErrorBanner(errorMessage)
+                    }
                     scorecardGrid
                     serverBanner
                     actionDispatcherSection
@@ -78,7 +85,8 @@ struct NetworkSpeedTestSheet: View {
 
             stageIndicatorPill
 
-            ProgressView(value: net.speedTestProgress)
+            let safeProgress = net.speedTestProgress.isFinite ? min(1.0, max(0.0, net.speedTestProgress)) : 0.0
+            ProgressView(value: safeProgress)
                 .tint(appState.accentColor)
                 .scaleEffect(x: 1, y: 1.6, anchor: .center)
                 .padding(.horizontal, SpacingTheme.modalPadding)
@@ -98,37 +106,47 @@ struct NetworkSpeedTestSheet: View {
     // MARK: - 2. 4-Quadrant Scorecard Bento Grid
     @ViewBuilder
     private var scorecardGrid: some View {
+        let safeDown = net.speedTestDownloadMbps.isFinite ? net.speedTestDownloadMbps : 0.0
+        let safeDownPeak = net.speedTestDownloadPeakMbps.isFinite ? net.speedTestDownloadPeakMbps : 0.0
+        let safeUp = net.speedTestUploadMbps.isFinite ? net.speedTestUploadMbps : 0.0
+        let safeUpPeak = net.speedTestUploadPeakMbps.isFinite ? net.speedTestUploadPeakMbps : 0.0
+        let safePing = net.speedTestPingMs.isFinite ? net.speedTestPingMs : 0.0
+        let safeJitter = net.speedTestJitterMs.isFinite ? net.speedTestJitterMs : 0.0
+
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: SpacingTheme.row) {
             scorecardCell(
                 title: L10n.Network.downloadSpeed,
-                value: net.speedTestDownloadMbps > 0 ? String(format: "%.1f", net.speedTestDownloadMbps) : "--",
+                value: safeDown > 0 ? String(format: "%.1f", safeDown) : "--",
                 unit: "Mbps",
-                subtext: net.speedTestDownloadPeakMbps > 0 ? L10n.Network.peakSpeedFormatted(mbps: net.speedTestDownloadPeakMbps) : nil,
+                subtext: safeDownPeak > 0 ? L10n.Network.peakSpeedFormatted(mbps: safeDownPeak) : nil,
                 icon: "arrow.down.circle.fill",
                 color: appState.accentColor
             )
 
+            let uploadUnavailable = !net.isSpeedTestUploadAvailable && net.speedTestStage == .completed && safeUp <= 0
             scorecardCell(
                 title: L10n.Network.uploadSpeed,
-                value: net.speedTestUploadMbps > 0 ? String(format: "%.1f", net.speedTestUploadMbps) : "--",
-                unit: "Mbps",
-                subtext: net.speedTestUploadPeakMbps > 0 ? L10n.Network.peakSpeedFormatted(mbps: net.speedTestUploadPeakMbps) : nil,
+                value: safeUp > 0 ? String(format: "%.1f", safeUp) : "--",
+                unit: uploadUnavailable ? "" : "Mbps",
+                subtext: uploadUnavailable
+                    ? L10n.Network.speedTestUploadUnavailable
+                    : (safeUpPeak > 0 ? L10n.Network.peakSpeedFormatted(mbps: safeUpPeak) : nil),
                 icon: "arrow.up.circle.fill",
-                color: ChartTheme.uploadColor
+                color: uploadAccentColor
             )
 
             scorecardCell(
                 title: L10n.Network.latencyTitle,
-                value: net.speedTestPingMs > 0 ? String(format: "%.0f", net.speedTestPingMs) : "--",
+                value: safePing > 0 ? String(format: "%.0f", safePing) : "--",
                 unit: "ms",
                 subtext: nil,
                 icon: "bolt.horizontal.circle.fill",
-                color: Color.cyan
+                color: Theme.readableCyan(for: colorScheme)
             )
 
             scorecardCell(
                 title: L10n.Network.jitter,
-                value: net.speedTestJitterMs > 0 ? String(format: "±%.1f", net.speedTestJitterMs) : "--",
+                value: safeJitter > 0 ? String(format: "±%.1f", safeJitter) : "--",
                 unit: "ms",
                 subtext: nil,
                 icon: "waveform.path.ecg.rectangle.fill",
@@ -182,6 +200,9 @@ struct NetworkSpeedTestSheet: View {
             RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L10n.Network.serverNode)
+        .accessibilityValue("\(net.speedTestServerName)\(net.speedTestRating.isEmpty ? "" : ", \(net.speedTestRating)")")
     }
 
     // MARK: - 4. Action Dispatcher Controls
@@ -240,7 +261,7 @@ struct NetworkSpeedTestSheet: View {
                             Text(L10n.Network.speedTestRestart)
                                 .font(Typography.headlineValue)
                         }
-                        .foregroundStyle(Color.white)
+                        .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, SpacingTheme.rowStandard)
                         .background(
@@ -261,7 +282,7 @@ struct NetworkSpeedTestSheet: View {
                         Text(L10n.Network.startSpeedTest)
                             .font(Typography.headlineValue)
                     }
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, SpacingTheme.cardInternal)
                     .background(
@@ -295,10 +316,15 @@ struct NetworkSpeedTestSheet: View {
                             .font(Typography.captionBold)
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     }
+                    .buttonStyle(.plain)
                 }
 
                 VStack(spacing: SpacingTheme.standard) {
                     ForEach(net.speedTestHistory) { item in
+                        let itemDown = item.downloadMbps.isFinite ? item.downloadMbps : 0.0
+                        let itemUp = item.uploadMbps.isFinite ? item.uploadMbps : 0.0
+                        let itemPing = item.pingMs.isFinite ? item.pingMs : 0.0
+
                         HStack {
                             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                                 Text(item.date, format: .dateTime.month().day().hour().minute())
@@ -314,15 +340,15 @@ struct NetworkSpeedTestSheet: View {
                             Spacer()
 
                             HStack(spacing: SpacingTheme.standard) {
-                                Text("↓\(String(format: "%.1f", item.downloadMbps))M")
+                                Text("↓\(String(format: "%.1f", itemDown))M")
                                     .font(Typography.calloutMono)
                                     .foregroundStyle(appState.accentColor)
 
-                                Text("↑\(String(format: "%.1f", item.uploadMbps))M")
+                                Text(itemUp > 0 ? "↑\(String(format: "%.1f", itemUp))M" : "↑--")
                                     .font(Typography.calloutMono)
-                                    .foregroundStyle(ChartTheme.uploadColor)
+                                    .foregroundStyle(uploadAccentColor)
 
-                                Text("\(String(format: "%.0f", item.pingMs))ms")
+                                Text("\(String(format: "%.0f", itemPing))ms")
                                     .font(Typography.captionMono)
                                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             }
@@ -345,6 +371,32 @@ struct NetworkSpeedTestSheet: View {
     }
 
     // MARK: - Subviews & Helpers
+    @ViewBuilder
+    private func speedTestErrorBanner(_ message: String) -> some View {
+        HStack(spacing: SpacingTheme.compact) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(IconTheme.tileLeading)
+                .foregroundStyle(.orange)
+
+            Text(message)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .lineLimit(2)
+
+            Spacer()
+        }
+        .padding(.horizontal, SpacingTheme.rowStandard)
+        .padding(.vertical, SpacingTheme.standard)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
+                .fill(Color.orange.opacity(0.10))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
+                .stroke(Color.orange.opacity(0.30), lineWidth: 0.8)
+        )
+    }
+
     @ViewBuilder
     private var stageIndicatorPill: some View {
         HStack(spacing: SpacingTheme.tight) {
@@ -419,6 +471,9 @@ struct NetworkSpeedTestSheet: View {
             RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous)
                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
+        .accessibilityValue("\(value)\(unit.isEmpty ? "" : " \(unit)")\(subtext.map { ", \($0)" } ?? "")")
     }
 }
 
@@ -450,7 +505,7 @@ private struct SpeedometerGaugeArc: View {
                     .trim(from: 0.0, to: 0.6667 * progressRatio)
                     .stroke(
                         AngularGradient(
-                            gradient: Gradient(colors: [accentColor.opacity(0.85), accentColor, Color.cyan]),
+                            gradient: Gradient(colors: [accentColor.opacity(0.85), accentColor, Theme.readableCyan(for: colorScheme)]),
                             center: .center,
                             startAngle: .degrees(150),
                             endAngle: .degrees(390)

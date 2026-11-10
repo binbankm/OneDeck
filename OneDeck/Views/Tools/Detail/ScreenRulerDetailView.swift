@@ -25,6 +25,7 @@ struct ScreenRulerDetailView: View {
     // MARK: - State
     @State private var jawTopY: CGFloat = 0.0
     @State private var jawBottomY: CGFloat = 160.0
+    @State private var stageHeight: CGFloat = 400.0
     @State private var isTopAnchored: Bool = true
     @State private var isMeasurementLocked: Bool = false
     @State private var showHistorySheet: Bool = false
@@ -43,8 +44,8 @@ struct ScreenRulerDetailView: View {
 
     // Hardware Scale Math (1:1 Physical PPI)
     private var pointsPerMm: CGFloat {
-        let ppi = CGFloat(max(326, system.hardwareSpecs.ppi))
-        let scale = CGFloat(max(2, system.hardwareSpecs.scale))
+        let ppi = CGFloat(system.hardwareSpecs.ppi > 0 ? system.hardwareSpecs.ppi : 326)
+        let scale = CGFloat(system.hardwareSpecs.nativeScaleValue > 0 ? system.hardwareSpecs.nativeScaleValue : 2.0)
         return ppi / (scale * 25.4)
     }
 
@@ -59,14 +60,7 @@ struct ScreenRulerDetailView: View {
     }
 
     private var measuredDisplay: String {
-        switch tools.caliperUnit {
-        case .mm:
-            return String(format: "%.1f mm", measuredMm)
-        case .cm:
-            return String(format: "%.2f cm", measuredMm / 10.0)
-        case .inch:
-            return String(format: "%.3f in", measuredMm / 25.4)
-        }
+        ToolsViewModel.formatCaliperMeasurement(mm: measuredMm, unit: tools.caliperUnit)
     }
 
     // MARK: - Body
@@ -80,12 +74,12 @@ struct ScreenRulerDetailView: View {
 
             // Dedicated Caliper Measurement Stage
             GeometryReader { geo in
-                let stageHeight = max(100, geo.size.height)
+                let currentStageHeight = max(100, geo.size.height)
                 let stageWidth = max(100, geo.size.width)
 
                 ZStack(alignment: .topLeading) {
                     // Dual-Side Laser-Etched Scales (Metric Left & Imperial Right)
-                    dualRulerBeamCanvas(width: stageWidth, height: stageHeight)
+                    dualRulerBeamCanvas(width: stageWidth, height: currentStageHeight)
 
                     // Dimension Span & Leader Lines
                     measurementDimensionOverlay(width: stageWidth)
@@ -94,16 +88,25 @@ struct ScreenRulerDetailView: View {
                     caliperTopJaw(stageWidth: stageWidth)
 
                     // Slider Bottom Jaw with Knurled Thumb Grip
-                    caliperBottomJaw(stageHeight: stageHeight, stageWidth: stageWidth)
+                    caliperBottomJaw(stageHeight: currentStageHeight, stageWidth: stageWidth)
                 }
-                .frame(width: stageWidth, height: stageHeight)
+                .frame(width: stageWidth, height: currentStageHeight)
                 .clipped()
                 .onAppear {
+                    stageHeight = currentStageHeight
                     if !hasInitializedPositions {
                         jawTopY = 0.0
-                        jawBottomY = min(stageHeight - 24.0, pointsPerMm * 45.0)
+                        jawBottomY = max(jawTopY + 14.0, min(currentStageHeight - 24.0, pointsPerMm * 45.0))
                         hasInitializedPositions = true
-                        tools.setCaliperMm(measuredMm)
+                        tools.setCaliperRawMm(rawSpanMm)
+                    }
+                }
+                .onChange(of: geo.size.height) { _, newHeight in
+                    let clampedHeight = max(100, newHeight)
+                    stageHeight = clampedHeight
+                    if jawBottomY > clampedHeight {
+                        jawBottomY = max(jawTopY + 14.0, clampedHeight)
+                        tools.setCaliperRawMm(rawSpanMm)
                     }
                 }
             }
@@ -172,12 +175,13 @@ struct ScreenRulerDetailView: View {
                 Spacer()
 
                 // Unit Selector (mm | cm | in)
-                Picker("", selection: $tools.caliperUnit) {
+                Picker(L10n.Tools.screenRuler, selection: $tools.caliperUnit) {
                     ForEach(ScreenCaliperUnit.allCases) { u in
                         Text(u.title).tag(u)
                     }
                 }
                 .pickerStyle(.segmented)
+                .accessibilityLabel(L10n.Tools.screenRuler)
                 .frame(width: 130)
             }
 
@@ -189,7 +193,7 @@ struct ScreenRulerDetailView: View {
                     isTopAnchored.toggle()
                     if isTopAnchored {
                         jawTopY = 0.0
-                        tools.setCaliperMm(measuredMm)
+                        tools.setCaliperRawMm(rawSpanMm)
                     }
                 } label: {
                     HStack(spacing: SpacingTheme.tight) {
@@ -239,8 +243,8 @@ struct ScreenRulerDetailView: View {
             Haptics.tick()
             guard !isMeasurementLocked else { return }
             let deltaPoints = CGFloat(deltaMm) * pointsPerMm
-            jawBottomY = max(jawTopY + 2.0, jawBottomY + deltaPoints)
-            tools.setCaliperMm(measuredMm)
+            jawBottomY = min(stageHeight, max(jawTopY + 14.0, jawBottomY + deltaPoints))
+            tools.setCaliperRawMm(rawSpanMm)
         } label: {
             Text(label)
                 .font(Typography.badgeTagMono)
@@ -261,11 +265,12 @@ struct ScreenRulerDetailView: View {
     @ViewBuilder
     private func dualRulerBeamCanvas(width: CGFloat, height: CGFloat) -> some View {
         let ppm = pointsPerMm
-        let totalMm = Int(height / ppm)
-        let pointsPerInch = ppm * 25.4
-        let totalInches = Int(height / pointsPerInch)
 
         Canvas { context, size in
+            guard size.width > 0, size.height > 0, ppm > 0 else { return }
+            let totalMm = max(0, Int(size.height / ppm))
+            let pointsPerInch = ppm * 25.4
+            let totalInches = max(0, Int(size.height / pointsPerInch))
             let tickColor = colorScheme == .dark ? Color.white.opacity(0.3) : Color.black.opacity(0.25)
             let majorColor = colorScheme == .dark ? Color.white.opacity(0.75) : Color.black.opacity(0.7)
 
@@ -381,7 +386,7 @@ struct ScreenRulerDetailView: View {
                         .font(Typography.badgeTagMono)
                 }
             }
-            .foregroundStyle(Color.black)
+            .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
             .padding(.horizontal, SpacingTheme.standard)
             .padding(.vertical, SpacingTheme.micro)
             .background(appState.accentColor)
@@ -395,7 +400,7 @@ struct ScreenRulerDetailView: View {
                 .onChanged { value in
                     guard !isTopAnchored && !isMeasurementLocked else { return }
                     jawTopY = max(0, min(jawBottomY - 14, value.location.y))
-                    tools.setCaliperMm(measuredMm)
+                    tools.setCaliperRawMm(rawSpanMm)
                 }
         )
     }
@@ -403,6 +408,7 @@ struct ScreenRulerDetailView: View {
     // MARK: - 5. Precision Bottom Jaw (Slider with Knurled Grip)
     @ViewBuilder
     private func caliperBottomJaw(stageHeight: CGFloat, stageWidth: CGFloat) -> some View {
+        let jawForeground = Theme.contrastingForeground(for: appState.accentColor)
         ZStack(alignment: .bottom) {
             // Horizontal Measuring Blade
             Rectangle()
@@ -422,12 +428,12 @@ struct ScreenRulerDetailView: View {
                 HStack(spacing: SpacingTheme.micro) {
                     ForEach(0 ..< 4) { _ in
                         Rectangle()
-                            .fill(Color.black.opacity(0.4))
+                            .fill(jawForeground.opacity(0.4))
                             .frame(width: 1.5, height: 6)
                     }
                 }
             }
-            .foregroundStyle(Color.black)
+            .foregroundStyle(jawForeground)
             .padding(.horizontal, SpacingTheme.rowStandard)
             .padding(.vertical, SpacingTheme.micro)
             .background(appState.accentColor)
@@ -441,7 +447,7 @@ struct ScreenRulerDetailView: View {
                 .onChanged { value in
                     guard !isMeasurementLocked else { return }
                     jawBottomY = max(jawTopY + 14, min(stageHeight, value.location.y))
-                    tools.setCaliperMm(measuredMm)
+                    tools.setCaliperRawMm(rawSpanMm)
                 }
         )
     }
@@ -462,11 +468,13 @@ struct ScreenRulerDetailView: View {
                         let targetPoints = CGFloat(bm.sizeMm) * pointsPerMm
                         if isTopAnchored {
                             jawTopY = 0.0
-                            jawBottomY = targetPoints
+                            jawBottomY = min(stageHeight, max(14.0, targetPoints))
                         } else {
-                            jawBottomY = jawTopY + targetPoints
+                            let maxTop = max(0.0, stageHeight - max(14.0, targetPoints))
+                            jawTopY = min(jawTopY, maxTop)
+                            jawBottomY = min(stageHeight, max(jawTopY + 14.0, jawTopY + targetPoints))
                         }
-                        tools.setCaliperMm(measuredMm)
+                        tools.setCaliperRawMm(rawSpanMm)
                     } label: {
                         Text("\(bm.name) (\(String(format: "%.1f", bm.sizeMm))mm)")
                             .font(Typography.microAxis)
@@ -553,7 +561,7 @@ struct ScreenRulerDetailView: View {
                     Text(L10n.Tools.saveRecord)
                         .font(Typography.captionBold)
                 }
-                .foregroundStyle(Color.white)
+                .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
                 .background(
@@ -582,6 +590,7 @@ struct ScreenRulerDetailView: View {
                     )
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(L10n.Tools.historyRecords)
         }
     }
 
@@ -613,6 +622,8 @@ struct ScreenRulerDetailView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Tools.historyRecords)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

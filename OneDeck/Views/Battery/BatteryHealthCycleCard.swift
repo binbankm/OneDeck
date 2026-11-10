@@ -81,7 +81,7 @@ struct BatteryHealthCycleCard: View {
                 healthTile(
                     icon: "heart.fill",
                     label: L10n.Battery.health,
-                    value: isDataActive ? String(format: "%.1f", battery.healthPercentDisplay) : "--",
+                    value: isDataActive ? String(format: "%.1f", battery.healthPercentDisplay.isFinite ? battery.healthPercentDisplay : 0.0) : "--",
                     unit: isDataActive ? "%" : "",
                     status: isDataActive ? healthTierText : L10n.Battery.pendingImport,
                     statusColor: isDataActive ? healthTierColor : .orange
@@ -168,6 +168,7 @@ struct BatteryHealthCycleCard: View {
         }
 
         if !battery.cellVoltages.isEmpty {
+            let cellVoltagesText = battery.cellVoltages.map { "\($0) mV" }.joined(separator: " · ")
             HStack(spacing: SpacingTheme.compact) {
                 Image(systemName: "battery.100.bolt")
                     .font(IconTheme.tileLeading)
@@ -179,7 +180,7 @@ struct BatteryHealthCycleCard: View {
 
                 Spacer()
 
-                Text(battery.cellVoltages.map { "\($0) mV" }.joined(separator: " · "))
+                Text(cellVoltagesText)
                     .font(Typography.captionMono)
                     .foregroundStyle(appState.accentColor)
                     .lineLimit(1)
@@ -189,6 +190,9 @@ struct BatteryHealthCycleCard: View {
             .padding(.vertical, SpacingTheme.standard)
             .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Battery.cellVoltagesLabel)
+            .accessibilityValue(cellVoltagesText)
         }
     }
 
@@ -215,6 +219,9 @@ struct BatteryHealthCycleCard: View {
         .padding(.vertical, SpacingTheme.standard)
         .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue(value)
     }
 
     @ViewBuilder
@@ -258,6 +265,7 @@ struct BatteryHealthCycleCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(L10n.Battery.clearRecord)
             }
         }
     }
@@ -314,6 +322,9 @@ struct BatteryHealthCycleCard: View {
         .padding(.vertical, SpacingTheme.standard)
         .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue("\(value)\(unit.isEmpty ? "" : " \(unit)"), \(status)")
     }
 
     // MARK: - Status Helpers
@@ -327,7 +338,7 @@ struct BatteryHealthCycleCard: View {
     private var cycleTierColor: Color {
         let count = battery.cycleCountDisplay
         if count < 500 { return appState.accentColor }
-        if count < 800 { return .yellow }
+        if count < 800 { return Theme.readableYellow(for: colorScheme) }
         return .orange
     }
 
@@ -341,14 +352,19 @@ struct BatteryHealthCycleCard: View {
     private var healthTierColor: Color {
         let health = battery.healthPercentDisplay
         if health >= 85 { return appState.accentColor }
-        if health >= 80 { return .yellow }
+        if health >= 80 { return Theme.readableYellow(for: colorScheme) }
         return .orange
     }
 
-    private func formatDate(_ date: Date) -> String {
+    private static let shortDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "MM-dd"
-        return formatter.string(from: date)
+        return formatter
+    }()
+
+    private func formatDate(_ date: Date) -> String {
+        Self.shortDateFormatter.string(from: date)
     }
 }
 

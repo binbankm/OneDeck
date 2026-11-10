@@ -18,6 +18,10 @@ struct NetworkTrafficCard: View {
     // MARK: - State
     @State private var showSpeedTestSheet: Bool = false
 
+    private var uploadAccentColor: Color {
+        colorScheme == .dark ? ChartTheme.uploadColor : Theme.readableCyan(for: colorScheme)
+    }
+
     // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
@@ -64,6 +68,7 @@ struct NetworkTrafficCard: View {
                 .background(appState.accentColor.opacity(0.12))
                 .clipShape(Capsule())
             }
+            .buttonStyle(.plain)
         }
     }
 
@@ -96,19 +101,23 @@ struct NetworkTrafficCard: View {
                     Spacer(minLength: SpacingTheme.tight)
 
                     HStack(spacing: SpacingTheme.compact) {
-                        Text("↓\(String(format: "%.1f", last.downloadMbps))M")
+                        let safeDown = last.downloadMbps.isFinite ? last.downloadMbps : 0.0
+                        let safeUp = last.uploadMbps.isFinite ? last.uploadMbps : 0.0
+                        let safePing = last.pingMs.isFinite ? last.pingMs : 0.0
+
+                        Text("↓\(String(format: "%.1f", safeDown))M")
                             .font(Typography.badgeTagMono)
                             .foregroundStyle(appState.accentColor)
                             .lineLimit(1)
                             .fixedSize()
 
-                        Text("↑\(String(format: "%.1f", last.uploadMbps))M")
+                        Text(safeUp > 0 ? "↑\(String(format: "%.1f", safeUp))M" : "↑--")
                             .font(Typography.badgeTagMono)
-                            .foregroundStyle(ChartTheme.uploadColor)
+                            .foregroundStyle(uploadAccentColor)
                             .lineLimit(1)
                             .fixedSize()
 
-                        Text("\(String(format: "%.0f", last.pingMs))ms")
+                        Text("\(String(format: "%.0f", safePing))ms")
                             .font(Typography.badgeTagMonoMedium)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
@@ -149,7 +158,7 @@ struct NetworkTrafficCard: View {
             let up = formatRate(net.uploadSpeedBps)
             speedBlock(
                 direction: "arrow.up.circle.fill",
-                color: ChartTheme.uploadColor,
+                color: uploadAccentColor,
                 label: L10n.Network.uploadSpeed,
                 value: up.value,
                 unit: up.unit
@@ -159,14 +168,15 @@ struct NetworkTrafficCard: View {
 
     @ViewBuilder
     private var waveformSection: some View {
+        let validHistory = net.trafficHistory.filter { $0.downBps.isFinite && $0.upBps.isFinite }
         VStack(alignment: .leading, spacing: SpacingTheme.tight) {
-            if net.trafficHistory.isEmpty {
+            if validHistory.isEmpty {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                     .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
                     .frame(height: 100)
             } else {
                 Chart {
-                    ForEach(net.trafficHistory) { pt in
+                    ForEach(validHistory) { pt in
                         LineMark(
                             x: .value("Time", pt.timestamp),
                             y: .value("Rate", pt.downBps / 1024.0),
@@ -188,7 +198,7 @@ struct NetworkTrafficCard: View {
                             y: .value("Rate", pt.upBps / 1024.0),
                             series: .value("Direction", "Up")
                         )
-                        .foregroundStyle(ChartTheme.uploadColor)
+                        .foregroundStyle(uploadAccentColor)
                         .lineStyle(StrokeStyle(lineWidth: ChartTheme.subLineWidth, lineCap: .round, lineJoin: .round))
                         .interpolationMethod(.monotone)
                     }
@@ -240,7 +250,7 @@ struct NetworkTrafficCard: View {
             HStack(spacing: SpacingTheme.compact) {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(IconTheme.tileLeading)
-                    .foregroundStyle(ChartTheme.uploadColor)
+                    .foregroundStyle(uploadAccentColor)
 
                 Text(L10n.Network.totalOut)
                     .font(Typography.caption)
@@ -294,6 +304,9 @@ struct NetworkTrafficCard: View {
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue("\(value) \(unit)")
     }
 
     private func formatRate(_ bps: Double) -> (value: String, unit: String) {

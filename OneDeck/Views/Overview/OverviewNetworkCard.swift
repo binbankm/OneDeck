@@ -76,7 +76,7 @@ struct OverviewNetworkCard: View {
                 rateValue: system.uploadRate.value,
                 rateUnit: system.uploadRate.unit,
                 history: system.uploadHistory,
-                color: ChartTheme.uploadColor,
+                color: colorScheme == .dark ? ChartTheme.uploadColor : Theme.readableCyan(for: colorScheme),
                 sessionTotal: system.sessionUploadTotalFormatted
             )
         }
@@ -117,6 +117,9 @@ private struct OverviewMetricBentoBox: View {
             RoundedRectangle(cornerRadius: CornerRadiusTheme.prominent, style: .continuous)
                 .stroke(boxBorder, lineWidth: 0.5)
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue("\(rateValue) \(rateUnit), \(L10n.Overview.sessionTotal) \(sessionTotal)")
     }
 
     @ViewBuilder

@@ -10,99 +10,162 @@ import AVFoundation
 import CoreMedia
 import CoreVideo
 import ImageIO
-import UIKit
+import os
+
+public nonisolated enum OpticalSensorStatus: Sendable {
+    case active
+    case permissionDenied
+    case hardwareUnavailable
+}
 
 public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
     public static let shared = AmbientLuxProbe()
 
-    private var captureSession: AVCaptureSession?
-    private var videoDevice: AVCaptureDevice?
+    private struct ProbeState: Sendable {
+        var sessionGeneration: UInt64 = 0
+        var isSampling: Bool = false
+        var isPowerSaving: Bool = false
+        var lastUpdateTimestamp: CFAbsoluteTime = 0
+        var onUpdate: (@MainActor @Sendable (_ lux: Double, _ fc: Double, _ ev: Double, _ env: String) -> Void)?
+        var onStatus: (@MainActor @Sendable (OpticalSensorStatus) -> Void)?
+    }
+
+    private let stateLock = OSAllocatedUnfairLock(initialState: ProbeState())
+    private let deviceLock = OSAllocatedUnfairLock<AVCaptureDevice?>(initialState: nil)
+    private nonisolated(unsafe) var captureSession: AVCaptureSession?
+    private nonisolated(unsafe) var interruptionObservers: [NSObjectProtocol] = []
     private let sessionQueue = DispatchQueue(label: "com.onedeck.lux.sessionQueue")
     private let sampleQueue = DispatchQueue(label: "com.onedeck.lux.sampleQueue")
-    private var isSampling: Bool = false
-    private var lastUpdateTimestamp: CFAbsoluteTime = 0
 
-    private var onUpdate: ((_ lux: Double, _ fc: Double, _ ev: Double, _ env: String) -> Void)?
+    public nonisolated var isSampling: Bool {
+        stateLock.withLock { $0.isSampling }
+    }
+
+    public nonisolated func setPowerSaving(_ isPowerSaving: Bool) {
+        stateLock.withLock { $0.isPowerSaving = isPowerSaving }
+    }
+
+    public nonisolated var isHardwareAvailable: Bool {
+        AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) != nil
+            || AVCaptureDevice.default(for: .video) != nil
+    }
 
     override private init() {
         super.init()
     }
 
-    public func startLuxSampling(onUpdate: @escaping (_ lux: Double, _ fc: Double, _ ev: Double, _ env: String) -> Void) {
-        guard !isSampling else { return }
-        self.onUpdate = onUpdate
-        self.isSampling = true
-        self.lastUpdateTimestamp = 0
+    public nonisolated func startLuxSampling(
+        isPowerSaving: Bool = false,
+        onStatus: (@MainActor @Sendable (OpticalSensorStatus) -> Void)? = nil,
+        onUpdate: @escaping @MainActor @Sendable (_ lux: Double, _ fc: Double, _ ev: Double, _ env: String) -> Void
+    ) {
+        let (shouldStart, gen): (Bool, UInt64) = stateLock.withLock { state in
+            state.onUpdate = onUpdate
+            state.onStatus = onStatus
+            state.isPowerSaving = isPowerSaving
+            if state.isSampling { return (false, state.sessionGeneration) }
+            state.sessionGeneration &+= 1
+            state.isSampling = true
+            state.lastUpdateTimestamp = 0
+            return (true, state.sessionGeneration)
+        }
+        guard shouldStart else { return }
 
-        // Emit instantaneous seed reading from screen brightness so UI is never blank
-        #if canImport(UIKit)
-        let seedLux = max(20.0, Double(UIScreen.main.brightness) * 450.0)
-        let seedFc = seedLux / 10.764
-        let seedEv = log2(seedLux / 2.5)
-        let seedDesc = self.describeLux(seedLux)
-        onUpdate(seedLux, seedFc, seedEv, seedDesc)
-        #endif
+        guard isHardwareAvailable else {
+            stateLock.withLock { $0.isSampling = false }
+            Task { @MainActor in
+                onStatus?(.hardwareUnavailable)
+            }
+            return
+        }
 
-        #if targetEnvironment(simulator)
-        startSimulatorLuxLoop()
-        #else
         let auth = AVCaptureDevice.authorizationStatus(for: .video)
         switch auth {
         case .authorized:
             sessionQueue.async { [weak self] in
-                self?.configureSession()
+                self?.configureSession(generation: gen)
             }
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
                 guard let self else { return }
+                let stillWantsRun = self.stateLock.withLock { $0.isSampling && $0.sessionGeneration == gen }
+                guard stillWantsRun else { return }
                 if granted {
-                    self.isSampling = true
                     self.sessionQueue.async {
-                        self.configureSession()
+                        self.configureSession(generation: gen)
                     }
                 } else {
-                    self.isSampling = false
+                    let statusCb = self.stateLock.withLock { state -> (@MainActor @Sendable (OpticalSensorStatus) -> Void)? in
+                        guard state.sessionGeneration == gen else { return nil }
+                        state.isSampling = false
+                        return state.onStatus
+                    }
+                    Task { @MainActor in
+                        statusCb?(.permissionDenied)
+                    }
                 }
             }
         case .denied, .restricted:
-            self.isSampling = false
-            return
+            stateLock.withLock { $0.isSampling = false }
+            Task { @MainActor in
+                onStatus?(.permissionDenied)
+            }
         @unknown default:
-            self.isSampling = false
-            return
+            stateLock.withLock { $0.isSampling = false }
+            Task { @MainActor in
+                onStatus?(.hardwareUnavailable)
+            }
         }
-        #endif
     }
 
-    public func stopLuxSampling() {
-        guard isSampling else { return }
-        isSampling = false
-        onUpdate = nil
+    public nonisolated func stopLuxSampling() {
+        let wasSampling = stateLock.withLock { state -> Bool in
+            let prev = state.isSampling
+            state.sessionGeneration &+= 1
+            state.isSampling = false
+            state.onUpdate = nil
+            state.onStatus = nil
+            return prev
+        }
+        guard wasSampling else { return }
 
-        #if targetEnvironment(simulator)
-        simTimer?.cancel()
-        simTimer = nil
-        #else
         sessionQueue.async { [weak self] in
             guard let self else { return }
+            self.removeInterruptionObservers()
             self.captureSession?.stopRunning()
             self.captureSession = nil
-            self.videoDevice = nil
+            self.deviceLock.withLock { $0 = nil }
         }
-        #endif
     }
 
-    private func configureSession() {
-        guard isSampling else { return }
+    private nonisolated func configureSession(generation: UInt64) {
+        let shouldConfigure = stateLock.withLock { $0.isSampling && $0.sessionGeneration == generation }
+        guard shouldConfigure else { return }
+
+        if let existing = captureSession {
+            existing.stopRunning()
+            captureSession = nil
+        }
+        removeInterruptionObservers()
+
         let session = AVCaptureSession()
         session.beginConfiguration()
-        session.sessionPreset = .low
+        if session.canSetSessionPreset(.low) {
+            session.sessionPreset = .low
+        }
 
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) ?? AVCaptureDevice.default(for: .video) else {
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+            ?? AVCaptureDevice.default(for: .video) else {
             session.commitConfiguration()
+            let statusCb = stateLock.withLock { state -> (@MainActor @Sendable (OpticalSensorStatus) -> Void)? in
+                state.isSampling = false
+                return state.onStatus
+            }
+            Task { @MainActor in
+                statusCb?(.hardwareUnavailable)
+            }
             return
         }
-        self.videoDevice = device
 
         do {
             try device.lockForConfiguration()
@@ -112,9 +175,18 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
             device.unlockForConfiguration()
 
             let input = try AVCaptureDeviceInput(device: device)
-            if session.canAddInput(input) {
-                session.addInput(input)
+            guard session.canAddInput(input) else {
+                session.commitConfiguration()
+                let statusCb = stateLock.withLock { state -> (@MainActor @Sendable (OpticalSensorStatus) -> Void)? in
+                    state.isSampling = false
+                    return state.onStatus
+                }
+                Task { @MainActor in
+                    statusCb?(.hardwareUnavailable)
+                }
+                return
             }
+            session.addInput(input)
 
             let output = AVCaptureVideoDataOutput()
             output.alwaysDiscardsLateVideoFrames = true
@@ -125,50 +197,108 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
             }
 
             session.commitConfiguration()
-            session.startRunning()
+            guard stateLock.withLock({ $0.isSampling && $0.sessionGeneration == generation }) else { return }
+            deviceLock.withLock { $0 = device }
             self.captureSession = session
+            registerInterruptionObservers(for: session)
+            session.startRunning()
+
+            let statusCb = stateLock.withLock { state -> (@MainActor @Sendable (OpticalSensorStatus) -> Void)? in
+                guard state.isSampling && state.sessionGeneration == generation else { return nil }
+                return state.onStatus
+            }
+            Task { @MainActor in
+                statusCb?(.active)
+            }
         } catch {
             session.commitConfiguration()
+            deviceLock.withLock { $0 = nil }
+            let statusCb = stateLock.withLock { state -> (@MainActor @Sendable (OpticalSensorStatus) -> Void)? in
+                state.isSampling = false
+                return state.onStatus
+            }
+            Task { @MainActor in
+                statusCb?(.hardwareUnavailable)
+            }
         }
     }
 
-    public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard isSampling else { return }
+    private nonisolated func registerInterruptionObservers(for session: AVCaptureSession) {
+        let nc = NotificationCenter.default
+        let ended = nc.addObserver(forName: AVCaptureSession.interruptionEndedNotification, object: session, queue: nil) { [weak self] _ in
+            self?.sessionQueue.async { [weak self] in
+                guard let self else { return }
+                let stillSampling = self.stateLock.withLock { $0.isSampling }
+                guard stillSampling else { return }
+                if let s = self.captureSession, !s.isRunning {
+                    s.startRunning()
+                }
+            }
+        }
+        interruptionObservers = [ended]
+    }
 
-        // Rate limit UI updates (~12Hz normal / ~5Hz power saving) for snappy responsiveness without thermal throttle
+    private nonisolated func removeInterruptionObservers() {
+        for obs in interruptionObservers {
+            NotificationCenter.default.removeObserver(obs)
+        }
+        interruptionObservers.removeAll()
+    }
+
+    public nonisolated func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         let now = CFAbsoluteTimeGetCurrent()
-        let minInterval = AppState.shared.isSensorPowerSaving ? 0.20 : 0.08
-        guard lastUpdateTimestamp == 0 || (now - lastUpdateTimestamp >= minInterval) else { return }
-        lastUpdateTimestamp = now
+        let callback: (@MainActor @Sendable (_ lux: Double, _ fc: Double, _ ev: Double, _ env: String) -> Void)? = stateLock.withLock { state in
+            guard state.isSampling, let cb = state.onUpdate else { return nil }
+            let minInterval = state.isPowerSaving ? 0.20 : 0.08
+            guard state.lastUpdateTimestamp == 0 || (now - state.lastUpdateTimestamp >= minInterval) else {
+                return nil
+            }
+            state.lastUpdateTimestamp = now
+            return cb
+        }
+        guard let callback else { return }
 
         var fNumber = 1.8
         var exposureTime = 1.0 / 60.0
         var iso = 100.0
+        var hasExifFNumber = false
+        var hasExifExposure = false
+        var hasExifIso = false
 
         // Extract metadata attachments
-        if let attachments = CMCopyDictionaryOfAttachments(allocator: kCFAllocatorDefault, target: sampleBuffer, attachmentMode: kCMAttachmentMode_ShouldPropagate) as? [String: Any],
+        if let attachments = CMCopyDictionaryOfAttachments(
+            allocator: kCFAllocatorDefault,
+            target: sampleBuffer,
+            attachmentMode: kCMAttachmentMode_ShouldPropagate
+        ) as? [String: Any],
            let exif = attachments["{Exif}"] as? [String: Any] {
-            if let fn = (exif[kCGImagePropertyExifFNumber as String] as? NSNumber)?.doubleValue, fn > 0 {
+            if let fn = (exif[kCGImagePropertyExifFNumber as String] as? NSNumber)?.doubleValue, fn.isFinite, fn > 0 {
                 fNumber = fn
+                hasExifFNumber = true
             }
-            if let et = (exif[kCGImagePropertyExifExposureTime as String] as? NSNumber)?.doubleValue, et > 0 {
+            if let et = (exif[kCGImagePropertyExifExposureTime as String] as? NSNumber)?.doubleValue, et.isFinite, et > 0 {
                 exposureTime = et
+                hasExifExposure = true
             }
-            if let isoArr = exif[kCGImagePropertyExifISOSpeedRatings as String] as? [NSNumber], let first = isoArr.first?.doubleValue, first > 0 {
+            if let isoArr = exif[kCGImagePropertyExifISOSpeedRatings as String] as? [NSNumber],
+               let first = isoArr.first?.doubleValue, first.isFinite, first > 0 {
                 iso = first
-            } else if let isoArr = exif[kCGImagePropertyExifISOSpeedRatings as String] as? NSArray, let first = (isoArr.firstObject as? NSNumber)?.doubleValue, first > 0 {
+                hasExifIso = true
+            } else if let isoArr = exif[kCGImagePropertyExifISOSpeedRatings as String] as? NSArray,
+                      let first = (isoArr.firstObject as? NSNumber)?.doubleValue, first.isFinite, first > 0 {
                 iso = first
+                hasExifIso = true
             }
         }
 
-        // Secondary fallback to device hardware properties if EXIF was partial
-        if let device = self.videoDevice {
+        // Secondary fallback to device hardware properties ONLY when EXIF metadata fields were absent
+        if (!hasExifIso || !hasExifExposure || !hasExifFNumber), let device = deviceLock.withLock({ $0 }) {
             let devIso = Double(device.iso)
             let devSeconds = CMTimeGetSeconds(device.exposureDuration)
             let devAperture = Double(device.lensAperture)
-            if devIso > 0 && devIso.isFinite { iso = devIso }
-            if devSeconds > 0 && devSeconds.isFinite { exposureTime = devSeconds }
-            if devAperture > 0 && devAperture.isFinite { fNumber = devAperture }
+            if !hasExifIso && devIso > 0 && devIso.isFinite { iso = devIso }
+            if !hasExifExposure && devSeconds > 0 && devSeconds.isFinite { exposureTime = devSeconds }
+            if !hasExifFNumber && devAperture > 0 && devAperture.isFinite { fNumber = devAperture }
         }
 
         // Subsample center grid pixel luminance (Rec. 601 Luma: Y = 0.299R + 0.587G + 0.114B)
@@ -178,7 +308,7 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
             let width = CVPixelBufferGetWidth(imageBuffer)
             let height = CVPixelBufferGetHeight(imageBuffer)
             let bytesPerRow = CVPixelBufferGetBytesPerRow(imageBuffer)
-            if let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer), width > 0, height > 0 {
+            if let baseAddress = CVPixelBufferGetBaseAddress(imageBuffer), width > 2, height > 2 {
                 var totalY: Double = 0
                 var sampleCount: Double = 0
                 let stepX = max(1, width / 8)
@@ -187,6 +317,7 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
                     let rowPtr = baseAddress.advanced(by: py * bytesPerRow).assumingMemoryBound(to: UInt8.self)
                     for px in stride(from: stepX, to: width - stepX, by: stepX) {
                         let offset = px * 4
+                        guard offset + 3 <= bytesPerRow else { continue }
                         let b = Double(rowPtr[offset])
                         let g = Double(rowPtr[offset + 1])
                         let r = Double(rowPtr[offset + 2])
@@ -202,18 +333,18 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
         }
 
         // Standard Photometric Equation with dynamic pixel luma scaling:
-        // EV = log2(N² / t) - log2(ISO / 100)
+        // EV = log2(N^2 / t) - log2(ISO / 100)
         let ev = log2((fNumber * fNumber) / max(0.0001, exposureTime)) - log2(max(1.0, iso) / 100.0)
-
-        // Lux = 2.5 * 2^EV * (pixelLuma / 0.46)
         let rawLux = 2.5 * pow(2.0, ev) * (pixelLumaNormalized / 0.46)
         let lux = max(0.1, min(150_000.0, rawLux))
         let footCandles = lux / 10.764
-        let envDescription = describeLux(lux)
 
         Task { @MainActor [weak self] in
-            guard let self, self.isSampling else { return }
-            self.onUpdate?(lux, footCandles, ev, envDescription)
+            guard let self else { return }
+            let stillActive = self.stateLock.withLock { $0.isSampling }
+            guard stillActive else { return }
+            let envDescription = self.describeLux(lux)
+            callback(lux, footCandles, ev, envDescription)
         }
     }
 
@@ -230,28 +361,4 @@ public final class AmbientLuxProbe: NSObject, AVCaptureVideoDataOutputSampleBuff
             return L10n.Tools.daylightSunny
         }
     }
-
-    #if targetEnvironment(simulator)
-    private var simTimer: DispatchSourceTimer?
-
-    private func startSimulatorLuxLoop() {
-        let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .userInteractive))
-        timer.schedule(deadline: .now(), repeating: .milliseconds(150)) // ~7Hz
-
-        timer.setEventHandler { [weak self] in
-            guard let self, self.isSampling else { return }
-            let lux = 480.0 + Double.random(in: 0 ..< 40)
-            let fc = lux / 10.764
-            let ev = 7.6
-
-            let envText = self.describeLux(lux)
-            Task { @MainActor [weak self] in
-                guard let self, self.isSampling else { return }
-                self.onUpdate?(lux, fc, ev, envText)
-            }
-        }
-        timer.resume()
-        self.simTimer = timer
-    }
-    #endif
 }

@@ -15,8 +15,15 @@ struct NetworkPublicIPCard: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var net = NetworkViewModel.shared
 
+    private enum CopyTarget: Equatable {
+        case primary
+        case ipv6
+        case proxy
+    }
+
     // MARK: - State
-    @State private var isCopied: Bool = false
+    @State private var copiedTarget: CopyTarget?
+    @State private var copyToastTask: Task<Void, Never>?
 
     // MARK: - Body
     var body: some View {
@@ -27,6 +34,10 @@ struct NetworkPublicIPCard: View {
             geoGrid
         }
         .bentoCard(accent: appState.accentColor)
+        .onDisappear {
+            copyToastTask?.cancel()
+            copyToastTask = nil
+        }
     }
 
     // MARK: - Subviews
@@ -68,22 +79,17 @@ struct NetworkPublicIPCard: View {
                 .background(appState.accentColor.opacity(0.12))
                 .clipShape(Capsule())
             }
+            .buttonStyle(.plain)
             .fixedSize(horizontal: true, vertical: false)
         }
     }
 
     @ViewBuilder
     private var ipHeroSection: some View {
-        Button {
-            guard net.publicIP != "--" && !net.publicIP.isEmpty else { return }
-            UIPasteboard.general.string = net.publicIP
-            Haptics.tick()
-            withAnimation { isCopied = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                withAnimation { isCopied = false }
-            }
-        } label: {
-            VStack(alignment: .leading, spacing: SpacingTheme.compact) {
+        VStack(alignment: .leading, spacing: SpacingTheme.compact) {
+            Button {
+                copyIP(net.publicIP, target: .primary)
+            } label: {
                 HStack(spacing: SpacingTheme.row) {
                     VStack(alignment: .leading, spacing: SpacingTheme.tight) {
                         HStack(spacing: SpacingTheme.compact) {
@@ -109,7 +115,7 @@ struct NetworkPublicIPCard: View {
 
                     Spacer()
 
-                    if isCopied {
+                    if copiedTarget == .primary {
                         Text(L10n.Network.copied)
                             .font(Typography.caption)
                             .foregroundStyle(appState.accentColor)
@@ -119,9 +125,18 @@ struct NetworkPublicIPCard: View {
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
                     }
                 }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(net.publicIP.contains(":") ? L10n.Network.copyIpv6 : L10n.Network.copyIpv4)
+            .accessibilityValue(net.publicIP)
 
-                // Dual-stack IPv6 display if both are present
-                if !net.publicIPv6.isEmpty && net.publicIPv6 != net.publicIP {
+            // Dual-stack IPv6 display if both are present
+            if !net.publicIPv6.isEmpty && net.publicIPv6 != net.publicIP {
+                Button {
+                    copyIP(net.publicIPv6, target: .ipv6)
+                } label: {
                     HStack(spacing: SpacingTheme.compact) {
                         Text("IPv6")
                             .font(Typography.badgeTag)
@@ -138,69 +153,114 @@ struct NetworkPublicIPCard: View {
                             .minimumScaleFactor(0.65)
 
                         Spacer()
+
+                        if copiedTarget == .ipv6 {
+                            Text(L10n.Network.copied)
+                                .font(Typography.caption)
+                                .foregroundStyle(appState.accentColor)
+                        } else {
+                            Image(systemName: "doc.on.doc.fill")
+                                .font(IconTheme.copyIndicator)
+                                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                        }
                     }
-                    .padding(.top, SpacingTheme.micro)
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .padding(.top, SpacingTheme.micro)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(L10n.Network.copyIpv6)
+                .accessibilityValue(net.publicIPv6)
             }
-            .padding(.horizontal, SpacingTheme.rowStandard)
-            .padding(.vertical, SpacingTheme.row)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
-            )
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, SpacingTheme.rowStandard)
+        .padding(.vertical, SpacingTheme.row)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+        )
     }
 
     @ViewBuilder
     private var proxyExitBanner: some View {
         if !net.proxyExitIP.isEmpty && net.proxyExitIP != net.publicIP && net.proxyExitIP != net.publicIPv6 {
-            HStack(spacing: SpacingTheme.standard) {
-                HStack(spacing: SpacingTheme.tight) {
-                    Image(systemName: "shield.lefthalf.filled")
-                        .font(IconTheme.tileLeading)
-                        .foregroundStyle(Color.orange)
+            Button {
+                copyIP(net.proxyExitIP, target: .proxy)
+            } label: {
+                HStack(spacing: SpacingTheme.standard) {
+                    HStack(spacing: SpacingTheme.tight) {
+                        Image(systemName: "shield.lefthalf.filled")
+                            .font(IconTheme.tileLeading)
+                            .foregroundStyle(Color.orange)
 
-                    Text(L10n.Network.proxyExit)
-                        .font(Typography.captionBold)
-                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-                }
-
-                Spacer(minLength: SpacingTheme.compact)
-
-                HStack(spacing: SpacingTheme.tight) {
-                    Text(net.proxyExitIP)
-                        .font(Typography.captionMono)
-                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-
-                    if !net.proxyExitLocation.isEmpty {
-                        Text("· \(net.proxyExitLocation)")
-                            .font(Typography.badgeTag)
+                        Text(L10n.Network.proxyExit)
+                            .font(Typography.captionBold)
                             .foregroundStyle(Theme.textSecondary(for: colorScheme))
                             .lineLimit(1)
-                            .truncationMode(.tail)
+                            .fixedSize(horizontal: true, vertical: false)
                     }
+
+                    Spacer(minLength: SpacingTheme.compact)
+
+                    HStack(spacing: SpacingTheme.tight) {
+                        Text(net.proxyExitIP)
+                            .font(Typography.captionMono)
+                            .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+
+                        if copiedTarget == .proxy {
+                            Text(L10n.Network.copied)
+                                .font(Typography.badgeTag)
+                                .foregroundStyle(appState.accentColor)
+                        } else if !net.proxyExitLocation.isEmpty {
+                            Text("· \(net.proxyExitLocation)")
+                                .font(Typography.badgeTag)
+                                .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                    }
+                    .lineLimit(1)
                 }
-                .lineLimit(1)
+                .padding(.horizontal, SpacingTheme.row)
+                .padding(.vertical, SpacingTheme.compact)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                        .fill(Color.orange.opacity(0.08))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                        .stroke(Color.orange.opacity(0.18), lineWidth: 0.8)
+                )
             }
-            .padding(.horizontal, SpacingTheme.row)
-            .padding(.vertical, SpacingTheme.compact)
-            .background(
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .fill(Color.orange.opacity(0.08))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .stroke(Color.orange.opacity(0.18), lineWidth: 0.8)
-            )
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(L10n.Network.copyExitIp)
+            .accessibilityValue(net.proxyExitIP)
+        }
+    }
+
+    private func copyIP(_ value: String, target: CopyTarget) {
+        guard value != "--" && !value.isEmpty else { return }
+        UIPasteboard.general.string = value
+        Haptics.tick()
+        withAnimation(.easeInOut(duration: 0.2)) {
+            copiedTarget = target
+        }
+        copyToastTask?.cancel()
+        copyToastTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.8))
+            guard !Task.isCancelled else { return }
+            withAnimation {
+                if copiedTarget == target {
+                    copiedTarget = nil
+                }
+            }
         }
     }
 

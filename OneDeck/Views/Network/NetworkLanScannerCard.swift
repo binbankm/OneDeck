@@ -14,6 +14,10 @@ struct NetworkLanScannerCard: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var net = NetworkViewModel.shared
 
+    // MARK: - State
+    @State private var copiedDeviceID: DiscoveredDevice.ID?
+    @State private var copyToastTask: Task<Void, Never>?
+
     // MARK: - Body
     var body: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
@@ -21,6 +25,10 @@ struct NetworkLanScannerCard: View {
             devicesListSection
         }
         .bentoCard(accent: appState.accentColor)
+        .onDisappear {
+            copyToastTask?.cancel()
+            copyToastTask = nil
+        }
     }
 
     // MARK: - Subviews
@@ -67,6 +75,7 @@ struct NetworkLanScannerCard: View {
                 .background(appState.accentColor.opacity(0.12))
                 .clipShape(Capsule())
             }
+            .buttonStyle(.plain)
             .disabled(net.isScanningLan)
         }
     }
@@ -98,80 +107,104 @@ struct NetworkLanScannerCard: View {
         } else {
             VStack(spacing: SpacingTheme.standard) {
                 ForEach(net.discoveredDevices) { device in
-                    HStack(spacing: SpacingTheme.row) {
-                        Image(systemName: device.iconName)
-                            .font(IconTheme.sectionHeader)
-                            .foregroundStyle(appState.accentColor)
-                            .frame(width: 24, height: 24, alignment: .center)
-
-                        VStack(alignment: .leading, spacing: SpacingTheme.micro) {
-                            HStack(spacing: SpacingTheme.compact) {
-                                Text(device.name)
-                                    .font(Typography.bodyValue)
-                                    .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.85)
-
-                                if let vendor = device.vendorName, vendor != device.name {
-                                    Text(vendor)
-                                        .font(Typography.badgeTagMedium)
-                                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
-                                        .lineLimit(1)
+                    let hasValidIP = device.ipAddress != "--" && !device.ipAddress.isEmpty
+                    Button {
+                        guard hasValidIP else { return }
+                        UIPasteboard.general.string = device.ipAddress
+                        Haptics.tick()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            copiedDeviceID = device.id
+                        }
+                        copyToastTask?.cancel()
+                        copyToastTask = Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(1.8))
+                            guard !Task.isCancelled else { return }
+                            withAnimation {
+                                if copiedDeviceID == device.id {
+                                    copiedDeviceID = nil
                                 }
                             }
+                        }
+                    } label: {
+                        HStack(spacing: SpacingTheme.row) {
+                            Image(systemName: device.iconName)
+                                .font(IconTheme.sectionHeader)
+                                .foregroundStyle(appState.accentColor)
+                                .frame(width: 24, height: 24, alignment: .center)
 
-                            HStack(spacing: SpacingTheme.compact) {
-                                if device.ipAddress != "--" {
-                                    Text(device.ipAddress)
-                                        .font(Typography.captionMono)
-                                        .foregroundStyle(appState.accentColor)
+                            VStack(alignment: .leading, spacing: SpacingTheme.micro) {
+                                HStack(spacing: SpacingTheme.compact) {
+                                    Text(device.name)
+                                        .font(Typography.bodyValue)
+                                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.85)
+
+                                    if let vendor = device.vendorName, vendor != device.name {
+                                        Text(vendor)
+                                            .font(Typography.badgeTagMedium)
+                                            .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                                            .lineLimit(1)
+                                    }
                                 }
 
-                                if let mac = device.macAddress {
-                                    Text(mac.uppercased())
-                                        .font(Typography.badgeTagMonoMedium)
+                                HStack(spacing: SpacingTheme.compact) {
+                                    if device.ipAddress != "--" {
+                                        Text(device.ipAddress)
+                                            .font(Typography.captionMono)
+                                            .foregroundStyle(appState.accentColor)
+                                    }
+
+                                    if let mac = device.macAddress {
+                                        Text(mac.uppercased())
+                                            .font(Typography.badgeTagMonoMedium)
+                                            .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                                    }
+
+                                    Text("· \(friendlyServiceType(device.serviceType))")
+                                        .font(Typography.badgeTagMedium)
                                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
                                 }
+                            }
 
-                                Text("· \(friendlyServiceType(device.serviceType))")
-                                    .font(Typography.badgeTagMedium)
-                                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                            Spacer()
+
+                            if copiedDeviceID == device.id {
+                                Text(L10n.Common.copied)
+                                    .font(Typography.badgeTag)
+                                    .foregroundStyle(appState.accentColor)
+                                    .transition(.opacity)
+                            } else if let lat = device.latencyMs, lat.isFinite {
+                                Text(String(format: "%.0fms", lat))
+                                    .font(Typography.badgeTagMono)
+                                    .foregroundStyle(Color.green)
+                                    .padding(.horizontal, SpacingTheme.compact)
+                                    .padding(.vertical, SpacingTheme.micro)
+                                    .background(Color.green.opacity(0.12))
+                                    .clipShape(Capsule())
+                            } else {
+                                Circle()
+                                    .fill(Color.green)
+                                    .frame(width: 6, height: 6)
                             }
                         }
-
-                        Spacer()
-
-                        if let lat = device.latencyMs {
-                            Text(String(format: "%.0fms", lat))
-                                .font(Typography.badgeTagMono)
-                                .foregroundStyle(Color.green)
-                                .padding(.horizontal, SpacingTheme.compact)
-                                .padding(.vertical, SpacingTheme.micro)
-                                .background(Color.green.opacity(0.12))
-                                .clipShape(Capsule())
-                        } else {
-                            Circle()
-                                .fill(Color.green)
-                                .frame(width: 6, height: 6)
-                        }
+                        .contentShape(Rectangle())
+                        .padding(.horizontal, SpacingTheme.row)
+                        .padding(.vertical, SpacingTheme.standard)
+                        .background(
+                            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                                .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                                .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                        )
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if device.ipAddress != "--" {
-                            UIPasteboard.general.string = device.ipAddress
-                            Haptics.tick()
-                        }
-                    }
-                    .padding(.horizontal, SpacingTheme.row)
-                    .padding(.vertical, SpacingTheme.standard)
-                    .background(
-                        RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .fill(Theme.cardBackground(for: colorScheme).opacity(0.6))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                            .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
-                    )
+                    .buttonStyle(.plain)
+                    .disabled(!hasValidIP)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(device.name)\(hasValidIP ? ", \(device.ipAddress)" : "")")
+                    .accessibilityHint(hasValidIP ? L10n.Network.copyDeviceIp : "")
                 }
             }
         }

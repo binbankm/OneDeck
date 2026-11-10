@@ -6,6 +6,7 @@
 //  Domain data models for hardware diagnostic instruments.
 //
 
+import CoreBluetooth
 import SwiftUI
 
 // MARK: - Active Detail Tool Identifier
@@ -562,7 +563,7 @@ public struct PulseMeterData: Sendable {
 }
 
 // MARK: - 14. Seismometer & Vibration Spectrum Models
-public enum SeismicIntensity: String, CaseIterable, Identifiable, Sendable {
+public nonisolated enum SeismicIntensity: String, CaseIterable, Identifiable, Sendable {
     case instrumental // 0 ~ I (微震无感)
     case weak // II ~ III (轻微震颤)
     case moderate // IV (有感震动)
@@ -570,9 +571,9 @@ public enum SeismicIntensity: String, CaseIterable, Identifiable, Sendable {
 
     public var id: String { rawValue }
 
-    public var labelZh: String { title }
+    @MainActor public var labelZh: String { title }
 
-    public var title: String {
+    @MainActor public var title: String {
         switch self {
         case .instrumental: return L10n.tr(zh: "微震 (0-I度)", en: "Micro (0-I)", hant: "微震 (0-I度)")
         case .weak: return L10n.tr(zh: "轻微 (II-III度)", en: "Minor (II-III)", hant: "輕微 (II-III度)")
@@ -581,7 +582,7 @@ public enum SeismicIntensity: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    public var titleZh: String { title }
+    @MainActor public var titleZh: String { title }
 
     public var shortCode: String {
         switch self {
@@ -611,7 +612,7 @@ public enum SeismicIntensity: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-public struct SeismometerData: Sendable {
+public nonisolated struct SeismometerData: Sendable {
     public var accelX: Double = 0.0
     public var accelY: Double = 0.0
     public var accelZ: Double = 0.0
@@ -649,7 +650,7 @@ public struct SeismometerData: Sendable {
 }
 
 // MARK: - 15. Ambient Lux Meter Models
-public struct LuxMeterData: Sendable {
+public nonisolated struct LuxMeterData: Sendable {
     public var currentLux: Double = 0.0
     public var currentFootCandles: Double = 0.0
     public var exposureValueEV: Double = 0.0
@@ -679,7 +680,7 @@ public struct LuxMeterData: Sendable {
 }
 
 // MARK: - 16. GNSS Hub & Coordinate Conversion Models
-public struct GnssHubData: Sendable {
+public nonisolated struct GnssHubData: Sendable {
     public var latitude: Double = 0.0
     public var longitude: Double = 0.0
     public var altitudeAmsl: Double = 0.0
@@ -696,10 +697,17 @@ public struct GnssHubData: Sendable {
     public var isFixAcquired: Bool = false
 
     public var mgrsString: String { mgrsFormatted }
-    public var fixStatusText: String {
-        isFixAcquired
-            ? L10n.tr(zh: "3D 差分定位", en: "3D Differential Fix", hant: "3D 差分定位")
-            : L10n.tr(zh: "搜索卫星...", en: "Searching...", hant: "搜尋衛星...")
+    @MainActor public var fixStatusText: String {
+        guard isFixAcquired else {
+            return L10n.tr(zh: "搜索卫星...", en: "Searching...", hant: "搜尋衛星...")
+        }
+        if verticalAccuracyM > 0 && horizontalAccuracyM > 0 && horizontalAccuracyM < 8.0 {
+            return L10n.tr(zh: "3D 高精度定位", en: "3D Precision Fix", hant: "3D 高精度定位")
+        } else if verticalAccuracyM > 0 {
+            return L10n.tr(zh: "3D GNSS 定位", en: "3D GNSS Fix", hant: "3D GNSS 定位")
+        } else {
+            return L10n.tr(zh: "2D GNSS 定位", en: "2D GNSS Fix", hant: "2D GNSS 定位")
+        }
     }
     public var altitudeM: Double { altitudeAmsl }
 
@@ -737,7 +745,7 @@ public struct GnssHubData: Sendable {
 }
 
 // MARK: - 17. Bluetooth LE Radar Models
-public struct BleDeviceItem: Identifiable, Sendable {
+public nonisolated struct BleDeviceItem: Identifiable, Sendable {
     public let id: UUID
     public let name: String
     public let rssi: Int
@@ -755,30 +763,36 @@ public struct BleDeviceItem: Identifiable, Sendable {
     }
 }
 
-public struct BleRadarData: Sendable {
+public nonisolated struct BleRadarData: Sendable {
     public var discoveredDevices: [BleDeviceItem] = []
     public var isScanning: Bool = false
     public var nearestDeviceName: String = "--"
     public var strongestRssi: Int = -100
+    public var bluetoothState: CBManagerState = .unknown
 
     public var devices: [BleDeviceItem] { discoveredDevices }
     public var nearestDeviceRssi: Int { strongestRssi }
     public var estimatedDistanceMeters: Double {
+        if let nearest = discoveredDevices.first {
+            return nearest.distanceEstimateM
+        }
         guard strongestRssi != -100 else { return 0.0 }
-        let ratio = Double(-59 - strongestRssi) / (10.0 * 2.5)
-        return pow(10.0, ratio)
+        let ratio = Double(-59 - strongestRssi) / (10.0 * 2.2)
+        return max(0.1, pow(10.0, ratio))
     }
 
     public init(
         discoveredDevices: [BleDeviceItem] = [],
         isScanning: Bool = false,
         nearestDeviceName: String = "--",
-        strongestRssi: Int = -100
+        strongestRssi: Int = -100,
+        bluetoothState: CBManagerState = .unknown
     ) {
         self.discoveredDevices = discoveredDevices
         self.isScanning = isScanning
         self.nearestDeviceName = nearestDeviceName
         self.strongestRssi = strongestRssi
+        self.bluetoothState = bluetoothState
     }
 }
 

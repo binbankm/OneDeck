@@ -6,7 +6,6 @@
 //  Camera optical PPG heart rate and pulse waveform workspace.
 //
 
-import AVFoundation
 import Charts
 import SwiftUI
 
@@ -15,15 +14,12 @@ struct PulseMeterDetailView: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
-    private var isCameraDenied: Bool {
-        let auth = AVCaptureDevice.authorizationStatus(for: .video)
-        return auth == .denied || auth == .restricted
-    }
-
     var body: some View {
         VStack(spacing: SpacingTheme.cardStack) {
-            if isCameraDenied {
+            if tools.isCameraPermissionDenied || tools.pulseStatus == .permissionDenied {
                 cameraPermissionDeniedBanner
+            } else if tools.pulseStatus == .hardwareUnavailable {
+                cameraHardwareUnavailableBanner
             }
 
             // Dual Top KPI Hero Cards
@@ -53,8 +49,9 @@ struct PulseMeterDetailView: View {
                     tools.togglePulseTorch()
                 } label: {
                     Image(systemName: tools.isPulseTorchOn ? "flashlight.on.fill" : "flashlight.off.fill")
-                        .foregroundStyle(tools.isPulseTorchOn ? Color.yellow : Theme.textTertiary(for: colorScheme))
+                        .foregroundStyle(tools.isPulseTorchOn ? Theme.readableYellow(for: colorScheme) : Theme.textTertiary(for: colorScheme))
                 }
+                .accessibilityLabel(L10n.Tools.macroIllumination)
             }
         }
         .onAppear {
@@ -108,9 +105,10 @@ struct PulseMeterDetailView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
-                Text(tools.pulseMeter.hrvMs > 0 ? String(format: "%.1f", tools.pulseMeter.hrvMs) : (tools.pulseMeter.isFingerDetected ? "···" : "--"))
+                let safeHrv = tools.pulseMeter.hrvMs.isFinite ? tools.pulseMeter.hrvMs : 0.0
+                Text(safeHrv > 0 ? String(format: "%.1f", safeHrv) : (tools.pulseMeter.isFingerDetected ? "···" : "--"))
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(tools.pulseMeter.hrvMs > 0 ? Color.green : (tools.pulseMeter.isFingerDetected ? Color.orange : Theme.textTertiary(for: colorScheme)))
+                    .foregroundStyle(safeHrv > 0 ? Color.green : (tools.pulseMeter.isFingerDetected ? Color.orange : Theme.textTertiary(for: colorScheme)))
                     .lineLimit(1)
 
                 Text("ms (RMSSD)")
@@ -134,7 +132,7 @@ struct PulseMeterDetailView: View {
     // MARK: - Waveform Chart
     @ViewBuilder
     private var pulseWaveformChart: some View {
-        let history = tools.pulseMeter.waveformHistory
+        let history = tools.pulseMeter.waveformHistory.filter { $0.value.isFinite }
 
         VStack(alignment: .leading, spacing: SpacingTheme.standard) {
             HStack {
@@ -214,7 +212,7 @@ struct PulseMeterDetailView: View {
         HStack(spacing: SpacingTheme.standard) {
             Image(systemName: tools.isPulseTorchOn ? "flashlight.on.fill" : "flashlight.off.fill")
                 .font(IconTheme.actionButton)
-                .foregroundStyle(tools.isPulseTorchOn ? Color.yellow : Theme.textTertiary(for: colorScheme))
+                .foregroundStyle(tools.isPulseTorchOn ? Theme.readableYellow(for: colorScheme) : Theme.textTertiary(for: colorScheme))
 
             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(L10n.Tools.coverCameraTip)
@@ -251,9 +249,7 @@ struct PulseMeterDetailView: View {
             }
 
             Button {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
+                tools.openAppSettings()
             } label: {
                 Text(L10n.Tools.openSettings)
                     .font(Typography.captionBold)
@@ -263,6 +259,28 @@ struct PulseMeterDetailView: View {
                     .foregroundStyle(Color.white)
                     .clipShape(Capsule())
             }
+            .buttonStyle(.plain)
+        }
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+        )
+    }
+
+    @ViewBuilder
+    private var cameraHardwareUnavailableBanner: some View {
+        HStack(spacing: SpacingTheme.tight) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Color.orange)
+            Text(L10n.Tools.cameraHardwareUnavailable)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .multilineTextAlignment(.leading)
         }
         .padding(SpacingTheme.cardInternal)
         .background(
@@ -292,7 +310,7 @@ struct PulseMeterDetailView: View {
                 Text(tools.pulseMeter.isMeasuring ? L10n.Tools.turnOff : L10n.Tools.startMeter)
                     .font(Typography.captionBold)
             }
-            .foregroundStyle(Color.black)
+            .foregroundStyle(tools.pulseMeter.isMeasuring ? Color.white : Theme.contrastingForeground(for: appState.accentColor))
             .frame(maxWidth: .infinity)
             .frame(height: 48)
             .background(tools.pulseMeter.isMeasuring ? Color.red : appState.accentColor)

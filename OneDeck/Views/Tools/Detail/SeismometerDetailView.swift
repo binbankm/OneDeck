@@ -19,6 +19,26 @@ struct SeismometerDetailView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: SpacingTheme.cardStack) {
+                if !tools.isSeismicHardwareAvailable {
+                    HStack(spacing: SpacingTheme.tight) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(Color.orange)
+                        Text(L10n.Tools.motionHardwareUnavailable)
+                            .font(Typography.caption)
+                            .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                            .multilineTextAlignment(.leading)
+                    }
+                    .padding(SpacingTheme.cardInternal)
+                    .background(
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                            .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                            .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+                    )
+                }
+
                 // Dual KPI Hero Cards
                 dualMetricsHero
 
@@ -66,7 +86,7 @@ struct SeismometerDetailView: View {
                     .lineLimit(1)
 
                 let safeLive = tools.seismometer.currentGal.isFinite ? tools.seismometer.currentGal : 0.0
-                Text(String(format: "Live: %.1f Gal", safeLive))
+                Text(L10n.Tools.liveGal(safeLive))
                     .font(Typography.captionMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
                     .lineLimit(1)
@@ -116,9 +136,10 @@ struct SeismometerDetailView: View {
     // MARK: - Waveform Chart
     @ViewBuilder
     private var waveformChart: some View {
-        let history = tools.seismometer.waveform
+        let history = tools.seismometer.waveform.filter { $0.value.isFinite }
         let values = history.isEmpty ? [0.0] : history.map(\.value)
         let maxVal = max(5.0, (values.max() ?? 0.0) * 1.2)
+        let safeDominantHz = tools.seismometer.dominantFrequencyHz.isFinite ? tools.seismometer.dominantFrequencyHz : 0.0
 
         VStack(alignment: .leading, spacing: SpacingTheme.standard) {
             HStack {
@@ -132,7 +153,7 @@ struct SeismometerDetailView: View {
                     Circle()
                         .fill(tools.seismometer.intensity.color)
                         .frame(width: 6, height: 6)
-                    Text(String(format: "%.1f Hz", tools.seismometer.dominantFrequencyHz))
+                    Text(String(format: "%.1f Hz", safeDominantHz))
                         .font(Typography.captionMono)
                         .foregroundStyle(tools.seismometer.intensity.color)
                 }
@@ -144,9 +165,9 @@ struct SeismometerDetailView: View {
                     .frame(height: 160)
             } else {
                 Chart {
-                    ForEach(Array(history.enumerated()), id: \.offset) { idx, pt in
+                    ForEach(history) { pt in
                         LineMark(
-                            x: .value("Index", idx),
+                            x: .value("Time", pt.timestamp),
                             y: .value("Gal", pt.value)
                         )
                         .foregroundStyle(tools.seismometer.intensity.color)
@@ -154,7 +175,7 @@ struct SeismometerDetailView: View {
                         .interpolationMethod(.monotone)
 
                         AreaMark(
-                            x: .value("Index", idx),
+                            x: .value("Time", pt.timestamp),
                             y: .value("Gal", pt.value)
                         )
                         .foregroundStyle(
@@ -215,7 +236,7 @@ struct SeismometerDetailView: View {
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                         .frame(width: 44, alignment: .leading)
 
-                    Text(item.titleZh)
+                    Text(item.title)
                         .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
@@ -251,7 +272,7 @@ struct SeismometerDetailView: View {
                 Text(L10n.Tools.resetPeakLabel)
                     .font(Typography.captionBold)
             }
-            .foregroundStyle(Color.black)
+            .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
             .frame(maxWidth: .infinity)
             .frame(height: 44)
             .background(appState.accentColor)

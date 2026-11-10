@@ -19,16 +19,28 @@ struct ContentView: View {
 
     // MARK: - Body
     var body: some View {
-        TabView(selection: $appState.activeTab) {
-            overviewTab
-            batteryTab
-            networkTab
-            toolsTab
-            settingsTab
+        let _ = appState.language
+        Group {
+            TabView(selection: $appState.activeTab) {
+                overviewTab
+                batteryTab
+                networkTab
+                toolsTab
+                settingsTab
+            }
+            .tint(appState.accentColor)
+            .preferredColorScheme(appState.resolvedColorScheme)
+            .environment(\.locale, appState.resolvedLocale)
         }
-        .tint(appState.accentColor)
-        .preferredColorScheme(appState.resolvedColorScheme)
-        .id(appState.language)
+        .onAppear {
+            guard scenePhase == .active else { return }
+            system.refreshDisplaySpecs()
+            net.startPathMonitoring()
+            activateMonitoring(for: appState.activeTab)
+        }
+        .onChange(of: appState.language) { _, _ in
+            refreshLocalizedModels()
+        }
         .onChange(of: appState.activeTab) { oldTab, newTab in
             handleTabChange(from: oldTab, to: newTab)
         }
@@ -42,7 +54,15 @@ struct ContentView: View {
         Haptics.selection()
 
         // Halt background polling and hardware telemetry of the inactive tab
-        switch oldTab {
+        deactivateMonitoring(for: oldTab)
+
+        // Activate telemetry exclusively for the newly selected tab
+        guard scenePhase == .active else { return }
+        activateMonitoring(for: newTab)
+    }
+
+    private func deactivateMonitoring(for tab: AppTab) {
+        switch tab {
         case .overview:
             system.stopMonitoring()
         case .battery:
@@ -54,10 +74,10 @@ struct ContentView: View {
         case .settings:
             break
         }
+    }
 
-        // Activate telemetry exclusively for the newly selected tab
-        guard scenePhase == .active else { return }
-        switch newTab {
+    private func activateMonitoring(for tab: AppTab) {
+        switch tab {
         case .overview:
             system.startMonitoring()
         case .battery:
@@ -71,6 +91,12 @@ struct ContentView: View {
         }
     }
 
+    private func refreshLocalizedModels() {
+        system.refreshLocalizedStrings()
+        battery.refreshLocalizedStrings()
+        net.refreshLocalizedStrings()
+    }
+
     private func handleScenePhaseChange(_ phase: ScenePhase) {
         switch phase {
         case .background:
@@ -80,12 +106,16 @@ struct ContentView: View {
             system.stopMonitoring()
             battery.stopMonitoring()
             net.stopMonitoring()
+            net.stopPathMonitoring()
         case .inactive:
             // Transient interruption (permission prompts, control center, incoming calls)
             break
         case .active:
-            // Restore screen sleep preference and resume only the active tab
+            // Restore screen sleep preference, re-sync display/locale, and resume only the active tab
             UIApplication.shared.isIdleTimerDisabled = appState.isKeepScreenAwake
+            system.refreshDisplaySpecs()
+            refreshLocalizedModels()
+            net.startPathMonitoring()
             switch appState.activeTab {
             case .overview:
                 system.startMonitoring()

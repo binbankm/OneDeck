@@ -9,115 +9,203 @@
 import AVFoundation
 import CoreMedia
 import Foundation
+import os
 
 public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, @unchecked Sendable {
     public static let shared = PulseOpticalProbe()
 
+    private struct ControlState: Sendable {
+        var sessionGeneration: UInt64 = 0
+        var isRunning: Bool = false
+        var isTorchOn: Bool = false
+        var onFrameCallback: (@MainActor @Sendable (_ bpm: Int, _ hrvMs: Double, _ pulseValue: Double, _ isFingerDetected: Bool) -> Void)?
+        var onStatus: (@MainActor @Sendable (OpticalSensorStatus) -> Void)?
+        var onTorchStateChange: (@MainActor @Sendable (Bool) -> Void)?
+    }
+
+    private struct SignalProcessorState {
+        var hasEnsuredTorchOn: Bool = false
+        var rawBuffer: [Double] = []
+        var smoothedBuffer: [Double] = []
+        var rrIntervalsMs: [Double] = []
+        var lastPeakTime: Double = 0.0
+        var lastValidBpm: Int = 0
+        var lastValidHrv: Double = 0.0
+        var consecutiveNonFingerFrames: Int = 0
+
+        mutating func reset() {
+            hasEnsuredTorchOn = false
+            rawBuffer.removeAll()
+            smoothedBuffer.removeAll()
+            rrIntervalsMs.removeAll()
+            lastPeakTime = 0.0
+            lastValidBpm = 0
+            lastValidHrv = 0.0
+            consecutiveNonFingerFrames = 0
+        }
+    }
+
     // MARK: - Capture Infrastructure
-    private var captureSession: AVCaptureSession?
-    private var videoDevice: AVCaptureDevice?
+    private let controlLock = OSAllocatedUnfairLock(initialState: ControlState())
+    private let deviceLock = OSAllocatedUnfairLock<AVCaptureDevice?>(initialState: nil)
+    private nonisolated(unsafe) var captureSession: AVCaptureSession?
     private let sessionQueue = DispatchQueue(label: "com.onedeck.pulse.sessionQueue")
     private let sampleQueue = DispatchQueue(label: "com.onedeck.pulse.sampleQueue")
+    private nonisolated(unsafe) var signalState = SignalProcessorState() // Accessed exclusively on sampleQueue
+    private nonisolated(unsafe) var interruptionObservers: [NSObjectProtocol] = []
 
-    // MARK: - State & Filtering
-    private var onFrameCallback: ((_ bpm: Int, _ hrvMs: Double, _ pulseValue: Double, _ isFingerDetected: Bool) -> Void)?
-    private var isRunning: Bool = false
-    public private(set) var isTorchOn: Bool = false
-    private var hasEnsuredTorchOn: Bool = false
+    public nonisolated var isTorchOn: Bool {
+        controlLock.withLock { $0.isTorchOn }
+    }
 
-    // Signal Processing (Moving Average & Peak Detection)
-    private var rawBuffer: [Double] = []
-    private var smoothedBuffer: [Double] = []
-    private var rrIntervalsMs: [Double] = []
-    private var lastPeakTime: Double = 0.0
-    private var lastValidBpm: Int = 0
-    private var lastValidHrv: Double = 0.0
-    private var consecutiveNonFingerFrames: Int = 0
+    public nonisolated var isHardwareAvailable: Bool {
+        AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) != nil
+    }
 
     override private init() {
         super.init()
     }
 
     // MARK: - Public Controls
-    public func startMeasurement(callback: @escaping (_ bpm: Int, _ hrvMs: Double, _ pulseValue: Double, _ isFingerDetected: Bool) -> Void) {
-        guard !isRunning else { return }
-        self.onFrameCallback = callback
-        self.isRunning = true
-        self.lastValidBpm = 0
-        self.lastValidHrv = 0.0
-        self.consecutiveNonFingerFrames = 0
-        self.hasEnsuredTorchOn = false
+    public nonisolated func startMeasurement(
+        onStatus: (@MainActor @Sendable (OpticalSensorStatus) -> Void)? = nil,
+        onTorchStateChange: (@MainActor @Sendable (Bool) -> Void)? = nil,
+        callback: @escaping @MainActor @Sendable (_ bpm: Int, _ hrvMs: Double, _ pulseValue: Double, _ isFingerDetected: Bool) -> Void
+    ) {
+        let (shouldStart, gen): (Bool, UInt64) = controlLock.withLock { state in
+            state.onFrameCallback = callback
+            state.onStatus = onStatus
+            state.onTorchStateChange = onTorchStateChange
+            if state.isRunning { return (false, state.sessionGeneration) }
+            state.sessionGeneration &+= 1
+            state.isRunning = true
+            return (true, state.sessionGeneration)
+        }
+        guard shouldStart else { return }
 
-        self.rawBuffer.removeAll()
-        self.smoothedBuffer.removeAll()
-        self.rrIntervalsMs.removeAll()
-        self.lastPeakTime = 0.0
+        sampleQueue.async { [weak self] in
+            self?.signalState.reset()
+        }
 
-        #if targetEnvironment(simulator)
-        startSimulatorMockLoop()
-        #else
+        guard isHardwareAvailable else {
+            controlLock.withLock { $0.isRunning = false }
+            Task { @MainActor in
+                onStatus?(.hardwareUnavailable)
+            }
+            return
+        }
+
         let auth = AVCaptureDevice.authorizationStatus(for: .video)
         switch auth {
         case .authorized:
             sessionQueue.async { [weak self] in
-                self?.configureAndStartSession()
+                self?.configureAndStartSession(generation: gen)
             }
         case .notDetermined:
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                guard let self else { return }
+                let stillValid = self.controlLock.withLock { $0.isRunning && $0.sessionGeneration == gen }
+                guard stillValid else { return }
                 if granted {
-                    self?.sessionQueue.async {
-                        self?.configureAndStartSession()
+                    self.sessionQueue.async {
+                        self.configureAndStartSession(generation: gen)
                     }
                 } else {
-                    self?.isRunning = false
+                    let statusCb = self.controlLock.withLock { state -> (@MainActor @Sendable (OpticalSensorStatus) -> Void)? in
+                        guard state.sessionGeneration == gen else { return nil }
+                        state.isRunning = false
+                        return state.onStatus
+                    }
+                    Task { @MainActor in
+                        statusCb?(.permissionDenied)
+                    }
                 }
             }
         case .denied, .restricted:
-            self.isRunning = false
-            return
+            controlLock.withLock { $0.isRunning = false }
+            Task { @MainActor in
+                onStatus?(.permissionDenied)
+            }
         @unknown default:
-            self.isRunning = false
-            return
+            controlLock.withLock { $0.isRunning = false }
+            Task { @MainActor in
+                onStatus?(.hardwareUnavailable)
+            }
         }
-        #endif
     }
 
-    public func stopMeasurement() {
-        guard isRunning else { return }
-        isRunning = false
-        onFrameCallback = nil
+    public nonisolated func stopMeasurement() {
+        let (wasRunning, torchCb) = controlLock.withLock { state -> (Bool, (@MainActor @Sendable (Bool) -> Void)?) in
+            let prev = state.isRunning
+            let cb = state.onTorchStateChange
+            state.sessionGeneration &+= 1
+            state.isRunning = false
+            state.isTorchOn = false
+            state.onFrameCallback = nil
+            state.onStatus = nil
+            state.onTorchStateChange = nil
+            return (prev, cb)
+        }
+        if let torchCb {
+            Task { @MainActor in torchCb(false) }
+        }
+        guard wasRunning else { return }
 
-        #if targetEnvironment(simulator)
-        simTimer?.cancel()
-        simTimer = nil
-        #else
         sessionQueue.async { [weak self] in
             guard let self else { return }
-            if let device = self.videoDevice {
+            self.removeInterruptionObservers()
+            if let device = self.deviceLock.withLock({ $0 }) {
                 self.enableTorchHardware(device: device, on: false)
             }
             self.captureSession?.stopRunning()
             self.captureSession = nil
-            self.videoDevice = nil
+            self.deviceLock.withLock { $0 = nil }
         }
-        #endif
     }
 
     // MARK: - Camera Session Configuration
-    private func configureAndStartSession() {
+    private nonisolated func configureAndStartSession(generation: UInt64) {
+        let stillRunning = controlLock.withLock { $0.isRunning && $0.sessionGeneration == generation }
+        guard stillRunning else { return }
+
+        if let existing = captureSession {
+            existing.stopRunning()
+            captureSession = nil
+        }
+        removeInterruptionObservers()
+
         let session = AVCaptureSession()
-        session.sessionPreset = .low
+        session.beginConfiguration()
+        if session.canSetSessionPreset(.low) {
+            session.sessionPreset = .low
+        }
 
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+            session.commitConfiguration()
+            let statusCb = controlLock.withLock { state -> (@MainActor @Sendable (OpticalSensorStatus) -> Void)? in
+                state.isRunning = false
+                return state.onStatus
+            }
+            Task { @MainActor in
+                statusCb?(.hardwareUnavailable)
+            }
             return
         }
-        self.videoDevice = device
 
         do {
             let input = try AVCaptureDeviceInput(device: device)
-            if session.canAddInput(input) {
-                session.addInput(input)
+            guard session.canAddInput(input) else {
+                session.commitConfiguration()
+                let statusCb = controlLock.withLock { state -> (@MainActor @Sendable (OpticalSensorStatus) -> Void)? in
+                    state.isRunning = false
+                    return state.onStatus
+                }
+                Task { @MainActor in
+                    statusCb?(.hardwareUnavailable)
+                }
+                return
             }
+            session.addInput(input)
 
             let output = AVCaptureVideoDataOutput()
             output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
@@ -131,69 +219,143 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
             // Lock camera settings for stable optical reflectance PPG
             do {
                 try device.lockForConfiguration()
+                defer { device.unlockForConfiguration() }
                 if device.isExposureModeSupported(.continuousAutoExposure) {
                     device.exposureMode = .continuousAutoExposure
                 }
                 if device.isFocusModeSupported(.locked) {
                     device.focusMode = .locked
                 }
-                device.unlockForConfiguration()
             } catch {}
 
-            // Start capture pipeline
-            session.startRunning()
-            self.captureSession = session
+            session.commitConfiguration()
 
-            // IMPORTANT: Turn on torch AFTER session starts running
+            guard controlLock.withLock({ $0.isRunning && $0.sessionGeneration == generation }) else { return }
+            deviceLock.withLock { $0 = device }
+            self.captureSession = session
+            registerInterruptionObservers(for: session)
+            session.startRunning()
+
+            // Turn on torch AFTER session starts running
             enableTorchHardware(device: device, on: true)
+
+            let statusCb = controlLock.withLock { state -> (@MainActor @Sendable (OpticalSensorStatus) -> Void)? in
+                guard state.isRunning && state.sessionGeneration == generation else { return nil }
+                return state.onStatus
+            }
+            Task { @MainActor in
+                statusCb?(.active)
+            }
         } catch {
-            return
+            session.commitConfiguration()
+            deviceLock.withLock { $0 = nil }
+            let statusCb = controlLock.withLock { state -> (@MainActor @Sendable (OpticalSensorStatus) -> Void)? in
+                state.isRunning = false
+                return state.onStatus
+            }
+            Task { @MainActor in
+                statusCb?(.hardwareUnavailable)
+            }
         }
     }
 
+    private nonisolated func registerInterruptionObservers(for session: AVCaptureSession) {
+        let nc = NotificationCenter.default
+        let interrupted = nc.addObserver(forName: AVCaptureSession.wasInterruptedNotification, object: session, queue: nil) { [weak self] _ in
+            self?.sessionQueue.async { [weak self] in
+                guard let self, let dev = self.deviceLock.withLock({ $0 }) else { return }
+                self.enableTorchHardware(device: dev, on: false)
+            }
+        }
+        let ended = nc.addObserver(forName: AVCaptureSession.interruptionEndedNotification, object: session, queue: nil) { [weak self] _ in
+            self?.sessionQueue.async { [weak self] in
+                guard let self else { return }
+                let stillRunning = self.controlLock.withLock { $0.isRunning }
+                guard stillRunning else { return }
+                if let s = self.captureSession, !s.isRunning {
+                    s.startRunning()
+                }
+                if let dev = self.deviceLock.withLock({ $0 }) {
+                    self.enableTorchHardware(device: dev, on: true)
+                }
+            }
+        }
+        interruptionObservers = [interrupted, ended]
+    }
+
+    private nonisolated func removeInterruptionObservers() {
+        for obs in interruptionObservers {
+            NotificationCenter.default.removeObserver(obs)
+        }
+        interruptionObservers.removeAll()
+    }
+
     // MARK: - Hardware Torch Controller
-    private func enableTorchHardware(device: AVCaptureDevice, on: Bool) {
+    private nonisolated func enableTorchHardware(device: AVCaptureDevice, on: Bool) {
         guard device.hasTorch else { return }
+        var actualOn = false
         do {
             try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
             if on {
                 if device.isTorchModeSupported(.on) {
                     try device.setTorchModeOn(level: 0.8)
-                    self.isTorchOn = true
+                    actualOn = true
                 }
             } else {
                 if device.isTorchModeSupported(.off) {
                     device.torchMode = .off
-                    self.isTorchOn = false
+                    actualOn = false
                 }
             }
-            device.unlockForConfiguration()
         } catch {
             do {
                 try device.lockForConfiguration()
-                device.torchMode = on ? .on : .off
-                self.isTorchOn = on
-                device.unlockForConfiguration()
+                defer { device.unlockForConfiguration() }
+                if on && device.isTorchModeSupported(.on) {
+                    device.torchMode = .on
+                    actualOn = true
+                } else if !on && device.isTorchModeSupported(.off) {
+                    device.torchMode = .off
+                    actualOn = false
+                }
             } catch {}
+        }
+
+        let resolvedTorchOn = actualOn
+        let torchCb = controlLock.withLock { state -> (@MainActor @Sendable (Bool) -> Void)? in
+            state.isTorchOn = resolvedTorchOn
+            return state.onTorchStateChange
+        }
+        if let torchCb {
+            Task { @MainActor in torchCb(resolvedTorchOn) }
         }
     }
 
-    public func toggleTorch() {
+    public nonisolated func toggleTorch() {
         sessionQueue.async { [weak self] in
-            guard let self, let device = self.videoDevice else { return }
-            self.enableTorchHardware(device: device, on: !self.isTorchOn)
+            guard let self, let device = self.deviceLock.withLock({ $0 }) else { return }
+            let nextState = !self.controlLock.withLock { $0.isTorchOn }
+            self.enableTorchHardware(device: device, on: nextState)
         }
     }
 
     // MARK: - Video Frame Processing (PPG Hemoglobin Absorption)
-    public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard isRunning, let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+    public nonisolated func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        let callback = controlLock.withLock { state -> (@MainActor @Sendable (_ bpm: Int, _ hrvMs: Double, _ pulseValue: Double, _ isFingerDetected: Bool) -> Void)? in
+            guard state.isRunning else { return nil }
+            return state.onFrameCallback
+        }
+        guard let callback, let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
         // Secondary check to ensure torch is active on first frame
-        if !hasEnsuredTorchOn, let dev = self.videoDevice, dev.hasTorch {
-            hasEnsuredTorchOn = true
+        if !signalState.hasEnsuredTorchOn, let dev = deviceLock.withLock({ $0 }), dev.hasTorch {
+            signalState.hasEnsuredTorchOn = true
             if !dev.isTorchActive {
-                enableTorchHardware(device: dev, on: true)
+                sessionQueue.async { [weak self] in
+                    guard let self, let activeDevice = self.deviceLock.withLock({ $0 }) else { return }
+                    self.enableTorchHardware(device: activeDevice, on: true)
+                }
             }
         }
 
@@ -204,23 +366,27 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
         let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
         let width = CVPixelBufferGetWidth(pixelBuffer)
         let height = CVPixelBufferGetHeight(pixelBuffer)
+        guard width > 0, height > 0 else { return }
 
-        // Center 40x40 sampling window
-        let startX = max(0, (width - 40) / 2)
-        let startY = max(0, (height - 40) / 2)
+        // Bounded center sampling window (up to 40x40)
+        let boxW = min(40, width)
+        let boxH = min(40, height)
+        let startX = max(0, (width - boxW) / 2)
+        let startY = max(0, (height - boxH) / 2)
         var totalRed = 0.0
         var totalGreen = 0.0
         var totalBlue = 0.0
         var sampleCount = 0.0
 
         let buffer = baseAddress.assumingMemoryBound(to: UInt8.self)
-        for y in startY ..< (startY + 40) {
+        for y in startY ..< (startY + boxH) {
             let rowOffset = y * bytesPerRow
-            for x in startX ..< (startX + 40) {
-                let pixelOffset = rowOffset + x * 4
-                let b = Double(buffer[pixelOffset + 0])
-                let g = Double(buffer[pixelOffset + 1])
-                let r = Double(buffer[pixelOffset + 2])
+            for x in startX ..< (startX + boxW) {
+                let pixelOffset = x * 4
+                guard pixelOffset + 3 <= bytesPerRow else { continue }
+                let b = Double(buffer[rowOffset + pixelOffset + 0])
+                let g = Double(buffer[rowOffset + pixelOffset + 1])
+                let r = Double(buffer[rowOffset + pixelOffset + 2])
 
                 totalRed += r
                 totalGreen += g
@@ -239,120 +405,95 @@ public final class PulseOpticalProbe: NSObject, AVCaptureVideoDataOutputSampleBu
         let isOpticalFinger = avgRed > 25.0 && (avgRed >= avgGreen * 0.92 || avgRed > 120.0) && (avgRed > avgBlue * 1.1 || avgBlue < 80.0)
 
         if isOpticalFinger {
-            consecutiveNonFingerFrames = 0
+            signalState.consecutiveNonFingerFrames = 0
         } else {
-            consecutiveNonFingerFrames += 1
+            signalState.consecutiveNonFingerFrames += 1
         }
 
-        let isFingerDetected = consecutiveNonFingerFrames < 12 // 400ms tolerance for minor finger adjustments
-        let currentTime = CACurrentMediaTime()
+        let isFingerDetected = signalState.consecutiveNonFingerFrames < 12 // 400ms tolerance
+        let currentTime = CFAbsoluteTimeGetCurrent()
 
         if !isFingerDetected {
-            if consecutiveNonFingerFrames > 25 {
-                rawBuffer.removeAll()
-                smoothedBuffer.removeAll()
-                rrIntervalsMs.removeAll()
+            if signalState.consecutiveNonFingerFrames > 25 {
+                signalState.rawBuffer.removeAll()
+                signalState.smoothedBuffer.removeAll()
+                signalState.rrIntervalsMs.removeAll()
+                signalState.lastPeakTime = 0.0
             }
+            let bpmSnap = signalState.lastValidBpm
+            let hrvSnap = signalState.lastValidHrv
             Task { @MainActor [weak self] in
-                guard let self, self.isRunning else { return }
-                self.onFrameCallback?(self.lastValidBpm, self.lastValidHrv, 0.0, false)
+                guard let self, self.controlLock.withLock({ $0.isRunning }) else { return }
+                callback(bpmSnap, hrvSnap, 0.0, false)
             }
             return
         }
 
         // Green channel absorption corresponds inversely to blood volume pulsation
         let rawSignal = -avgGreen
-        rawBuffer.append(rawSignal)
-        if rawBuffer.count > 180 { rawBuffer.removeFirst() }
+        signalState.rawBuffer.append(rawSignal)
+        if signalState.rawBuffer.count > 180 { signalState.rawBuffer.removeFirst() }
 
         // High-pass DC baseline removal + 5-point smoothing
-        let window = Array(rawBuffer.suffix(5))
+        let window = Array(signalState.rawBuffer.suffix(5))
         let smoothed = window.reduce(0.0, +) / Double(window.count)
-        let dcBaseline = rawBuffer.reduce(0.0, +) / Double(rawBuffer.count)
+        let dcBaseline = signalState.rawBuffer.reduce(0.0, +) / Double(signalState.rawBuffer.count)
         let acPulse = smoothed - dcBaseline
 
-        smoothedBuffer.append(acPulse)
-        if smoothedBuffer.count > 180 { smoothedBuffer.removeFirst() }
+        signalState.smoothedBuffer.append(acPulse)
+        if signalState.smoothedBuffer.count > 180 { signalState.smoothedBuffer.removeFirst() }
 
         // Adaptive peak detection for BPM
-        if smoothedBuffer.count >= 6 {
-            let lastIdx = smoothedBuffer.count - 2
-            let pPrev = smoothedBuffer[lastIdx - 1]
-            let pCurr = smoothedBuffer[lastIdx]
-            let pNext = smoothedBuffer[lastIdx + 1]
+        if signalState.smoothedBuffer.count >= 6 {
+            let lastIdx = signalState.smoothedBuffer.count - 2
+            let pPrev = signalState.smoothedBuffer[lastIdx - 1]
+            let pCurr = signalState.smoothedBuffer[lastIdx]
+            let pNext = signalState.smoothedBuffer[lastIdx + 1]
 
-            // Dynamic amplitude threshold based on recent pulse signal span
-            let minVal = smoothedBuffer.min() ?? -1.0
-            let maxVal = smoothedBuffer.max() ?? 1.0
+            let minVal = signalState.smoothedBuffer.min() ?? -1.0
+            let maxVal = signalState.smoothedBuffer.max() ?? 1.0
             let span = max(0.1, maxVal - minVal)
             let adaptiveThreshold = max(0.06, span * 0.18)
 
-            // Local maximum with adaptive amplitude threshold
             if pCurr > pPrev && pCurr > pNext && pCurr > adaptiveThreshold {
-                let timeSinceLast = currentTime - lastPeakTime
+                let timeSinceLast = currentTime - signalState.lastPeakTime
                 // Physiologically realistic heart interval: 0.35s ~ 1.5s (40 ~ 171 BPM)
                 if timeSinceLast >= 0.35 && timeSinceLast <= 1.5 {
                     let intervalMs = timeSinceLast * 1000.0
 
-                    rrIntervalsMs.append(intervalMs)
-                    if rrIntervalsMs.count > 12 { rrIntervalsMs.removeFirst() }
+                    signalState.rrIntervalsMs.append(intervalMs)
+                    if signalState.rrIntervalsMs.count > 12 { signalState.rrIntervalsMs.removeFirst() }
 
                     // RMSSD (Root Mean Square of Successive Differences for HRV)
-                    if rrIntervalsMs.count >= 2 {
+                    if signalState.rrIntervalsMs.count >= 2 {
                         var sumSqDiff = 0.0
-                        for i in 1 ..< rrIntervalsMs.count {
-                            let diff = rrIntervalsMs[i] - rrIntervalsMs[i - 1]
+                        for i in 1 ..< signalState.rrIntervalsMs.count {
+                            let diff = signalState.rrIntervalsMs[i] - signalState.rrIntervalsMs[i - 1]
                             sumSqDiff += diff * diff
                         }
-                        lastValidHrv = sqrt(sumSqDiff / Double(rrIntervalsMs.count - 1))
+                        signalState.lastValidHrv = sqrt(sumSqDiff / Double(signalState.rrIntervalsMs.count - 1))
                     }
 
                     // Average BPM across recent R-R intervals
-                    let avgIntervalSec = (rrIntervalsMs.reduce(0.0, +) / Double(rrIntervalsMs.count)) / 1000.0
+                    let avgIntervalSec = (signalState.rrIntervalsMs.reduce(0.0, +) / Double(signalState.rrIntervalsMs.count)) / 1000.0
                     let calculated = Int(round(60.0 / avgIntervalSec))
                     if calculated >= 40 && calculated <= 180 {
-                        lastValidBpm = calculated
+                        signalState.lastValidBpm = calculated
                     }
-                    lastPeakTime = currentTime
+                    signalState.lastPeakTime = currentTime
                 } else if timeSinceLast > 1.5 {
-                    lastPeakTime = currentTime
+                    signalState.lastPeakTime = currentTime
                 }
             }
         }
 
-        let finalBpm = lastValidBpm
-        let finalHrv = lastValidHrv
+        let finalBpm = signalState.lastValidBpm
+        let finalHrv = signalState.lastValidHrv
         let finalPulse = acPulse
 
         Task { @MainActor [weak self] in
-            guard let self, self.isRunning else { return }
-            self.onFrameCallback?(finalBpm, finalHrv, finalPulse, true)
+            guard let self, self.controlLock.withLock({ $0.isRunning }) else { return }
+            callback(finalBpm, finalHrv, finalPulse, true)
         }
     }
-
-    // MARK: - Simulator Fallback
-    #if targetEnvironment(simulator)
-    private var simTimer: DispatchSourceTimer?
-
-    private func startSimulatorMockLoop() {
-        let timer = DispatchSource.makeTimerSource(queue: sampleQueue)
-        timer.schedule(deadline: .now(), repeating: .milliseconds(33)) // 30Hz
-
-        var step = 0.0
-        timer.setEventHandler { [weak self] in
-            guard let self, self.isRunning else { return }
-            step += 0.12
-            let pulse = sin(step) * 1.5 + sin(step * 2.0) * 0.4
-            let bpm = 72 + Int(sin(step * 0.1) * 3.0)
-            let hrv = 45.0 + cos(step * 0.1) * 4.0
-
-            Task { @MainActor [weak self] in
-                guard let self, self.isRunning else { return }
-                self.onFrameCallback?(bpm, hrv, pulse, true)
-            }
-        }
-        timer.resume()
-        self.simTimer = timer
-    }
-    #endif
 }

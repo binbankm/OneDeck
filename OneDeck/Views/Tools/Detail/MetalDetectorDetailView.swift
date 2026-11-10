@@ -7,7 +7,6 @@
 //
 
 import Charts
-import CoreMotion
 import SwiftUI
 
 struct MetalDetectorDetailView: View {
@@ -17,35 +16,41 @@ struct MetalDetectorDetailView: View {
     @Bindable private var tools = ToolsViewModel.shared
 
     private var isMagnetometerAvailable: Bool {
-        CMMotionManager().isMagnetometerAvailable
+        tools.isMagnetometerAvailable
     }
 
     // MARK: - Body
     var body: some View {
-        VStack(spacing: SpacingTheme.cardStack) {
-            if !isMagnetometerAvailable {
-                hardwareUnavailableBanner
+        GeometryReader { geo in
+            let gaugeSize = max(150, min(230, geo.size.width - 64, geo.size.height * 0.36))
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: SpacingTheme.cardStack) {
+                    if !isMagnetometerAvailable {
+                        hardwareUnavailableBanner
+                    }
+
+                    // Top Vector Readouts
+                    vectorBreakdownRow
+
+                    Spacer(minLength: 0)
+
+                    // Center Flux Meter Gauge
+                    magneticFluxGauge(size: gaugeSize)
+
+                    Spacer(minLength: 0)
+
+                    // Live Oscilloscope Waveform
+                    fluxWaveformSection
+
+                    // Bottom Action Controls
+                    bottomControlsBar
+                }
+                .padding(.horizontal, SpacingTheme.cardStack)
+                .padding(.vertical, SpacingTheme.rowStandard)
+                .frame(maxWidth: .infinity, minHeight: geo.size.height)
             }
-
-            // Top Vector Readouts
-            vectorBreakdownRow
-
-            Spacer()
-
-            // Center Flux Meter Gauge
-            magneticFluxGauge(size: 230)
-
-            Spacer()
-
-            // Live Oscilloscope Waveform
-            fluxWaveformSection
-
-            // Bottom Action Controls
-            bottomControlsBar
         }
-        .padding(.horizontal, SpacingTheme.cardStack)
-        .padding(.vertical, SpacingTheme.rowStandard)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.metalDetector)
         .navigationBarTitleDisplayMode(.inline)
@@ -83,11 +88,16 @@ struct MetalDetectorDetailView: View {
     // MARK: - Vector Breakdown
     @ViewBuilder
     private var vectorBreakdownRow: some View {
+        let safeX = tools.metalDetector.xMicroTesla.isFinite ? tools.metalDetector.xMicroTesla : 0.0
+        let safeY = tools.metalDetector.yMicroTesla.isFinite ? tools.metalDetector.yMicroTesla : 0.0
+        let safeZ = tools.metalDetector.zMicroTesla.isFinite ? tools.metalDetector.zMicroTesla : 0.0
+        let safeDelta = tools.metalDetector.deltaMicroTesla.isFinite ? tools.metalDetector.deltaMicroTesla : 0.0
+
         HStack(spacing: SpacingTheme.standard) {
-            axisCell(title: "Bx", value: String(format: "%+.0f", tools.metalDetector.xMicroTesla))
-            axisCell(title: "By", value: String(format: "%+.0f", tools.metalDetector.yMicroTesla))
-            axisCell(title: "Bz", value: String(format: "%+.0f", tools.metalDetector.zMicroTesla))
-            axisCell(title: L10n.Tools.deltaLabel, value: String(format: "+%.0f", tools.metalDetector.deltaMicroTesla))
+            axisCell(title: "Bx", value: String(format: "%+.0f", safeX))
+            axisCell(title: "By", value: String(format: "%+.0f", safeY))
+            axisCell(title: "Bz", value: String(format: "%+.0f", safeZ))
+            axisCell(title: L10n.Tools.deltaLabel, value: String(format: "+%.0f", safeDelta))
         }
     }
 
@@ -118,7 +128,10 @@ struct MetalDetectorDetailView: View {
     // MARK: - Magnetic Flux Gauge
     @ViewBuilder
     private func magneticFluxGauge(size: CGFloat) -> some View {
-        let signal = tools.metalDetector.normalizedSignal
+        let rawSignal = tools.metalDetector.normalizedSignal.isFinite ? tools.metalDetector.normalizedSignal : 0.0
+        let signal = min(1.0, max(0.0, rawSignal))
+        let safeTotal = tools.metalDetector.totalMicroTesla.isFinite ? tools.metalDetector.totalMicroTesla : 0.0
+        let safeDelta = tools.metalDetector.deltaMicroTesla.isFinite ? tools.metalDetector.deltaMicroTesla : 0.0
         let alertColor = signal > 0.6 ? Color.red : (signal > 0.3 ? Color.orange : appState.accentColor)
 
         ZStack {
@@ -145,7 +158,7 @@ struct MetalDetectorDetailView: View {
 
             // Center Reading
             VStack(spacing: SpacingTheme.micro) {
-                Text(String(format: "%.0f", tools.metalDetector.totalMicroTesla))
+                Text(String(format: "%.0f", safeTotal))
                     .font(Typography.displayHero)
                     .monospacedDigit()
                     .foregroundStyle(alertColor)
@@ -154,7 +167,7 @@ struct MetalDetectorDetailView: View {
                     .font(Typography.badgeTagMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-                if tools.metalDetector.deltaMicroTesla > 15.0 {
+                if safeDelta > 15.0 {
                     Text(L10n.Tools.metalDetected)
                         .font(Typography.microAxis)
                         .foregroundStyle(alertColor)
@@ -171,24 +184,27 @@ struct MetalDetectorDetailView: View {
     // MARK: - Oscilloscope Waveform
     @ViewBuilder
     private var fluxWaveformSection: some View {
+        let validHistory = tools.metalDetector.history.filter { $0.value.isFinite }
+        let safeBaseline = tools.metalDetector.baselineMicroTesla.isFinite ? tools.metalDetector.baselineMicroTesla : 45.0
+
         VStack(alignment: .leading, spacing: SpacingTheme.micro) {
             HStack {
                 Text(L10n.Tools.oscilloscope)
                     .font(Typography.badgeTagMono)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
                 Spacer()
-                Text("\(L10n.Tools.baselineLabel): \(String(format: "%.0f", tools.metalDetector.baselineMicroTesla)) µT")
+                Text("\(L10n.Tools.baselineLabel): \(String(format: "%.0f", safeBaseline)) µT")
                     .font(Typography.badgeTagMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
             }
 
-            if tools.metalDetector.history.isEmpty {
+            if validHistory.isEmpty {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                     .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
                     .frame(height: 70)
             } else {
                 Chart {
-                    ForEach(tools.metalDetector.history) { pt in
+                    ForEach(validHistory) { pt in
                         LineMark(
                             x: .value("Time", pt.timestamp),
                             y: .value("Flux", pt.value)
@@ -236,7 +252,7 @@ struct MetalDetectorDetailView: View {
                     Text(L10n.Tools.calibrate)
                         .font(Typography.captionBold)
                 }
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
                 .background(appState.accentColor)

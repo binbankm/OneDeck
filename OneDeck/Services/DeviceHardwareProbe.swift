@@ -32,8 +32,8 @@ public struct DeviceIdentityHardwareTelemetry: Sendable {
 
 // MARK: - Device Hardware Probe Engine
 public enum DeviceHardwareProbe {
-    private typealias IOServiceMatchingFunc = @convention(c) (UnsafePointer<CChar>) -> CFMutableDictionary?
-    private typealias IOServiceGetMatchingServiceFunc = @convention(c) (mach_port_t, CFDictionary) -> mach_port_t
+    private typealias IOServiceMatchingFunc = @convention(c) (UnsafePointer<CChar>) -> Unmanaged<CFMutableDictionary>?
+    private typealias IOServiceGetMatchingServiceFunc = @convention(c) (mach_port_t, Unmanaged<CFMutableDictionary>) -> mach_port_t
     private typealias IORegistryEntryCreateCFPropertyFunc = @convention(c) (mach_port_t, CFString, CFAllocator?, UInt32) -> Unmanaged<CFTypeRef>?
     private typealias IOObjectReleaseFunc = @convention(c) (mach_port_t) -> kern_return_t
     private typealias MGCopyAnswerFunc = @convention(c) (CFString) -> Unmanaged<CFTypeRef>?
@@ -47,7 +47,7 @@ public enum DeviceHardwareProbe {
     private nonisolated static func computeHardwareIdentity() -> DeviceIdentityHardwareTelemetry {
         var result = DeviceIdentityHardwareTelemetry()
 
-        // 1. IOKit IOPlatformExpertDevice (Platform Serial, Board ID, Clock Frequency)
+        // 1. IOKit IOPlatformExpertDevice (Platform Serial, Board ID, Device-Tree Reference Clock Frequency)
         if let handle = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW) {
             defer { dlclose(handle) }
             if let symMatching = dlsym(handle, "IOServiceMatching"),
@@ -92,10 +92,10 @@ public enum DeviceHardwareProbe {
                             let val = prop.takeRetainedValue()
                             if CFGetTypeID(val) == CFDataGetTypeID(), let data = val as? Data {
                                 if data.count == 4 {
-                                    let hz = data.withUnsafeBytes { $0.load(as: UInt32.self) }
+                                    let hz = data.withUnsafeBytes { $0.loadUnaligned(as: UInt32.self) }
                                     result.clockFrequencyHz = UInt64(hz)
                                 } else if data.count == 8 {
-                                    let hz = data.withUnsafeBytes { $0.load(as: UInt64.self) }
+                                    let hz = data.withUnsafeBytes { $0.loadUnaligned(as: UInt64.self) }
                                     result.clockFrequencyHz = hz
                                 }
                             } else if let num = val as? NSNumber {
@@ -197,46 +197,57 @@ public enum DeviceHardwareProbe {
             result.l2Mb = Int(l2 / (1024 * 1024))
         }
 
-        // 4. Parse Real Sales Type & Region from Model Number (e.g. "MLTE3CH/A")
+        // 4. Parse Real Sales Type & Region from Model Number / Region Code (e.g. "MLTE3CH/A")
         if let model = result.modelNumber, !model.isEmpty {
-            let firstChar = model.prefix(1).uppercased()
-            let (typeZh, typeEn, typeHant): (String, String, String) = {
-                switch firstChar {
-                case "M": return ("零售机", "Retail", "零售機")
-                case "N": return ("官换机", "Replacement", "官換機")
-                case "F": return ("官翻机", "Refurbished", "官翻機")
-                case "P": return ("定制机", "Custom", "客製機")
-                case "3": return ("展示机", "Demo", "展示機")
-                default: return ("零售机", "Retail", "零售機")
-                }
-            }()
-
-            let (regionZh, regionEn, regionHant): (String, String, String) = {
-                if model.contains("CH/A") || model.hasSuffix("CH") { return ("国行", "CN", "國行") }
-                if model.contains("LL/A") || model.hasSuffix("LL") { return ("美版", "US", "美版") }
-                if model.contains("ZA/A") || model.hasSuffix("ZA") { return ("港澳", "HK/MO", "港澳") }
-                if model.contains("ZP/A") || model.hasSuffix("ZP") { return ("新加坡", "SG", "新加坡") }
-                if model.contains("J/A") || model.hasSuffix("J") { return ("日版", "JP", "日版") }
-                if model.contains("KH/A") || model.hasSuffix("KH") { return ("韩版", "KR", "韓版") }
-                if model.contains("B/A") || model.hasSuffix("B") { return ("英版", "UK", "英版") }
-                if model.contains("ZD/A") || model.hasSuffix("ZD") { return ("欧版", "EU", "歐版") }
-                if model.contains("TA/A") || model.hasSuffix("TA") { return ("台版", "TW", "台版") }
-                if model.contains("C/A") || model.hasSuffix("C") { return ("加版", "CA", "加版") }
-                if model.contains("X/A") || model.hasSuffix("X") { return ("澳版", "AU", "澳版") }
-                return ("", "", "")
-            }()
+            let (typeZh, typeEn, typeHant, prefixChar) = Self.parseSalesType(model: model)
+            let regionSource = result.regionCode ?? model
+            let (regionZh, regionEn, regionHant) = Self.parseRegionLabels(from: regionSource)
 
             if !regionZh.isEmpty {
-                result.salesTypeZh = "\(regionZh) \(typeZh) (\(firstChar))"
-                result.salesTypeEn = "\(typeEn) (\(regionEn)) (\(firstChar))"
-                result.salesTypeHant = "\(regionHant) \(typeHant) (\(firstChar))"
+                result.salesTypeZh = "\(regionZh) \(typeZh) (\(prefixChar))"
+                result.salesTypeEn = "\(typeEn) (\(regionEn)) (\(prefixChar))"
+                result.salesTypeHant = "\(regionHant) \(typeHant) (\(prefixChar))"
             } else {
-                result.salesTypeZh = "\(typeZh) (\(firstChar))"
-                result.salesTypeEn = "\(typeEn) (\(firstChar))"
-                result.salesTypeHant = "\(typeHant) (\(firstChar))"
+                result.salesTypeZh = "\(typeZh) (\(prefixChar))"
+                result.salesTypeEn = "\(typeEn) (\(prefixChar))"
+                result.salesTypeHant = "\(typeHant) (\(prefixChar))"
             }
         }
 
         return result
+    }
+
+    internal nonisolated static func parseSalesType(model: String) -> (zh: String, en: String, hant: String, prefix: String) {
+        let firstChar = model.prefix(1).uppercased()
+        switch firstChar {
+        case "M": return ("零售机", "Retail", "零售機", firstChar)
+        case "N": return ("官换机", "Replacement", "官換機", firstChar)
+        case "F": return ("官翻机", "Refurbished", "官翻機", firstChar)
+        case "P": return ("定制机", "Custom", "客製機", firstChar)
+        case "3": return ("展示机", "Demo", "展示機", firstChar)
+        default: return ("零售机", "Retail", "零售機", firstChar)
+        }
+    }
+
+    internal nonisolated static func parseRegionLabels(from codeOrModel: String) -> (zh: String, en: String, hant: String) {
+        let upper = codeOrModel.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let beforeSlash = upper.split(separator: "/").first.map(String.init) ?? upper
+        // Extract trailing alphabetic region token (e.g. "MLTE3CH/A" -> "CH", "MF840AB/A" -> "AB")
+        let tokenChars = beforeSlash.reversed().prefix(while: { $0.isLetter }).reversed()
+        let regionToken = String(tokenChars)
+        switch regionToken {
+        case "CH": return ("国行", "CN", "國行")
+        case "LL": return ("美版", "US", "美版")
+        case "ZA": return ("港澳", "HK/MO", "港澳")
+        case "ZP": return ("新加坡/港澳", "SG/HK", "新加坡/港澳")
+        case "J": return ("日版", "JP", "日版")
+        case "KH": return ("韩版", "KR", "韓版")
+        case "B": return ("英版", "UK", "英版")
+        case "ZD": return ("欧版", "EU", "歐版")
+        case "TA": return ("台版", "TW", "台版")
+        case "C": return ("加版", "CA", "加版")
+        case "X": return ("澳版", "AU", "澳版")
+        default: return ("", "", "")
+        }
     }
 }

@@ -14,9 +14,6 @@ struct WaterEjectorDetailView: View {
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
 
-    // MARK: - State
-    @State private var wavePhase: CGFloat = 0.0
-
     // MARK: - Body
     var body: some View {
         VStack(spacing: SpacingTheme.cardStack) {
@@ -54,11 +51,12 @@ struct WaterEjectorDetailView: View {
     // MARK: - Mode Switcher Bar
     @ViewBuilder
     private var modeSelectorBar: some View {
-        Picker("", selection: $tools.waterEjector.selectedMode) {
+        Picker(L10n.Tools.waterEjectMode, selection: $tools.waterEjector.selectedMode) {
             Text(L10n.Tools.deepEject165).tag(WaterEjectorMode.deep165Hz)
             Text(L10n.Tools.dustClear440).tag(WaterEjectorMode.dustClear440Hz)
         }
         .pickerStyle(.segmented)
+        .labelsHidden()
         .disabled(tools.waterEjector.isRunning)
     }
 
@@ -66,7 +64,8 @@ struct WaterEjectorDetailView: View {
     @ViewBuilder
     private func acousticPulsingRing(size: CGFloat) -> some View {
         let isRunning = tools.waterEjector.isRunning
-        let activeColor = isRunning ? Color.cyan : appState.accentColor
+        let activeColor = isRunning ? Theme.readableCyan(for: colorScheme) : appState.accentColor
+        let safeProgress = tools.waterEjector.progress.isFinite ? min(1.0, max(0.0, tools.waterEjector.progress)) : 0.0
 
         ZStack {
             // Soft Background Disc strictly inside the circle
@@ -81,7 +80,7 @@ struct WaterEjectorDetailView: View {
 
             // Active Progress Trim on the Ring
             Circle()
-                .trim(from: 0.0, to: CGFloat(tools.waterEjector.progress))
+                .trim(from: 0.0, to: CGFloat(safeProgress))
                 .stroke(
                     AngularGradient(
                         colors: [activeColor.opacity(0.4), activeColor],
@@ -91,7 +90,7 @@ struct WaterEjectorDetailView: View {
                 )
                 .rotationEffect(.degrees(-90))
                 .frame(width: size, height: size)
-                .animation(.linear(duration: 0.1), value: tools.waterEjector.progress)
+                .animation(.linear(duration: 0.1), value: safeProgress)
 
             // Center Content (Strictly inside the ring)
             VStack(spacing: SpacingTheme.tight) {
@@ -166,7 +165,7 @@ struct WaterEjectorDetailView: View {
                 Text(isRunning ? L10n.Tools.stopEject : L10n.Tools.startEject)
                     .font(Typography.headlineValue)
             }
-            .foregroundStyle(Color.white)
+            .foregroundStyle(isRunning ? Color.white : Theme.contrastingForeground(for: appState.accentColor))
             .frame(maxWidth: .infinity)
             .frame(height: 50)
             .background(

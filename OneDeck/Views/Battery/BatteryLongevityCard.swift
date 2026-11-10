@@ -19,6 +19,7 @@ struct BatteryLongevityCard: View {
 
     // MARK: - State
     @State private var showCopiedToast: Bool = false
+    @State private var toastDismissTask: Task<Void, Never>?
 
     // MARK: - Static Apple Standard Specification Curve (500 cycles -> 80%)
     private static let appleStandardCurve: [DegradationPoint] = [
@@ -120,8 +121,13 @@ struct BatteryLongevityCard: View {
                 )
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(showCopiedToast ? L10n.Battery.reportCopied : L10n.Battery.exportReportButton)
         }
         .bentoCard(accent: appState.accentColor)
+        .onDisappear {
+            toastDismissTask?.cancel()
+            toastDismissTask = nil
+        }
     }
 
     // MARK: - Degradation Curve Section
@@ -211,7 +217,7 @@ struct BatteryLongevityCard: View {
             let specHealthAtCurrent: Double = max(60.0, 100.0 - (currentCycle / 500.0) * 20.0)
             let delta: Double = battery.healthPercentDisplay - specHealthAtCurrent
             let isPositive: Bool = delta >= 0
-            let badgeColor: Color = isPositive ? appState.accentColor : Color.yellow
+            let badgeColor: Color = isPositive ? appState.accentColor : Theme.readableYellow(for: colorScheme)
             let deltaFormatted = String(format: "%.1f%%", delta)
             let deltaText: String = isPositive ? "\(L10n.Battery.baselineAbove) +\(deltaFormatted)" : "\(L10n.Battery.baselineBelow) \(deltaFormatted)"
 
@@ -256,8 +262,8 @@ struct BatteryLongevityCard: View {
 
     private var xAxisTicks: [Double] {
         let maxDomain = maxCycleDomain
-        if maxDomain <= 600 { return [0, 200, 400, 600] }
-        if maxDomain <= 800 { return [0, 250, 500, 750] }
+        if maxDomain <= 650 { return [0, 200, 400, 600] }
+        if maxDomain <= 850 { return [0, 250, 500, 750] }
         return [0, maxDomain * 0.33, maxDomain * 0.66, maxDomain].map { round($0 / 50.0) * 50.0 }
     }
 
@@ -340,7 +346,7 @@ struct BatteryLongevityCard: View {
         }
         let health = battery.healthPercentDisplay
         if health >= 85 { return appState.accentColor }
-        if health >= 80 { return .yellow }
+        if health >= 80 { return Theme.readableYellow(for: colorScheme) }
         return .orange
     }
 
@@ -379,16 +385,24 @@ struct BatteryLongevityCard: View {
         }
     }
 
+    private static let reportDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        return formatter
+    }()
+
     // MARK: - Export Action
     private func exportDiagnosticReport() {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        let nowString = formatter.string(from: Date())
+        let nowString = Self.reportDateFormatter.string(from: Date())
 
         let cellsFormatted = battery.cellVoltages.isEmpty ? L10n.Battery.singleCell : battery.cellVoltages.map { "\($0) mV" }.joined(separator: " · ")
         let dataSource = battery.hasImportedBMS
             ? L10n.Battery.sourceBmsLog
             : (battery.isHardwareCycleDirect ? L10n.Battery.sourceHardwareDirect : L10n.Battery.sourceModelEstimate)
+        let remainingEnergySummary = battery.isBatteryLevelAvailable
+            ? "\(battery.batteryLevelPercent)% (\(battery.currentRemainingMah) mAh)"
+            : L10n.Battery.unavailableReading
 
         let report = """
         ========================================
@@ -398,16 +412,16 @@ struct BatteryLongevityCard: View {
         - \(L10n.Overview.deviceSerial): \(system.serialNumber == "N/A" ? L10n.Overview.sandboxProtected : system.serialNumber)
         - \(L10n.Overview.modelNumberLabel): \(system.modelNumber == "N/A" ? system.machineIdentifier : system.modelNumber)
         - \(L10n.Battery.reportChip): \(system.chipNameClean)
-        - \(L10n.Battery.batterySerial): \(battery.batterySerialNumber ?? "N/A")
-        - \(L10n.Battery.manufactureDate): \(battery.batteryManufactureDate ?? "N/A")
-        - \(L10n.Battery.batteryChemistry): \(battery.batteryChemistry ?? "N/A")
+        - \(L10n.Battery.batterySerial): \(battery.batterySerialNumber ?? L10n.Common.notAvailable)
+        - \(L10n.Battery.manufactureDate): \(battery.batteryManufactureDate ?? L10n.Common.notAvailable)
+        - \(L10n.Battery.batteryChemistry): \(battery.batteryChemistry ?? L10n.Common.notAvailable)
         - \(L10n.Battery.cellVoltagesLabel): \(cellsFormatted)
         - \(L10n.Battery.reportFactoryDesignCap): \(battery.officialDesignCapacityMah) mAh
         - \(L10n.Battery.reportEffectiveDesignCap): \(battery.effectiveDesignCapacityMah) mAh
         - \(L10n.Battery.reportActualMaxCap): \(battery.hasRealTelemetry ? "\(battery.actualMaxCapacityMahDisplay) mAh" : "-- (\(L10n.Battery.pendingImport))")
         - \(L10n.Battery.reportCycleCount): \(battery.hasRealTelemetry ? "\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit)" : "-- (\(L10n.Battery.pendingImport))")
         - \(L10n.Battery.reportHealth): \(battery.hasRealTelemetry ? String(format: "%.1f%%", battery.healthPercentDisplay) : "-- (\(L10n.Battery.pendingImport))")
-        - \(L10n.Battery.reportRemainingEnergy): \(battery.batteryLevelPercent)% (\(battery.currentRemainingMah) mAh)
+        - \(L10n.Battery.reportRemainingEnergy): \(remainingEnergySummary)
         - \(L10n.Battery.reportCellTemp): \(String(format: "%.1f °C", battery.batteryTemperature))
         - \(L10n.Battery.reportPowerMode): \(battery.chargingProtocolName) (\(String(format: "%.1f W", abs(battery.liveWattage))))
         - \(L10n.Battery.reportThermalState): \(system.thermalStateText)
@@ -423,7 +437,10 @@ struct BatteryLongevityCard: View {
             showCopiedToast = true
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+        toastDismissTask?.cancel()
+        toastDismissTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2.5))
+            guard !Task.isCancelled else { return }
             withAnimation(.easeInOut(duration: 0.25)) {
                 showCopiedToast = false
             }
@@ -493,34 +510,36 @@ private struct BatteryAgingCurveChart: View {
                 }
 
                 // Current Point Pin (Glow Halo & PointMark)
-                PointMark(
-                    x: .value(L10n.Battery.degradationCycleAxis, Double(battery.cycleCountDisplay)),
-                    y: .value(L10n.Battery.degradationHealthAxis, battery.healthPercentDisplay)
-                )
-                .symbolSize(36)
-                .foregroundStyle(appState.accentColor)
-                .annotation(
-                    position: battery.healthPercentDisplay >= 92.0 ? .bottom : .top,
-                    alignment: .center,
-                    spacing: SpacingTheme.standard
-                ) {
-                    HStack(spacing: SpacingTheme.tight) {
-                        Text("\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit)")
-                            .font(Typography.microAxis)
-                        Text("•")
-                            .font(Typography.microAxis)
-                        Text(String(format: "%.1f%%", battery.healthPercentDisplay))
-                            .font(Typography.microAxis)
-                    }
-                    .padding(.horizontal, SpacingTheme.compact)
-                    .padding(.vertical, SpacingTheme.micro)
-                    .background(colorScheme == .dark ? Color(white: 0.10).opacity(0.92) : Color.white.opacity(0.95))
-                    .foregroundStyle(appState.accentColor)
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(appState.accentColor.opacity(0.4), lineWidth: 0.8)
+                if battery.healthPercentDisplay.isFinite {
+                    PointMark(
+                        x: .value(L10n.Battery.degradationCycleAxis, Double(battery.cycleCountDisplay)),
+                        y: .value(L10n.Battery.degradationHealthAxis, battery.healthPercentDisplay)
                     )
+                    .symbolSize(36)
+                    .foregroundStyle(appState.accentColor)
+                    .annotation(
+                        position: battery.healthPercentDisplay >= 92.0 ? .bottom : .top,
+                        alignment: .center,
+                        spacing: SpacingTheme.standard
+                    ) {
+                        HStack(spacing: SpacingTheme.tight) {
+                            Text("\(battery.cycleCountDisplay) \(L10n.Battery.cyclesUnit)")
+                                .font(Typography.microAxis)
+                            Text("•")
+                                .font(Typography.microAxis)
+                            Text(String(format: "%.1f%%", battery.healthPercentDisplay))
+                                .font(Typography.microAxis)
+                        }
+                        .padding(.horizontal, SpacingTheme.compact)
+                        .padding(.vertical, SpacingTheme.micro)
+                        .background(colorScheme == .dark ? Color(white: 0.10).opacity(0.92) : Color.white.opacity(0.95))
+                        .foregroundStyle(appState.accentColor)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(appState.accentColor.opacity(0.4), lineWidth: 0.8)
+                        )
+                    }
                 }
             }
         }
@@ -614,6 +633,9 @@ private struct LongevityTile: View {
         .padding(.vertical, SpacingTheme.standard)
         .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue("\(value)\(unit.isEmpty ? "" : " \(unit)"), \(subtitle)")
     }
 }
 

@@ -12,17 +12,18 @@ struct SettingsSigningDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Bindable private var appState = AppState.shared
-    private var probe = ProvisioningHardwareProbe.shared
+    @Bindable private var settings = SettingsViewModel.shared
 
     @State private var copiedKey: String? = nil
+    @State private var copyToastTask: Task<Void, Never>?
 
     private var statusColor: Color {
-        if probe.signingType == .trollStore {
+        if settings.isTrollStoreSigning {
             return appState.accentColor
         }
-        if probe.isExpired {
+        if settings.isExpired {
             return .red
-        } else if probe.isExpiringSoon {
+        } else if settings.isExpiringSoon {
             return .orange
         } else {
             return appState.accentColor
@@ -54,6 +55,10 @@ struct SettingsSigningDetailSheet: View {
             .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Settings.certSheetTitle)
             .navigationBarTitleDisplayMode(.inline)
+            .onDisappear {
+                copyToastTask?.cancel()
+                copyToastTask = nil
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(L10n.Common.done) {
@@ -70,7 +75,7 @@ struct SettingsSigningDetailSheet: View {
     @ViewBuilder
     private var heroCard: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.cardInternal) {
-            BentoSectionHeader(title: L10n.Settings.certSectionOverview, icon: probe.signingType.iconName)
+            BentoSectionHeader(title: L10n.Settings.certSectionOverview, icon: settings.signingIconName)
 
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: SpacingTheme.tight) {
@@ -78,16 +83,16 @@ struct SettingsSigningDetailSheet: View {
                         .font(Typography.caption)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-                    if probe.signingType == .trollStore {
+                    if settings.isTrollStoreSigning {
                         Text(L10n.Settings.certPermanent)
                             .font(Typography.title1)
                             .foregroundStyle(appState.accentColor)
-                    } else if probe.isExpired {
+                    } else if settings.isExpired {
                         Text(L10n.Settings.certExpired)
                             .font(Typography.title1)
                             .foregroundStyle(Color.red)
-                    } else if probe.hasProvisionProfile {
-                        Text(L10n.Settings.certDaysHours(days: probe.remainingDays, hours: probe.remainingHours))
+                    } else if settings.hasProvisionProfile {
+                        Text(L10n.Settings.certDaysHours(days: settings.remainingDays, hours: settings.remainingHours))
                             .font(Typography.title1)
                             .foregroundStyle(statusColor)
                     } else {
@@ -105,7 +110,7 @@ struct SettingsSigningDetailSheet: View {
                         .fill(statusColor)
                         .frame(width: 8, height: 8)
 
-                    Text(probe.statusText)
+                    Text(settings.statusText)
                         .font(Typography.badgeTagMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 }
@@ -116,15 +121,15 @@ struct SettingsSigningDetailSheet: View {
             }
 
             // Visual Lifecycle Progress Bar
-            if probe.hasProvisionProfile {
+            if settings.hasProvisionProfile {
                 VStack(alignment: .leading, spacing: SpacingTheme.compact) {
-                    let safeRatio = probe.progressRatio.isFinite ? min(1.0, max(0.0, probe.progressRatio)) : 0.0
+                    let safeRatio = settings.progressRatio.isFinite ? min(1.0, max(0.0, settings.progressRatio)) : 0.0
                     ProgressView(value: safeRatio)
                         .tint(statusColor)
                         .scaleEffect(x: 1, y: 1.4, anchor: .center)
 
                     HStack {
-                        Text("\(L10n.Settings.creationDateLabel): \(probe.creationDate?.formatted(date: .numeric, time: .omitted) ?? "N/A")")
+                        Text("\(L10n.Settings.creationDateLabel): \(settings.creationDate?.formatted(date: .numeric, time: .omitted) ?? L10n.Common.notAvailable)")
                             .font(Typography.microAxis)
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
                             .lineLimit(1)
@@ -132,7 +137,7 @@ struct SettingsSigningDetailSheet: View {
 
                         Spacer()
 
-                        Text("\(L10n.Settings.expirationDateLabel): \(probe.expirationDate?.formatted(date: .numeric, time: .omitted) ?? L10n.Settings.permanentLabel)")
+                        Text("\(L10n.Settings.expirationDateLabel): \(settings.expirationDate?.formatted(date: .numeric, time: .omitted) ?? L10n.Settings.permanentLabel)")
                             .font(Typography.microAxis)
                             .foregroundStyle(Theme.textTertiary(for: colorScheme))
                             .lineLimit(1)
@@ -154,19 +159,19 @@ struct SettingsSigningDetailSheet: View {
             VStack(spacing: SpacingTheme.standard) {
                 blockCopyableRow(
                     title: L10n.Settings.certSubject,
-                    value: probe.certificateSubject.isEmpty ? "Apple OS Software Provisioning" : probe.certificateSubject,
+                    value: settings.certificateSubject.isEmpty ? "Apple OS Software Provisioning" : settings.certificateSubject,
                     key: "subject"
                 )
 
-                if !probe.certificateSha1.isEmpty {
-                    blockCopyableRow(title: L10n.Settings.certSha1Fingerprint, value: probe.certificateSha1, key: "sha1", isMono: true)
+                if !settings.certificateSha1.isEmpty {
+                    blockCopyableRow(title: L10n.Settings.certSha1Fingerprint, value: settings.certificateSha1, key: "sha1", isMono: true)
                 }
 
-                if !probe.certificateSha256.isEmpty {
-                    blockCopyableRow(title: L10n.Settings.certSha256Fingerprint, value: probe.certificateSha256, key: "sha256", isMono: true)
+                if !settings.certificateSha256.isEmpty {
+                    blockCopyableRow(title: L10n.Settings.certSha256Fingerprint, value: settings.certificateSha256, key: "sha256", isMono: true)
                 }
 
-                if let creation = probe.creationDate, let expiration = probe.expirationDate {
+                if let creation = settings.creationDate, let expiration = settings.expirationDate {
                     let durationDays = Int(expiration.timeIntervalSince(creation) / 86400.0)
                     detailRow(title: L10n.Settings.certValiditySpan, value: L10n.Settings.certValiditySpanDays(days: durationDays), icon: "calendar.badge.clock")
                 }
@@ -184,31 +189,35 @@ struct SettingsSigningDetailSheet: View {
             VStack(spacing: SpacingTheme.standard) {
                 blockCopyableRow(
                     title: L10n.Settings.certProfileName,
-                    value: probe.profileName.isEmpty ? L10n.Settings.certDefaultProfileName : probe.profileName,
+                    value: settings.profileName.isEmpty ? L10n.Settings.certDefaultProfileName : settings.profileName,
                     key: "profileName"
                 )
 
-                if !probe.profileUUID.isEmpty {
-                    blockCopyableRow(title: L10n.Settings.certProfileUUID, value: probe.profileUUID, key: "uuid", isMono: true)
+                if !settings.profileUUID.isEmpty {
+                    blockCopyableRow(title: L10n.Settings.certProfileUUID, value: settings.profileUUID, key: "uuid", isMono: true)
                 }
 
                 // Scope
                 let scopeText: String = {
-                    if probe.isTrollStore {
+                    if settings.isTrollStore {
                         return L10n.Settings.certScopeTrollStore
-                    } else if probe.provisionsAllDevices {
+                    } else if settings.provisionsAllDevices {
                         return L10n.Settings.certScopeEnterprise
-                    } else if probe.provisionedDevicesCount > 0 {
-                        return L10n.Settings.certScopeDevices(count: probe.provisionedDevicesCount)
+                    } else if settings.provisionedDevicesCount > 0 {
+                        return L10n.Settings.certScopeDevices(count: settings.provisionedDevicesCount)
                     } else {
                         return L10n.Settings.certScopeSandbox
                     }
                 }()
-                detailRow(title: L10n.Settings.certDeviceCount, value: scopeText, icon: "iphone.gen3")
+                detailRow(
+                    title: L10n.Settings.certDeviceCount,
+                    value: scopeText,
+                    icon: UIDevice.current.userInterfaceIdiom == .pad ? "ipad.gen2" : "iphone.gen3"
+                )
 
                 detailRow(
                     title: L10n.Settings.certDebuggable,
-                    value: probe.isTaskAllowEnabled ? L10n.Settings.certDebuggableEnabled : L10n.Settings.certDebuggableStripped,
+                    value: settings.isTaskAllowEnabled ? L10n.Settings.certDebuggableEnabled : L10n.Settings.certDebuggableStripped,
                     icon: "ant.fill"
                 )
             }
@@ -223,13 +232,13 @@ struct SettingsSigningDetailSheet: View {
             BentoSectionHeader(title: L10n.Settings.certSectionEntitlements, icon: "key.fill")
 
             VStack(spacing: SpacingTheme.standard) {
-                blockCopyableRow(title: L10n.Settings.certAppId, value: probe.appIdentifier, key: "appId", isMono: true)
+                blockCopyableRow(title: L10n.Settings.certAppId, value: settings.appIdentifier, key: "appId", isMono: true)
                 detailRow(title: L10n.Settings.certSandboxMode, value: L10n.Settings.certSandboxHardwareDesc, icon: "shippingbox.fill")
 
-                if !probe.keychainAccessGroups.isEmpty {
+                if !settings.keychainAccessGroups.isEmpty {
                     blockCopyableRow(
                         title: L10n.Settings.certKeychainDomain,
-                        value: probe.keychainAccessGroups.first ?? "Default",
+                        value: settings.keychainAccessGroups.first ?? "Default",
                         key: "keychain",
                         isMono: true
                     )
@@ -353,7 +362,10 @@ struct SettingsSigningDetailSheet: View {
                     withAnimation(.easeInOut(duration: 0.15)) {
                         copiedKey = key
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                    copyToastTask?.cancel()
+                    copyToastTask = Task { @MainActor in
+                        try? await Task.sleep(for: .seconds(1.8))
+                        guard !Task.isCancelled else { return }
                         withAnimation(.easeInOut(duration: 0.15)) {
                             if copiedKey == key {
                                 copiedKey = nil
@@ -383,6 +395,7 @@ struct SettingsSigningDetailSheet: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("\(L10n.Common.copy) \(title)")
             }
 
             Text(displayValue)

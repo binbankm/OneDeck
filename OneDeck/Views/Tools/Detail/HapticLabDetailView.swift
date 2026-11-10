@@ -6,7 +6,6 @@
 //  Taptic Engine actuator waveforms and haptic diagnostics workspace.
 //
 
-import CoreHaptics
 import SwiftUI
 import UIKit
 
@@ -15,10 +14,6 @@ struct HapticLabDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
-
-    private var isHapticsAvailable: Bool {
-        CHHapticEngine.capabilitiesForHardware().supportsHaptics
-    }
 
     // MARK: - State
     @State private var lastFeedbackName: String = ""
@@ -48,7 +43,7 @@ struct HapticLabDetailView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: SpacingTheme.cardStack) {
-                if !isHapticsAvailable {
+                if !tools.isHapticHardwareAvailable {
                     hardwareUnavailableBanner
                 }
 
@@ -127,6 +122,8 @@ struct HapticLabDetailView: View {
                         Text(item.title)
                             .font(Typography.badgeTagMonoMedium)
                             .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, SpacingTheme.standard)
                             .background(Theme.cardBackground(for: colorScheme).opacity(0.6))
@@ -166,6 +163,8 @@ struct HapticLabDetailView: View {
                                 .font(IconTheme.badgeInline)
                             Text(item.title)
                                 .font(Typography.captionBold)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
                         }
                         .foregroundStyle(notificationColor(for: item.type))
                         .frame(maxWidth: .infinity)
@@ -213,6 +212,7 @@ struct HapticLabDetailView: View {
                 ), in: 0 ... 100, step: 1)
                     .tint(appState.accentColor)
                     .padding(.horizontal, SpacingTheme.standard)
+                    .accessibilityLabel(L10n.Tools.selectionFeedback)
             }
         }
         .bentoCard(accent: appState.accentColor)

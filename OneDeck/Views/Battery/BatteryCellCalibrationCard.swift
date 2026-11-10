@@ -90,21 +90,25 @@ struct BatteryCellCalibrationCard: View {
                 HStack(spacing: SpacingTheme.rowStandard) {
                     Button {
                         Haptics.tick()
-                        battery.setCustomBattery(enabled: true, customMah: max(1000, battery.customCapacityMah - 50))
+                        battery.setCustomBattery(enabled: true, customMah: max(500, battery.customCapacityMah - 50))
                     } label: {
                         Image(systemName: "minus.circle.fill")
                             .font(IconTheme.launcherIcon)
                             .foregroundStyle(appState.accentColor)
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("-50 mAh")
 
                     Button {
                         Haptics.tick()
-                        battery.setCustomBattery(enabled: true, customMah: min(12000, battery.customCapacityMah + 50))
+                        battery.setCustomBattery(enabled: true, customMah: min(20000, battery.customCapacityMah + 50))
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(IconTheme.launcherIcon)
                             .foregroundStyle(appState.accentColor)
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("+50 mAh")
                 }
             }
             .padding(.horizontal, SpacingTheme.row)
@@ -140,7 +144,7 @@ struct BatteryCellCalibrationCard: View {
             )
             .foregroundStyle(
                 battery.customCapacityMah == mah
-                    ? Color.black
+                    ? Theme.contrastingForeground(for: appState.accentColor)
                     : Theme.textSecondary(for: colorScheme)
             )
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))

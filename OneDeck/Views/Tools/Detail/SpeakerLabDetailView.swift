@@ -16,8 +16,6 @@ struct SpeakerLabDetailView: View {
 
     // MARK: - State
     @State private var activeFrequency: Double = 1000.0
-    @State private var isPlaying: Bool = false
-    @State private var activeChannel: SpeakerChannel = .stereo
 
     // Frequency Presets
     private var testFrequencies: [(title: String, freq: Double)] {
@@ -55,7 +53,7 @@ struct SpeakerLabDetailView: View {
             tools.enterDetailView(tool: .speakerLab)
         }
         .onDisappear {
-            stopAudio()
+            tools.stopSpeakerTest()
             tools.leaveDetailView()
         }
     }
@@ -63,6 +61,9 @@ struct SpeakerLabDetailView: View {
     // MARK: - Visual Speaker Diagram
     @ViewBuilder
     private var speakerDiagramCard: some View {
+        let isPlaying = tools.isSpeakerTesting
+        let activeChannel = tools.speakerChannel
+
         VStack(spacing: SpacingTheme.standard) {
             HStack(spacing: SpacingTheme.cardStack) {
                 // Left / Top Speaker Indicator
@@ -120,15 +121,14 @@ struct SpeakerLabDetailView: View {
 
     @ViewBuilder
     private func channelButton(title: String, channel: SpeakerChannel) -> some View {
-        let isSelected = activeChannel == channel && isPlaying
+        let isSelected = tools.speakerChannel == channel && tools.isSpeakerTesting
 
         Button {
-            activeChannel = channel
-            playAudio()
+            tools.playSpeakerTest(channel: channel, frequency: activeFrequency)
         } label: {
             Text(title)
                 .font(Typography.badgeTagMono)
-                .foregroundStyle(isSelected ? Color.white : Theme.textPrimary(for: colorScheme))
+                .foregroundStyle(isSelected ? Theme.contrastingForeground(for: appState.accentColor) : Theme.textPrimary(for: colorScheme))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, SpacingTheme.rowStandard)
                 .background(isSelected ? appState.accentColor : Theme.cardBackground(for: colorScheme).opacity(0.6))
@@ -155,8 +155,8 @@ struct SpeakerLabDetailView: View {
                 ForEach(testFrequencies, id: \.title) { item in
                     Button {
                         activeFrequency = item.freq
-                        if isPlaying {
-                            playAudio()
+                        if tools.isSpeakerTesting {
+                            tools.playSpeakerTest(channel: tools.speakerChannel, frequency: activeFrequency)
                         }
                     } label: {
                         HStack {
@@ -190,11 +190,13 @@ struct SpeakerLabDetailView: View {
     // MARK: - Primary Toggle Button
     @ViewBuilder
     private var primaryToggleButton: some View {
+        let isPlaying = tools.isSpeakerTesting
+
         Button {
             if isPlaying {
-                stopAudio()
+                tools.stopSpeakerTest()
             } else {
-                playAudio()
+                tools.playSpeakerTest(channel: tools.speakerChannel, frequency: activeFrequency)
             }
         } label: {
             HStack(spacing: SpacingTheme.standard) {
@@ -203,7 +205,7 @@ struct SpeakerLabDetailView: View {
                 Text(isPlaying ? L10n.Tools.stopTone : L10n.Tools.playChannelTest)
                     .font(Typography.headlineValue)
             }
-            .foregroundStyle(Color.white)
+            .foregroundStyle(isPlaying ? Color.white : Theme.contrastingForeground(for: appState.accentColor))
             .frame(maxWidth: .infinity)
             .frame(height: 50)
             .background(
@@ -212,17 +214,6 @@ struct SpeakerLabDetailView: View {
             )
         }
         .buttonStyle(.plain)
-    }
-
-    // MARK: - Audio Intent Helpers (MVVM Delegated)
-    private func playAudio() {
-        isPlaying = true
-        tools.playSpeakerTest(channel: activeChannel, frequency: activeFrequency)
-    }
-
-    private func stopAudio() {
-        isPlaying = false
-        tools.stopSpeakerTest()
     }
 }
 

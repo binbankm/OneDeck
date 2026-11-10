@@ -19,6 +19,7 @@ public final class TorchHardwareProbe {
 
     private var strobeTask: Task<Void, Never>?
     private var morseTask: Task<Void, Never>?
+    private var activeSessionID: UInt64 = 0
 
     private(set) var isHardwareTorchAvailable: Bool = false
 
@@ -29,18 +30,19 @@ public final class TorchHardwareProbe {
     // MARK: - 1. Continuous Linear Micro-Brightness
     public func setTorch(level: Float) {
         stopSpecialModes()
+        activeSessionID &+= 1
         guard let device, device.hasTorch else { return }
 
         let clamped = max(0.0, min(1.0, level))
 
         do {
             try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
             if clamped <= 0.001 {
                 device.torchMode = .off
             } else {
                 try device.setTorchModeOn(level: clamped)
             }
-            device.unlockForConfiguration()
         } catch {
             // Torch configuration lock error ignored
         }
@@ -48,12 +50,13 @@ public final class TorchHardwareProbe {
 
     public func turnOff() {
         stopSpecialModes()
+        activeSessionID &+= 1
         guard let device, device.hasTorch else { return }
 
         do {
             try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
             device.torchMode = .off
-            device.unlockForConfiguration()
         } catch {
             // Ignored
         }
@@ -62,18 +65,20 @@ public final class TorchHardwareProbe {
     // MARK: - 2. High-Frequency Strobe Tachometer
     public func startStrobe(frequencyHz: Double) {
         stopSpecialModes()
+        activeSessionID &+= 1
+        let sessionID = activeSessionID
         guard let device, device.hasTorch else { return }
 
         let clampedHz = max(0.5, min(30.0, frequencyHz))
         let halfPeriodMs = UInt64((1000.0 / clampedHz) / 2.0)
         let halfPeriodNanos = halfPeriodMs * 1_000_000
 
-        strobeTask = Task {
+        strobeTask = Task { [weak self] in
             while !Task.isCancelled {
                 do {
                     try device.lockForConfiguration()
+                    defer { device.unlockForConfiguration() }
                     try device.setTorchModeOn(level: 1.0)
-                    device.unlockForConfiguration()
                 } catch { break }
 
                 try? await Task.sleep(nanoseconds: halfPeriodNanos)
@@ -81,44 +86,55 @@ public final class TorchHardwareProbe {
 
                 do {
                     try device.lockForConfiguration()
+                    defer { device.unlockForConfiguration() }
                     device.torchMode = .off
-                    device.unlockForConfiguration()
                 } catch { break }
 
                 try? await Task.sleep(nanoseconds: halfPeriodNanos)
             }
 
-            // Ensure turned off when done
-            do {
-                try device.lockForConfiguration()
-                device.torchMode = .off
-                device.unlockForConfiguration()
-            } catch {}
+            if let self, self.activeSessionID == sessionID {
+                do {
+                    try device.lockForConfiguration()
+                    defer { device.unlockForConfiguration() }
+                    device.torchMode = .off
+                } catch {}
+            }
         }
     }
 
     // MARK: - 3. SOS & Morse Code Flasher
     public func startMorseCode(text: String, completion: (@Sendable () -> Void)? = nil) {
         stopSpecialModes()
-        guard let device, device.hasTorch else { return }
+        activeSessionID &+= 1
+        let sessionID = activeSessionID
+        guard let device, device.hasTorch else {
+            completion?()
+            return
+        }
 
-        let morsePattern = convertToMorse(text)
+        let morsePattern = Self.convertToMorse(text)
+        guard !morsePattern.isEmpty else {
+            completion?()
+            return
+        }
+
         let dotDurationNanos: UInt64 = 180_000_000 // 180ms per dot
         let dashDurationNanos: UInt64 = dotDurationNanos * 3
         let elementGapNanos: UInt64 = dotDurationNanos
         let letterGapNanos: UInt64 = dotDurationNanos * 3
         let wordGapNanos: UInt64 = dotDurationNanos * 7
 
-        morseTask = Task {
+        morseTask = Task { [weak self] in
             while !Task.isCancelled {
                 for char in morsePattern {
                     if Task.isCancelled { break }
 
                     if char == "." {
-                        try? await flashTorch(device: device, nanos: dotDurationNanos)
+                        try? await self?.flashTorch(device: device, nanos: dotDurationNanos)
                         try? await Task.sleep(nanoseconds: elementGapNanos)
                     } else if char == "-" {
-                        try? await flashTorch(device: device, nanos: dashDurationNanos)
+                        try? await self?.flashTorch(device: device, nanos: dashDurationNanos)
                         try? await Task.sleep(nanoseconds: elementGapNanos)
                     } else if char == " " {
                         try? await Task.sleep(nanoseconds: letterGapNanos)
@@ -126,10 +142,18 @@ public final class TorchHardwareProbe {
                         try? await Task.sleep(nanoseconds: wordGapNanos)
                     }
                 }
+                if Task.isCancelled { break }
                 // Pause between loops
                 try? await Task.sleep(nanoseconds: wordGapNanos)
             }
 
+            if let self, self.activeSessionID == sessionID {
+                do {
+                    try device.lockForConfiguration()
+                    defer { device.unlockForConfiguration() }
+                    device.torchMode = .off
+                } catch {}
+            }
             completion?()
         }
     }
@@ -137,15 +161,15 @@ public final class TorchHardwareProbe {
     private func flashTorch(device: AVCaptureDevice, nanos: UInt64) async throws {
         do {
             try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
             try device.setTorchModeOn(level: 1.0)
-            device.unlockForConfiguration()
         } catch { return }
 
         defer {
             do {
                 try device.lockForConfiguration()
+                defer { device.unlockForConfiguration() }
                 device.torchMode = .off
-                device.unlockForConfiguration()
             } catch {}
         }
 
@@ -153,6 +177,7 @@ public final class TorchHardwareProbe {
     }
 
     public func stopSpecialModes() {
+        activeSessionID &+= 1
         strobeTask?.cancel()
         strobeTask = nil
         morseTask?.cancel()
@@ -160,13 +185,13 @@ public final class TorchHardwareProbe {
         guard let device, device.hasTorch else { return }
         do {
             try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
             device.torchMode = .off
-            device.unlockForConfiguration()
         } catch {}
     }
 
     // MARK: - Morse Code Converter
-    private func convertToMorse(_ text: String) -> String {
+    internal nonisolated static func convertToMorse(_ text: String) -> String {
         let morseDict: [Character: String] = [
             "A": ".-", "B": "-...", "C": "-.-.", "D": "-..", "E": ".",
             "F": "..-.", "G": "--.", "H": "....", "I": "..", "J": ".---",

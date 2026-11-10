@@ -1,0 +1,9 @@
+"CFBundleDisplayName" = "OneDeck";
+"NSBluetoothAlwaysUsageDescription" = "OneDeck 需要存取藍牙以掃描周邊裝置訊號與尋物雷達";
+"NSBluetoothPeripheralUsageDescription" = "OneDeck 需要使用藍牙以掃描周邊裝置訊號與雷達遙測";
+"NSCameraUsageDescription" = "OneDeck 需要存取相機以進行脈搏波光電檢測、工業微距放大與環境照度檢測";
+"NSLocalNetworkUsageDescription" = "OneDeck 需要存取本機網路以探索區域網路 Bonjour/mDNS 服務裝置、探測閘道及發送 Wake-on-LAN 喚醒封包";
+"NSLocationWhenInUseUsageDescription" = "OneDeck 需要取得位置資訊以計算真北偏角與地理座標";
+"NSMicrophoneUsageDescription" = "OneDeck 需要存取麥克風以測量即時環境噪音分貝（Sound Pressure Level）";
+"NSMotionUsageDescription" = "OneDeck 需要存取動作感測器與氣壓計以提供水平儀傾角、海拔高度變化與微震遙測";
+

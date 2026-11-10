@@ -86,17 +86,21 @@ struct NetworkLatencyCard: View {
                     .background(appState.accentColor.opacity(0.1))
                     .clipShape(Circle())
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L10n.Network.refresh)
         }
     }
 
     @ViewBuilder
     private var modeToggleBar: some View {
-        Picker("", selection: $selectedMode) {
+        Picker(L10n.Network.latencyTitle, selection: $selectedMode) {
             ForEach(LatencyCardMode.allCases) { m in
                 Text(m.title).tag(m)
             }
         }
+        .labelsHidden()
         .pickerStyle(.segmented)
+        .accessibilityLabel(L10n.Network.latencyTitle)
     }
 
     // MARK: - Live Ping Section
@@ -106,8 +110,8 @@ struct NetworkLatencyCard: View {
             // Hero Ping Metric & Jitter / Loss HUD
             HStack(alignment: .lastTextBaseline, spacing: SpacingTheme.cardStack) {
                 HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.tight) {
-                    let safeLat = net.currentLatencyMs.isFinite ? max(1.0, net.currentLatencyMs) : 1.0
-                    Text(net.isConnected ? String(format: "%.0f", safeLat) : "--")
+                    let hasLatency = net.isConnected && net.currentLatencyMs.isFinite && net.currentLatencyMs > 0
+                    Text(hasLatency ? String(format: "%.0f", max(1.0, net.currentLatencyMs)) : "--")
                         .font(Typography.displayHero)
                         .monospacedDigit()
                         .foregroundStyle(qualityBadge.color)
@@ -154,8 +158,7 @@ struct NetworkLatencyCard: View {
                         let isSelected = (net.selectedTarget == target)
                         Button {
                             Haptics.selection()
-                            net.selectedTarget = target
-                            net.pingCurrentTarget()
+                            net.selectPingTarget(target)
                         } label: {
                             HStack(spacing: SpacingTheme.tight) {
                                 Circle()
@@ -181,20 +184,23 @@ struct NetworkLatencyCard: View {
                         }
                         .buttonStyle(.plain)
                         .fixedSize(horizontal: true, vertical: false)
+                        .accessibilityLabel(target.shortName)
+                        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
                     }
                 }
                 .padding(.horizontal, SpacingTheme.micro)
             }
 
             // Swift Charts Rolling Latency Waveform
+            let validLatency = net.latencyHistory.filter { $0.value.isFinite }
             VStack(alignment: .leading, spacing: SpacingTheme.compact) {
-                if net.latencyHistory.isEmpty {
+                if validLatency.isEmpty {
                     RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
                         .fill(Theme.cardBackground(for: colorScheme).opacity(0.3))
                         .frame(height: 110)
                 } else {
                     Chart {
-                        ForEach(net.latencyHistory) { pt in
+                        ForEach(validLatency) { pt in
                             AreaMark(
                                 x: .value("Time", pt.timestamp),
                                 y: .value("Latency", pt.value)
@@ -272,6 +278,7 @@ struct NetworkLatencyCard: View {
                     .background(appState.accentColor.opacity(0.12))
                     .clipShape(Capsule())
                 }
+                .buttonStyle(.plain)
                 .disabled(net.isBenchmarkingDns)
             }
 
@@ -320,7 +327,7 @@ private struct DnsBenchmarkNodeRow: View {
 
             Spacer()
 
-            if node.latencyMs == 0.0 {
+            if !node.latencyMs.isFinite || node.latencyMs == 0.0 {
                 Text(L10n.Network.pendingBenchmark)
                     .font(Typography.caption)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))

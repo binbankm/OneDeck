@@ -6,14 +6,31 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		9B2167073096DE39002A2B57 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9B2166A53096DE39002A2B57 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9B2166AC3096DE39002A2B57;
+			remoteInfo = OneDeck;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		9B2166AD3096DE39002A2B57 /* OneDeck.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OneDeck.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B2167013096DE39002A2B57 /* OneDeckTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OneDeckTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B21670C3096DE39002A2B57 /* OneDeck-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "OneDeck-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9B2166AF3096DE39002A2B57 /* OneDeck */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = OneDeck;
+			sourceTree = "<group>";
+		};
+		9B2167023096DE39002A2B57 /* OneDeckTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = OneDeckTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -26,13 +43,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9B2167043096DE39002A2B57 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		9B2166A43096DE39002A2B57 = {
 			isa = PBXGroup;
 			children = (
+				9B21670C3096DE39002A2B57 /* OneDeck-Info.plist */,
 				9B2166AF3096DE39002A2B57 /* OneDeck */,
+				9B2167023096DE39002A2B57 /* OneDeckTests */,
 				9B2166AE3096DE39002A2B57 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +67,7 @@
 			isa = PBXGroup;
 			children = (
 				9B2166AD3096DE39002A2B57 /* OneDeck.app */,
+				9B2167013096DE39002A2B57 /* OneDeckTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -70,6 +97,29 @@
 			productReference = 9B2166AD3096DE39002A2B57 /* OneDeck.app */;
 			productType = "com.apple.product-type.application";
 		};
+		9B2167063096DE39002A2B57 /* OneDeckTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9B2167093096DE3B002A2B57 /* Build configuration list for PBXNativeTarget "OneDeckTests" */;
+			buildPhases = (
+				9B2167033096DE39002A2B57 /* Sources */,
+				9B2167043096DE39002A2B57 /* Frameworks */,
+				9B2167053096DE39002A2B57 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9B2167083096DE39002A2B57 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				9B2167023096DE39002A2B57 /* OneDeckTests */,
+			);
+			name = OneDeckTests;
+			packageProductDependencies = (
+			);
+			productName = OneDeckTests;
+			productReference = 9B2167013096DE39002A2B57 /* OneDeckTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -83,6 +133,10 @@
 					9B2166AC3096DE39002A2B57 = {
 						CreatedOnToolsVersion = 26.3;
 					};
+					9B2167063096DE39002A2B57 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 9B2166AC3096DE39002A2B57;
+					};
 				};
 			};
 			buildConfigurationList = 9B2166A83096DE39002A2B57 /* Build configuration list for PBXProject "OneDeck" */;
@@ -90,6 +144,8 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				"zh-Hans",
+				"zh-Hant",
 				Base,
 			);
 			mainGroup = 9B2166A43096DE39002A2B57;
@@ -100,12 +156,20 @@
 			projectRoot = "";
 			targets = (
 				9B2166AC3096DE39002A2B57 /* OneDeck */,
+				9B2167063096DE39002A2B57 /* OneDeckTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		9B2166AB3096DE39002A2B57 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9B2167053096DE39002A2B57 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +186,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9B2167033096DE39002A2B57 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9B2167083096DE39002A2B57 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9B2166AC3096DE39002A2B57 /* OneDeck */;
+			targetProxy = 9B2167073096DE39002A2B57 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		9B2166B63096DE3B002A2B57 /* Debug */ = {
@@ -257,12 +336,14 @@
 				DEVELOPMENT_TEAM = 38FTS86UNN;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "OneDeck 需要访问蓝牙以扫描周边设备信号与寻物雷达";
-				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "OneDeck 需要使用蓝牙以扫描周边设备信号与雷达遥测";
-				INFOPLIST_KEY_NSCameraUsageDescription = "OneDeck 需要访问相机以进行脉搏波光电检测与工业微距放大";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OneDeck 需要获取位置信息以计算真北偏角与地理坐标";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "OneDeck 需要访问麦克风以测量实时环境噪声分贝（Sound Pressure Level）";
-				INFOPLIST_KEY_NSMotionUsageDescription = "OneDeck 需要访问运动传感器与气压计以提供水平仪倾角、海拔高度变化与微震遥测";
+				INFOPLIST_FILE = "OneDeck-Info.plist";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "OneDeck uses Bluetooth to scan nearby BLE peripherals and estimate signal distance.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "OneDeck uses Bluetooth to scan nearby BLE peripherals and radar telemetry.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "OneDeck uses the camera for optical pulse (PPG) measurement, macro magnification, and ambient lux detection.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "OneDeck accesses your local network to discover Bonjour/mDNS devices, probe gateways, and send Wake-on-LAN packets.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OneDeck uses your location while in use to compute true north heading and GNSS coordinates.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "OneDeck uses the microphone to measure real-time ambient sound pressure levels (dB).";
+				INFOPLIST_KEY_NSMotionUsageDescription = "OneDeck uses motion sensors and the barometer for spirit level tilt, relative altitude, and vibration telemetry.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -294,14 +375,16 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 38FTS86UNN;
-				ENABLE_PREVIEWS = YES;
+				ENABLE_PREVIEWS = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "OneDeck 需要访问蓝牙以扫描周边设备信号与寻物雷达";
-				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "OneDeck 需要使用蓝牙以扫描周边设备信号与雷达遥测";
-				INFOPLIST_KEY_NSCameraUsageDescription = "OneDeck 需要访问相机以进行脉搏波光电检测与工业微距放大";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OneDeck 需要获取位置信息以计算真北偏角与地理坐标";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "OneDeck 需要访问麦克风以测量实时环境噪声分贝（Sound Pressure Level）";
-				INFOPLIST_KEY_NSMotionUsageDescription = "OneDeck 需要访问运动传感器与气压计以提供水平仪倾角、海拔高度变化与微震遥测";
+				INFOPLIST_FILE = "OneDeck-Info.plist";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "OneDeck uses Bluetooth to scan nearby BLE peripherals and estimate signal distance.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "OneDeck uses Bluetooth to scan nearby BLE peripherals and radar telemetry.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "OneDeck uses the camera for optical pulse (PPG) measurement, macro magnification, and ambient lux detection.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "OneDeck accesses your local network to discover Bonjour/mDNS devices, probe gateways, and send Wake-on-LAN packets.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "OneDeck uses your location while in use to compute true north heading and GNSS coordinates.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "OneDeck uses the microphone to measure real-time ambient sound pressure levels (dB).";
+				INFOPLIST_KEY_NSMotionUsageDescription = "OneDeck uses motion sensors and the barometer for spirit level tilt, relative altitude, and vibration telemetry.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -325,6 +408,62 @@
 			};
 			name = Release;
 		};
+		9B21670A3096DE3B002A2B57 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 38FTS86UNN;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lbyan.OneDeckTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OneDeck.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OneDeck";
+			};
+			name = Debug;
+		};
+		9B21670B3096DE3B002A2B57 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 38FTS86UNN;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lbyan.OneDeckTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OneDeck.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OneDeck";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -342,6 +481,15 @@
 			buildConfigurations = (
 				9B2166B93096DE3B002A2B57 /* Debug */,
 				9B2166BA3096DE3B002A2B57 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9B2167093096DE3B002A2B57 /* Build configuration list for PBXNativeTarget "OneDeckTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9B21670A3096DE3B002A2B57 /* Debug */,
+				9B21670B3096DE3B002A2B57 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

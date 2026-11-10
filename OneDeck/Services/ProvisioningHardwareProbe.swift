@@ -20,7 +20,7 @@ public final class ProvisioningHardwareProbe {
     public var hasProvisionProfile: Bool = false
     public var profileName: String = ""
     public var profileUUID: String = ""
-    public var appIdentifier: String = Bundle.main.bundleIdentifier ?? "com.binbankm.OneDeck"
+    public var appIdentifier: String = Bundle.main.bundleIdentifier ?? "com.lbyan.OneDeck"
     public var creationDate: Date?
     public var expirationDate: Date?
     public var remainingDays: Int = 0
@@ -126,9 +126,24 @@ public final class ProvisioningHardwareProbe {
     }
 
     public func refresh() {
-        if let bundleId = Bundle.main.bundleIdentifier {
-            self.appIdentifier = bundleId
-        }
+        hasProvisionProfile = false
+        profileName = ""
+        profileUUID = ""
+        appIdentifier = Bundle.main.bundleIdentifier ?? "com.lbyan.OneDeck"
+        creationDate = nil
+        expirationDate = nil
+        remainingDays = 0
+        remainingHours = 0
+        isExpired = false
+        isTrollStore = false
+        certificateSubject = ""
+        certificateSha1 = ""
+        certificateSha256 = ""
+        provisionedDevicesCount = 0
+        provisionsAllDevices = false
+        isTaskAllowEnabled = false
+        keychainAccessGroups = []
+        rawEntitlements = [:]
 
         #if targetEnvironment(simulator)
         self.signingType = .simulator
@@ -137,10 +152,8 @@ public final class ProvisioningHardwareProbe {
         self.remainingHours = 0
         self.isExpired = false
         self.profileName = "iOS Simulator Runtime"
-        return
-        #endif
-
-            let trollStoreDetected = detectTrollStore()
+        #else
+        let trollStoreDetected = detectTrollStore()
         self.isTrollStore = trollStoreDetected
 
         // Search for embedded.mobileprovision inside App Bundle
@@ -168,9 +181,13 @@ public final class ProvisioningHardwareProbe {
         }
 
         parseMobileProvision(data: data, trollStoreDetected: trollStoreDetected)
+        #endif
     }
 
     private func detectTrollStore() -> Bool {
+        if ProcessInfo.processInfo.isiOSAppOnMac {
+            return false
+        }
         let fm = FileManager.default
         let markers = [
             "/var/mobile/Library/TrollStore",
@@ -183,15 +200,14 @@ public final class ProvisioningHardwareProbe {
             }
         }
         let bundlePath = Bundle.main.bundlePath
-        if bundlePath.contains("/Applications/") && !bundlePath.contains("/Developer/") {
+        if bundlePath.hasPrefix("/Applications/") || bundlePath.hasPrefix("/private/var/staged_system_apps/") {
             return true
         }
         return false
     }
 
     private func parseMobileProvision(data: Data, trollStoreDetected: Bool) {
-        guard let xmlString = extractPlistXml(from: data),
-              let xmlData = xmlString.data(using: .utf8),
+        guard let xmlData = Self.extractPlistXmlData(from: data),
               let plist = try? PropertyListSerialization.propertyList(from: xmlData, options: [], format: nil) as? [String: Any] else {
             self.hasProvisionProfile = false
             self.signingType = trollStoreDetected ? .trollStore : .appStore
@@ -286,12 +302,14 @@ public final class ProvisioningHardwareProbe {
         }
     }
 
-    private func extractPlistXml(from data: Data) -> String? {
-        guard let rawString = String(data: data, encoding: .isoLatin1) else { return nil }
-        guard let startRange = rawString.range(of: "<?xml") else { return nil }
-        guard let endRange = rawString.range(of: "</plist>") else { return nil }
-
-        let plistSubstring = rawString[startRange.lowerBound ..< endRange.upperBound]
-        return String(plistSubstring)
+    internal nonisolated static func extractPlistXmlData(from data: Data) -> Data? {
+        let startMarker = Data("<?xml".utf8)
+        let endMarker = Data("</plist>".utf8)
+        guard let startRange = data.range(of: startMarker),
+              let endRange = data.range(of: endMarker, in: startRange.lowerBound ..< data.endIndex),
+              startRange.lowerBound < endRange.upperBound else {
+            return nil
+        }
+        return data[startRange.lowerBound ..< endRange.upperBound]
     }
 }

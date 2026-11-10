@@ -41,44 +41,46 @@ struct OverviewMemoryStorageCard: View {
 
             // Smooth Segmented Memory Capsule (Single Canvas Draw)
             Canvas { context, size in
-                let total = max(1, Double(system.totalPhysicalMemory))
                 let w = size.width
                 let h = size.height
-                let spacing: CGFloat = 2
-                let totalSpacing = spacing * 3
+                guard w > 0, h > 0 else { return }
 
-                let activeRatio = CGFloat(Double(system.activeMemory) / total)
-                let wiredRatio = CGFloat(Double(system.wiredMemory) / total)
-                let compRatio = CGFloat(Double(system.compressedMemory) / total)
-
-                let availableW = max(0, w - totalSpacing)
-                let activeW = max(2, availableW * activeRatio)
-                let wiredW = max(2, availableW * wiredRatio)
-                let compW = max(2, availableW * compRatio)
-
-                var currentX: CGFloat = 0
-
-                // 1. Active Memory Segment
-                context.fill(Path(CGRect(x: currentX, y: 0, width: activeW, height: h)), with: .color(appState.accentColor))
-                currentX += activeW + spacing
-
-                // 2. Wired Memory Segment
-                context.fill(Path(CGRect(x: currentX, y: 0, width: wiredW, height: h)), with: .color(appState.accentColor.opacity(0.65)))
-                currentX += wiredW + spacing
-
-                // 3. Compressed Memory Segment
-                context.fill(Path(CGRect(x: currentX, y: 0, width: compW, height: h)), with: .color(appState.accentColor.opacity(0.35)))
-                currentX += compW + spacing
-
-                // 4. Free Memory Segment
+                let inactiveColor = colorScheme == .dark ? Color.white.opacity(0.32) : Color.black.opacity(0.24)
                 let freeColor = colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
-                context.fill(Path(CGRect(x: currentX, y: 0, width: max(0, w - currentX), height: h)), with: .color(freeColor))
+
+                let segments: [(bytes: UInt64, color: Color)] = [
+                    (system.activeMemory, appState.accentColor),
+                    (system.wiredMemory, appState.accentColor.opacity(0.65)),
+                    (system.compressedMemory, appState.accentColor.opacity(0.35)),
+                    (system.inactiveMemory, inactiveColor),
+                    (system.freeMemory, freeColor)
+                ]
+
+                let accounted = segments.reduce(UInt64(0)) { $0 + $1.bytes }
+                let total = max(1.0, Double(max(system.totalPhysicalMemory, accounted)))
+                let spacing: CGFloat = 2.0
+                let nonZeroCount = segments.filter { $0.bytes > 0 }.count
+                let totalSpacing = spacing * CGFloat(max(0, nonZeroCount - 1))
+                let drawableWidth = max(0.0, w - totalSpacing)
+
+                var currentX: CGFloat = 0.0
+                for seg in segments where seg.bytes > 0 {
+                    let ratio = CGFloat(Double(seg.bytes) / total)
+                    let segWidth = min(max(0.0, w - currentX), drawableWidth * ratio)
+                    if segWidth > 0 {
+                        context.fill(Path(CGRect(x: currentX, y: 0, width: segWidth, height: h)), with: .color(seg.color))
+                        currentX += segWidth + spacing
+                    }
+                }
+                if currentX < w {
+                    context.fill(Path(CGRect(x: currentX, y: 0, width: w - currentX, height: h)), with: .color(freeColor))
+                }
             }
             .clipShape(Capsule())
             .frame(height: 8)
             .animation(.easeInOut(duration: 0.25), value: system.activeMemory)
 
-            // 2x2 Bento Stat Grid
+            // Memory Breakdown Bento Stat Grid
             VStack(spacing: SpacingTheme.standard) {
                 HStack(spacing: SpacingTheme.row) {
                     MemoryStatCell(
@@ -102,11 +104,38 @@ struct OverviewMemoryStorageCard: View {
                     )
 
                     MemoryStatCell(
-                        label: L10n.Overview.memoryFree,
-                        color: colorScheme == .dark ? Color.white.opacity(0.35) : Color.black.opacity(0.35),
-                        value: system.freeMemory.formattedBytes
+                        label: L10n.Overview.memoryInactive,
+                        color: colorScheme == .dark ? Color.white.opacity(0.32) : Color.black.opacity(0.24),
+                        value: system.inactiveMemory.formattedBytes
                     )
                 }
+
+                HStack(spacing: SpacingTheme.tight) {
+                    Circle()
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.18) : Color.black.opacity(0.14))
+                        .frame(width: 6, height: 6)
+
+                    Text(L10n.Overview.memoryFree)
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    Text(system.freeMemory.formattedBytes)
+                        .font(Typography.bodyValue)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .contentTransition(.numericText())
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                }
+                .padding(.horizontal, SpacingTheme.row)
+                .padding(.vertical, SpacingTheme.standard)
+                .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(L10n.Overview.memoryFree)
+                .accessibilityValue(system.freeMemory.formattedBytes)
             }
             .padding(.top, SpacingTheme.micro)
         }
@@ -169,6 +198,7 @@ struct OverviewMemoryStorageCard: View {
 
             // Full-Width Tactile Action Button
             Button {
+                Haptics.impact(.medium)
                 Task {
                     await system.cleanSystemCache()
                 }
@@ -204,8 +234,41 @@ struct OverviewMemoryStorageCard: View {
                 )
             }
             .disabled(system.isCleaningCache)
+            .accessibilityLabel(L10n.Overview.cleanPurged)
+
+            if let purgedAt = system.lastCachePurgedAt {
+                HStack(spacing: SpacingTheme.tight) {
+                    Image(systemName: "sparkles")
+                        .font(IconTheme.badgeInline)
+                        .foregroundStyle(appState.accentColor)
+
+                    Text(L10n.Overview.cachePurgedToast)
+                        .font(Typography.badgeTag)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    Text(Self.purgeTimeFormatter.string(from: purgedAt))
+                        .font(Typography.badgeTagMono)
+                        .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, SpacingTheme.row)
+                .padding(.vertical, SpacingTheme.tight)
+                .background(appState.accentColor.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+                .transition(.opacity)
+            }
         }
     }
+
+    private static let purgeTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter
+    }()
 }
 
 // MARK: - Extracted Component
@@ -240,6 +303,9 @@ private struct MemoryStatCell: View {
         .padding(.vertical, SpacingTheme.standard)
         .background(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(label)
+        .accessibilityValue(value)
     }
 }
 

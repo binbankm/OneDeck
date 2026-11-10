@@ -18,12 +18,12 @@ struct NetworkDnsLookupCard: View {
     // MARK: - State
     @State private var domainText: String = "apple.com"
     @State private var isResolving: Bool = false
-    @State private var lookupResult: DnsDigResult? = DnsDigResult(
-        domain: "apple.com",
-        ipv4List: ["17.253.144.10", "17.253.142.4"],
-        ipv6List: ["2603:9001:500::10"],
-        queryTimeMs: 14.2
-    )
+    @State private var lookupFailed: Bool = false
+    @State private var lookupResult: DnsDigResult?
+    @State private var resolveTask: Task<Void, Never>?
+    @State private var copiedIp: String?
+    @State private var copyToastTask: Task<Void, Never>?
+    @FocusState private var isDomainFieldFocused: Bool
 
     private let domainPresets = ["apple.com", "cloudflare.com", "bilibili.com", "google.com"]
 
@@ -34,11 +34,42 @@ struct NetworkDnsLookupCard: View {
             inputSection
             presetsSection
 
+            if lookupFailed {
+                HStack(spacing: SpacingTheme.compact) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(IconTheme.tileLeading)
+                        .foregroundStyle(.orange)
+
+                    Text(L10n.Network.dnsResolveFailed)
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .lineLimit(2)
+
+                    Spacer()
+                }
+                .padding(.horizontal, SpacingTheme.row)
+                .padding(.vertical, SpacingTheme.standard)
+                .background(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                        .fill(Color.orange.opacity(0.10))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                        .stroke(Color.orange.opacity(0.28), lineWidth: 0.8)
+                )
+            }
+
             if let res = lookupResult {
                 resultSection(res)
             }
         }
         .bentoCard(accent: appState.accentColor)
+        .onDisappear {
+            resolveTask?.cancel()
+            resolveTask = nil
+            copyToastTask?.cancel()
+            copyToastTask = nil
+        }
     }
 
     // MARK: - Subviews
@@ -72,6 +103,23 @@ struct NetworkDnsLookupCard: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
+                    .submitLabel(.search)
+                    .focused($isDomainFieldFocused)
+                    .onSubmit {
+                        resolveCurrentDomain()
+                    }
+
+                if !domainText.isEmpty {
+                    Button {
+                        domainText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(IconTheme.actionButton)
+                            .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(L10n.Common.clearInput)
+                }
             }
             .padding(.horizontal, SpacingTheme.row)
             .padding(.vertical, SpacingTheme.standard)
@@ -81,8 +129,11 @@ struct NetworkDnsLookupCard: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
-                    .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
+                    .stroke(isDomainFieldFocused ? appState.accentColor : Theme.cardBorder(for: colorScheme), lineWidth: isDomainFieldFocused ? 1.1 : 0.8)
             )
+
+            let accentForeground = Theme.contrastingForeground(for: appState.accentColor)
+            let isDomainEmpty = domainText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
             Button {
                 Haptics.tick()
@@ -91,7 +142,7 @@ struct NetworkDnsLookupCard: View {
                 HStack(spacing: SpacingTheme.tight) {
                     if isResolving {
                         ProgressView()
-                            .tint(.white)
+                            .tint(accentForeground)
                             .scaleEffect(0.65)
                     } else {
                         Image(systemName: "arrow.right.circle.fill")
@@ -103,7 +154,7 @@ struct NetworkDnsLookupCard: View {
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(accentForeground)
                 .padding(.horizontal, SpacingTheme.row)
                 .padding(.vertical, SpacingTheme.standard)
                 .background(
@@ -111,8 +162,10 @@ struct NetworkDnsLookupCard: View {
                         .fill(appState.accentColor)
                 )
             }
-            .disabled(isResolving || domainText.isEmpty)
+            .disabled(isResolving || isDomainEmpty)
+            .opacity((isResolving || isDomainEmpty) ? 0.5 : 1.0)
             .buttonStyle(.plain)
+            .accessibilityLabel(L10n.Network.resolveDomain)
         }
     }
 
@@ -161,7 +214,7 @@ struct NetworkDnsLookupCard: View {
                         .font(Typography.badgeTagMedium)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-                    Text(String(format: "%.1f ms", res.queryTimeMs))
+                    Text(String(format: "%.1f ms", res.queryTimeMs.isFinite ? res.queryTimeMs : 0.0))
                         .font(Typography.captionMono)
                         .foregroundStyle(appState.accentColor)
                 }
@@ -170,27 +223,31 @@ struct NetworkDnsLookupCard: View {
             Divider().opacity(0.2)
 
             // A Records (IPv4)
-            VStack(alignment: .leading, spacing: SpacingTheme.tight) {
-                Text(L10n.Network.dnsRecordA)
-                    .font(Typography.badgeTagMedium)
-                    .foregroundStyle(Theme.textSecondary(for: colorScheme))
+            if !res.ipv4List.isEmpty {
+                VStack(alignment: .leading, spacing: SpacingTheme.tight) {
+                    Text(L10n.Network.dnsRecordA)
+                        .font(Typography.badgeTagMedium)
+                        .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-                ForEach(res.ipv4List, id: \.self) { ip in
-                    HStack {
-                        Text(ip)
-                            .font(Typography.calloutMono)
-                            .foregroundStyle(Theme.textPrimary(for: colorScheme))
-                            .lineLimit(1)
+                    ForEach(res.ipv4List, id: \.self) { ip in
+                        HStack {
+                            Text(ip)
+                                .font(Typography.calloutMono)
+                                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                                .lineLimit(1)
 
-                        Spacer()
+                            Spacer()
 
-                        Button {
-                            UIPasteboard.general.string = ip
-                            Haptics.tick()
-                        } label: {
-                            Image(systemName: "doc.on.doc.fill")
-                                .font(IconTheme.copyIndicator)
-                                .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                            Button {
+                                copyRecordIp(ip)
+                            } label: {
+                                Image(systemName: copiedIp == ip ? "checkmark.circle.fill" : "doc.on.doc.fill")
+                                    .font(IconTheme.copyIndicator)
+                                    .foregroundStyle(copiedIp == ip ? Color.green : Theme.textTertiary(for: colorScheme))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(L10n.Network.dnsRecordA) \(ip)")
+                            .accessibilityHint(L10n.Common.copyValue)
                         }
                     }
                 }
@@ -214,13 +271,15 @@ struct NetworkDnsLookupCard: View {
                             Spacer()
 
                             Button {
-                                UIPasteboard.general.string = ip
-                                Haptics.tick()
+                                copyRecordIp(ip)
                             } label: {
-                                Image(systemName: "doc.on.doc.fill")
+                                Image(systemName: copiedIp == ip ? "checkmark.circle.fill" : "doc.on.doc.fill")
                                     .font(IconTheme.copyIndicator)
-                                    .foregroundStyle(Theme.textTertiary(for: colorScheme))
+                                    .foregroundStyle(copiedIp == ip ? Color.green : Theme.textTertiary(for: colorScheme))
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(L10n.Network.dnsRecordAaaa) \(ip)")
+                            .accessibilityHint(L10n.Common.copyValue)
                         }
                     }
                 }
@@ -239,17 +298,38 @@ struct NetworkDnsLookupCard: View {
     }
 
     // MARK: - Actions
-    private func resolveCurrentDomain() {
-        guard !domainText.isEmpty else { return }
-        isResolving = true
-        Task {
-            let res = await net.resolveDomainName(domain: domainText)
-            await MainActor.run {
-                if let r = res {
-                    self.lookupResult = r
-                }
-                self.isResolving = false
+    private func copyRecordIp(_ ip: String) {
+        UIPasteboard.general.string = ip
+        Haptics.tick()
+        copiedIp = ip
+        copyToastTask?.cancel()
+        copyToastTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+            if copiedIp == ip {
+                copiedIp = nil
             }
+        }
+    }
+
+    private func resolveCurrentDomain() {
+        isDomainFieldFocused = false
+        let trimmed = domainText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        resolveTask?.cancel()
+        isResolving = true
+        lookupFailed = false
+        resolveTask = Task { @MainActor in
+            let res = await net.resolveDomainName(domain: trimmed)
+            guard !Task.isCancelled else { return }
+            if let r = res {
+                self.lookupResult = r
+                self.lookupFailed = false
+            } else {
+                self.lookupResult = nil
+                self.lookupFailed = true
+            }
+            self.isResolving = false
         }
     }
 }

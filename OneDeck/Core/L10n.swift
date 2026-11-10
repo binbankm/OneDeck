@@ -36,34 +36,29 @@ public enum L10n {
     }
 
     private static var systemLanguage: (isZh: Bool, isHant: Bool) {
-        var candidates: [String] = []
-        if let firstPref = Locale.preferredLanguages.first {
-            candidates.append(firstPref)
-        }
-        candidates.append(Locale.current.identifier)
-        if let langCode = Locale.current.language.languageCode?.identifier {
-            candidates.append(langCode)
-        }
-        candidates.append(contentsOf: Locale.preferredLanguages)
+        resolveSystemLanguage(preferredLanguages: Locale.preferredLanguages, currentLocale: Locale.current)
+    }
 
-        for lang in candidates {
-            let lower = lang.lowercased()
-            if lower.contains("zh-hant") || lower.contains("zh-hk") || lower.contains("zh-tw") || lower.contains("zh-mo") ||
-                lower.contains("zh_hant") || lower.contains("zh_hk") || lower.contains("zh_tw") || lower.contains("zh_mo") {
-                return (true, true)
-            }
-            if lower.hasPrefix("zh") || lower.contains("zh-hans") || lower.contains("zh_cn") || lower.contains("chinese") {
-                return (true, false)
-            }
+    internal static func resolveSystemLanguage(
+        preferredLanguages: [String],
+        currentLocale: Locale
+    ) -> (isZh: Bool, isHant: Bool) {
+        let primaryLang: String
+        if let firstPref = preferredLanguages.first, !firstPref.isEmpty {
+            primaryLang = firstPref
+        } else if let langCode = currentLocale.language.languageCode?.identifier, !langCode.isEmpty {
+            let scriptCode = currentLocale.language.script?.identifier ?? ""
+            let regionCode = currentLocale.region?.identifier ?? ""
+            primaryLang = [langCode, scriptCode, regionCode].filter { !$0.isEmpty }.joined(separator: "-")
+        } else {
+            primaryLang = currentLocale.identifier
         }
 
-        // Region-based fallback for devices with English system UI located in Greater China
-        let region = Locale.current.region?.identifier.uppercased() ?? ""
-        if region == "CN" || Locale.current.identifier.uppercased().contains("_CN") {
-            return (true, false)
-        }
-        if region == "TW" || region == "HK" || region == "MO" {
-            return (true, true)
+        let lower = primaryLang.lowercased()
+        if lower.hasPrefix("zh") || lower.contains("chinese") {
+            let isHant = lower.contains("hant") || lower.contains("-hk") || lower.contains("_hk") ||
+                lower.contains("-tw") || lower.contains("_tw") || lower.contains("-mo") || lower.contains("_mo")
+            return (true, isHant)
         }
 
         return (false, false)
@@ -130,6 +125,8 @@ public enum L10n {
         public static var cancel: String { tr(zh: "取消", en: "Cancel", hant: "取消") }
         public static var close: String { tr(zh: "关闭", en: "Close", hant: "關閉") }
         public static var copy: String { tr(zh: "复制", en: "Copy", hant: "複製") }
+        public static var copyValue: String { tr(zh: "复制数值", en: "Copy Value", hant: "複製數值") }
+        public static var clearInput: String { tr(zh: "清空输入", en: "Clear Input", hant: "清除輸入") }
         public static var copied: String { tr(zh: "已复制", en: "Copied", hant: "已複製") }
         public static var reset: String { tr(zh: "重置", en: "Reset", hant: "重設") }
         public static var start: String { tr(zh: "开始", en: "Start", hant: "開始") }
@@ -203,6 +200,9 @@ public enum L10n {
         public static var batteryTemp: String { tr(zh: "电芯温度", en: "Battery Cell", hant: "電芯溫度") }
         public static var thermalPressure: String { tr(zh: "温控", en: "Thermal", hant: "溫控") }
         public static var thermalOptimal: String { tr(zh: "正常", en: "Nominal", hant: "正常") }
+        public static var modelEstimatedBadge: String { tr(zh: "热敏估算", en: "Estimated", hant: "熱敏估算") }
+        public static var hardwareSensorBadge: String { tr(zh: "硬件遥测", en: "Hardware", hant: "硬體遙測") }
+        public static var cachePurgedToast: String { tr(zh: "已清理应用缓存", en: "App Cache Cleared", hant: "已清理應用程式快取") }
 
         // CPU & Charts
         public static var cpuMonitor: String { tr(zh: "CPU 负载", en: "CPU Load", hant: "CPU 負載") }
@@ -221,6 +221,7 @@ public enum L10n {
         public static var memoryActive: String { tr(zh: "活跃", en: "Active", hant: "活躍") }
         public static var memoryWired: String { tr(zh: "联动", en: "Wired", hant: "聯動") }
         public static var memoryCompressed: String { tr(zh: "压缩", en: "Compressed", hant: "壓縮") }
+        public static var memoryInactive: String { tr(zh: "非活跃", en: "Inactive", hant: "非活躍") }
         public static var memoryFree: String { tr(zh: "空闲", en: "Free", hant: "閒置") }
 
         public static var storage: String { tr(zh: "存储", en: "Storage", hant: "儲存") }
@@ -458,7 +459,13 @@ public enum L10n {
         public static var marginWarning: String { tr(zh: "预警", en: "Warning", hant: "預警") }
         public static var marginCritical: String { tr(zh: "检修", en: "Critical", hant: "檢修") }
 
-        public static var careTipOptimalCharge: String { tr(zh: "浅充浅放 · 维持 20%–80% 区间，延缓损耗", en: "Shallow Cycles · Keep 20%–80% to extend life", hant: "淺充淺放 · 維持 20%–80% 區間，延緩損耗") }
+        public static var careTipOptimalCharge: String {
+            tr(
+                zh: "浅充浅放 · 维持 20%–80% 区间，延缓损耗",
+                en: "Shallow Cycles · Keep 20%–80% to extend life",
+                hant: "淺充淺放 · 維持 20%–80% 區間，延緩損耗"
+            )
+        }
         public static var careTipTemperature: String { tr(zh: "控温散热 · 快充时避免高温积热", en: "Thermal Control · Prevent heat build-up", hant: "控溫散熱 · 快充時避免高溫積熱") }
         public static var careTipHighVoltage: String { tr(zh: "高压保护 · 长期插电推荐开启 80% 上限", en: "Voltage Limit · Enable 80% limit", hant: "高壓保護 · 長期插電推薦開啟 80% 上限") }
         public static var exportReportButton: String { tr(zh: "导出报告", en: "Export Report", hant: "匯出報告") }
@@ -470,7 +477,7 @@ public enum L10n {
 
         // Professional Diagnostic Hardware Report
         public static var reportHeader: String { tr(zh: "电池硬件诊断报告", en: "Battery Diagnostic Report", hant: "電池硬體診斷報告") }
-        public static var reportDeviceModel: String { tr(zh: "设备型号", en: "Device Model", hant: "設備型號") }
+        public static var reportDeviceModel: String { tr(zh: "设备型号", en: "Device Model", hant: "裝置型號") }
         public static var reportChip: String { tr(zh: "处理器", en: "Processor", hant: "處理器") }
         public static var reportFactoryDesignCap: String { tr(zh: "出厂设计容量", en: "Factory Capacity", hant: "出廠設計容量") }
         public static var reportEffectiveDesignCap: String { tr(zh: "有效标称容量", en: "Effective Capacity", hant: "有效標稱容量") }
@@ -524,12 +531,12 @@ public enum L10n {
         public static var baselineNotice: String { tr(
             zh: "需导入官方分析日志以解锁原厂真实数据与循环次数",
             en: "Import Analytics Log to unlock exact battery health & cycles",
-            hant: "需匯入官方分析日誌以解鎖原廠真實數據與循環次數"
+            hant: "需匯入官方分析日誌以解鎖原廠真實資料與循環次數"
         ) }
         public static var pendingImportNotice: String { tr(
             zh: "需导入官方分析日志以解锁原厂真实数据与循环次数",
             en: "Import Analytics Log to unlock exact battery health & cycles",
-            hant: "需匯入官方分析日誌以解鎖原廠真實數據與循環次數"
+            hant: "需匯入官方分析日誌以解鎖原廠真實資料與循環次數"
         ) }
         public static var flirMode: String { tr(zh: "红外热像", en: "FLIR IR", hant: "紅外熱像") }
         public static var xrayMode: String { tr(zh: "透视蓝图", en: "X-Ray", hant: "透視藍圖") }
@@ -555,6 +562,9 @@ public enum L10n {
         public static var sourceBmsLog: String { tr(zh: "BMS 官方日志 (.ips)", en: "BMS Raw Log (.ips)", hant: "BMS 官方日誌 (.ips)") }
         public static var sourceHardwareDirect: String { tr(zh: "IOKit 硬件直读", en: "IOKit Direct", hant: "IOKit 硬體直讀") }
         public static var sourceModelEstimate: String { tr(zh: "硬件模型估算", en: "Hardware Estimate", hant: "硬體模型估算") }
+        public static var unavailableReading: String { tr(zh: "暂不可用", en: "Unavailable", hant: "暫無法取得") }
+        public static var thermalModelBadge: String { tr(zh: "热力学模型", en: "Thermal Model", hant: "熱力學模型") }
+        public static var thermalZoneEstimatedNote: String { tr(zh: "次级温区基于整机热状态估算", en: "Secondary zones estimated from thermal state", hant: "次級溫區依整機熱狀態估算") }
     }
 
     // MARK: - Network
@@ -605,16 +615,17 @@ public enum L10n {
         public static var proxyExit: String { tr(zh: "代理出口", en: "Proxy", hant: "代理出口") }
 
         public static var lanScanTitle: String { tr(zh: "局域网发现", en: "LAN Discovery", hant: "區域網絡發現") }
-        public static var startScan: String { tr(zh: "发现设备", en: "Discover", hant: "發現設備") }
+        public static var startScan: String { tr(zh: "发现设备", en: "Discover", hant: "發現裝置") }
         public static var scanning: String { tr(zh: "扫描中...", en: "Scanning...", hant: "掃描中...") }
         public static var scanComplete: String { tr(zh: "扫描完成", en: "Complete", hant: "掃描完成") }
         public static func devicesCountText(count: Int) -> String {
-            tr(zh: "\(count) 台设备", en: "\(count) Devices", hant: "\(count) 台設備")
+            tr(zh: "\(count) 台设备", en: "\(count) Devices", hant: "\(count) 台裝置")
         }
 
         public static var wolTitle: String { tr(zh: "网络唤醒", en: "Wake-on-LAN", hant: "網絡喚醒") }
         public static var wolPortBadge: String { tr(zh: "UDP · 端口 9", en: "UDP · Port 9", hant: "UDP · 埠 9") }
         public static var macAddress: String { tr(zh: "MAC 地址", en: "MAC Address", hant: "MAC 位址") }
+        public static var pasteMac: String { tr(zh: "粘贴 MAC 地址", en: "Paste MAC Address", hant: "貼上 MAC 位址") }
         public static var sendWol: String { tr(zh: "发送唤醒包", en: "Send Packet", hant: "發送喚醒包") }
         public static var wolSuccess: String { tr(zh: "唤醒包已发送", en: "Packet Sent", hant: "喚醒包已發送") }
         public static var wolInvalidMac: String { tr(zh: "MAC 地址无效", en: "Invalid MAC", hant: "MAC 位址無效") }
@@ -624,11 +635,15 @@ public enum L10n {
         public static var presetWorkstation: String { tr(zh: "工作站 PC", en: "Workstation", hant: "工作站 PC") }
         public static var presetMedia: String { tr(zh: "家庭影音", en: "Home Theater", hant: "家庭影音") }
         public static var copied: String { tr(zh: "已复制", en: "Copied", hant: "已複製") }
+        public static var copyIpv4: String { tr(zh: "复制 IPv4 地址", en: "Copy IPv4 Address", hant: "複製 IPv4 位址") }
+        public static var copyIpv6: String { tr(zh: "复制 IPv6 地址", en: "Copy IPv6 Address", hant: "複製 IPv6 位址") }
+        public static var copyExitIp: String { tr(zh: "复制代理出口 IP", en: "Copy Proxy Exit IP", hant: "複製代理出口 IP") }
+        public static var copyDeviceIp: String { tr(zh: "复制设备 IP 地址", en: "Copy Device IP", hant: "複製裝置 IP 位址") }
         public static var expensiveCellular: String { tr(zh: "计费网络", en: "Metered", hant: "計費網絡") }
-        public static var lowDataMode: String { tr(zh: "低数据模式", en: "Low Data", hant: "低數據模式") }
+        public static var lowDataMode: String { tr(zh: "低数据模式", en: "Low Data", hant: "低資料模式") }
         public static var noLanDevices: String { tr(zh: "未发现活动 Bonjour 服务", en: "No Bonjour Services Found", hant: "未發現活動 Bonjour 服務") }
-        public static var noLanDevicesHint: String { tr(zh: "请确认同局域网设备已开启共享服务", en: "Check local devices have sharing enabled", hant: "請確認同區域網絡設備已開啟共享服務") }
-        public static var lanScanDesc: String { tr(zh: "自动发现本地 mDNS 设备", en: "Auto-discover local mDNS devices", hant: "自動發現本地 mDNS 設備") }
+        public static var noLanDevicesHint: String { tr(zh: "请确认同局域网设备已开启共享服务", en: "Check local devices have sharing enabled", hant: "請確認同區域網絡裝置已開啟共享服務") }
+        public static var lanScanDesc: String { tr(zh: "自动发现本地 mDNS 设备", en: "Auto-discover local mDNS devices", hant: "自動發現本地 mDNS 裝置") }
 
         // Hardware interface specs
         public static var mtu: String { tr(zh: "MTU 单元", en: "MTU", hant: "MTU 單元") }
@@ -659,6 +674,7 @@ public enum L10n {
         public static var domainInputPlaceholder: String { tr(zh: "输入域名 (如 apple.com)", en: "Domain (e.g. apple.com)", hant: "輸入網域名稱 (如 apple.com)") }
         public static var resolveDomain: String { tr(zh: "解析", en: "Resolve", hant: "解析") }
         public static var queryTime: String { tr(zh: "解析耗时", en: "Query Time", hant: "解析耗時") }
+        public static var dnsResolveFailed: String { tr(zh: "域名解析失败或超时", en: "DNS lookup failed or timed out", hant: "網域名稱解析失敗或逾時") }
 
         // Active Speed Test
         public static var speedTestTitle: String { tr(zh: "带宽测速", en: "Speed Test", hant: "頻寬測速") }
@@ -708,15 +724,19 @@ public enum L10n {
         public static var targetSubnet: String { tr(zh: "本机内网", en: "Subnet Host", hant: "本機內網") }
         public static var cellularBasebandDesc: String { tr(zh: "蜂窝移动基带", en: "Cellular Baseband", hant: "行動網絡基頻") }
         public static var deviceGateway: String { tr(zh: "局域网网关", en: "Default Gateway", hant: "區域網絡閘道") }
-        public static var deviceBonjour: String { tr(zh: "Bonjour 设备", en: "Bonjour Device", hant: "Bonjour 設備") }
+        public static var deviceBonjour: String { tr(zh: "Bonjour 设备", en: "Bonjour Device", hant: "Bonjour 裝置") }
+        public static var lanHostLabel: String { tr(zh: "局域网主机", en: "LAN Host", hant: "區域網絡主機") }
+        public static var speedTestUploadUnavailable: String { tr(zh: "上行不可用", en: "Upload Unavailable", hant: "上行無法測量") }
+        public static var speedTestFailed: String { tr(zh: "测速连接失败", en: "Connection Failed", hant: "測速連線失敗") }
+        public static var idleStatus: String { tr(zh: "待测", en: "Idle", hant: "待測") }
         public static func vendorText(key: String) -> String {
             switch key {
-            case "apple": return tr(zh: "Apple 设备", en: "Apple Device", hant: "Apple 設備")
+            case "apple": return tr(zh: "Apple 设备", en: "Apple Device", hant: "Apple 裝置")
             case "xiaomi": return tr(zh: "小米 / 路由器", en: "Xiaomi / Router", hant: "小米 / 路由器")
             case "huawei": return tr(zh: "华为 / 荣耀", en: "Huawei / Honor", hant: "華為 / 榮耀")
             case "tplink": return tr(zh: "TP-Link 路由", en: "TP-Link Router", hant: "TP-Link 路由")
             case "raspberry": return tr(zh: "树莓派", en: "Raspberry Pi", hant: "樹莓派")
-            case "nas": return tr(zh: "NAS 存储设备", en: "NAS Storage", hant: "NAS 儲存設備")
+            case "nas": return tr(zh: "NAS 存储设备", en: "NAS Storage", hant: "NAS 儲存裝置")
             case "iot": return tr(zh: "IoT 智能家居", en: "IoT Smart Home", hant: "IoT 智慧家居")
             case "pc": return tr(zh: "PC 计算机", en: "PC Workstation", hant: "PC 電腦")
             case "random": return tr(zh: "私有 MAC 终端", en: "Private MAC", hant: "私有 MAC 終端")
@@ -736,7 +756,7 @@ public enum L10n {
         public static var waterEjectorSub: String { tr(zh: "165Hz 声学排水", en: "165Hz Acoustic", hant: "165Hz 聲學排水") }
         public static var torchLab: String { tr(zh: "精细手电", en: "Precision Torch", hant: "精細手電") }
         public static var torchLabSub: String { tr(zh: "线性调光与频闪", en: "Dimmer & Strobe", hant: "線性調光與頻閃") }
-        public static var torchHardwareUnavailable: String { tr(zh: "当前设备未配备后置补光灯，可使用柔光箱功能", en: "No rear flash detected. Softbox mode available.", hant: "當前設備未配備後置補光燈，可使用柔光箱功能") }
+        public static var torchHardwareUnavailable: String { tr(zh: "当前设备未配备后置补光灯，可使用柔光箱功能", en: "No rear flash detected. Softbox mode available.", hant: "目前裝置未配備後置補光燈，可使用柔光箱功能") }
         public static var metalDetector: String { tr(zh: "金属寻线", en: "Metal & EMF", hant: "金屬尋線") }
         public static var metalDetectorSub: String { tr(zh: "微特斯拉 (µT) 磁通", en: "Magnetic Flux", hant: "微特斯拉 (µT) 磁通") }
         public static var barometer: String { tr(zh: "气压海拔", en: "Barometer & Alt", hant: "氣壓海拔") }
@@ -778,7 +798,7 @@ public enum L10n {
         public static var catAtmosphere: String { tr(zh: "气象高程", en: "Atmosphere", hant: "氣象高程") }
         public static var catDisplay: String { tr(zh: "屏幕测试", en: "Display", hant: "螢幕測試") }
         public static var catHardware: String { tr(zh: "硬件驱动", en: "Hardware", hant: "硬體驅動") }
-        public static var catBiosensing: String { tr(zh: "生物传感", en: "Biosensing", hant: "生物傳感") }
+        public static var catBiosensing: String { tr(zh: "生物传感", en: "Biosensing", hant: "生物感測") }
         public static var catWireless: String { tr(zh: "射频无线", en: "Wireless", hant: "射頻無線") }
 
         // Comprehensive Descriptive Subtitles for Launcher Cards
@@ -790,7 +810,7 @@ public enum L10n {
         public static var barometerCardDesc: String { tr(zh: "实时高精度大气压强、相对高程与升降速率", en: "Atmospheric pressure, elevation & climb rate", hant: "即時高精度大氣壓強、相對高程與升降速率") }
         public static var toneGeneratorCardDesc: String { tr(zh: "20Hz–20kHz 纯音频合成器与多波形发生器", en: "20Hz–20kHz pure tone synthesis & waveforms", hant: "20Hz–20kHz 純音訊合成器與多波形發生器") }
         public static var screenQualityCardDesc: String { tr(zh: "全色域坏点排查、对比度渐变与漏光测试", en: "Dead pixel inspection, uniformity & gamut", hant: "全色域壞點排查、對比度漸變與漏光測試") }
-        public static var hapticLabCardDesc: String { tr(zh: "Taptic Engine 振动模式、阻尼与触觉反馈测试", en: "Apple Taptic Engine feedback diagnostics", hant: "Taptic Engine 振動模式、阻尼與觸覺反饋測試") }
+        public static var hapticLabCardDesc: String { tr(zh: "Taptic Engine 振动模式、阻尼与触觉反馈测试", en: "Apple Taptic Engine feedback diagnostics", hant: "Taptic Engine 振動模式、阻尼與觸覺回饋測試") }
         public static var decibelMeterCardDesc: String { tr(zh: "高灵敏度麦克风声压级与环境噪音谱测量", en: "Microphone sound pressure level analyzer", hant: "高靈敏度麥克風聲壓級與環境噪音譜測量") }
         public static var compassCardDesc: String { tr(zh: "3D 电子方位角、磁偏角补偿与航向指示", en: "3D electronic azimuth & true north", hant: "3D 電子方位角、磁偏角補償與航向指示") }
         public static var speakerLabCardDesc: String { tr(zh: "双扬声器立体声分离度、相位与扫频测试", en: "Stereo separation, phase & sweep diagnostics", hant: "雙揚聲器立體聲分離度、相位與掃頻測試") }
@@ -807,8 +827,9 @@ public enum L10n {
         public static var soundPlaying: String { tr(zh: "音频输出中", en: "Playing", hant: "音訊輸出中") }
         public static var pulseHoldStillTip: String { tr(zh: "保持手指静止贴合", en: "Keep finger steady", hant: "保持手指靜止貼合") }
         public static var pulseAcquiring: String { tr(zh: "正在解算心率...", en: "Calculating BPM...", hant: "正在解算心率...") }
-        public static var blePeripheralsList: String { tr(zh: "周边外设", en: "Peripherals", hant: "周邊外設") }
-        public static var noNearbyDevices: String { tr(zh: "未发现周边设备", en: "No Peripherals", hant: "未發現周邊設備") }
+        public static var blePeripheralsList: String { tr(zh: "周边外设", en: "Peripherals", hant: "周邊裝置") }
+        public static var noNearbyDevices: String { tr(zh: "未发现周边设备", en: "No Peripherals", hant: "未發現周邊裝置") }
+        public static var unknownBleDevice: String { tr(zh: "未知蓝牙外设", en: "Unknown Device", hant: "未知藍牙裝置") }
         public static var bleScanning: String { tr(zh: "扫描广播中...", en: "Scanning...", hant: "掃描廣播中...") }
         public static var blePaused: String { tr(zh: "扫描就绪", en: "Ready", hant: "掃描就緒") }
         public static var startBleRadarAction: String { tr(zh: "启动雷达", en: "Start Radar", hant: "啟動雷達") }
@@ -843,6 +864,13 @@ public enum L10n {
         public static var vibrationFrequency: String { tr(zh: "主振频率", en: "Peak Frequency", hant: "主振頻率") }
         public static var triaxialWaveform: String { tr(zh: "三轴实时波形", en: "Tri-Axial Waves", hant: "三軸即時波形") }
         public static var resetPeakLabel: String { tr(zh: "重置峰值", en: "Reset Peak", hant: "重設峰值") }
+        public static func liveGal(_ gal: Double) -> String {
+            tr(
+                zh: "实时 \(String(format: "%.2f", gal)) Gal",
+                en: "Live \(String(format: "%.2f", gal)) Gal",
+                hant: "即時 \(String(format: "%.2f", gal)) Gal"
+            )
+        }
 
         // Lux Meter Detail
         public static var illuminanceTitle: String { tr(zh: "实时照度", en: "Illuminance", hant: "即時照度") }
@@ -859,7 +887,7 @@ public enum L10n {
 
         // BLE Radar Detail
         public static var bleScanStatus: String { tr(zh: "蓝牙雷达", en: "BLE Radar", hant: "藍牙雷達") }
-        public static var nearestDevice: String { tr(zh: "最近设备", en: "Nearest Device", hant: "最近設備") }
+        public static var nearestDevice: String { tr(zh: "最近设备", en: "Nearest Device", hant: "最近裝置") }
         public static var signalStrengthRssi: String { tr(zh: "信号 (RSSI)", en: "Signal (RSSI)", hant: "信號 (RSSI)") }
         public static var estimatedDistance: String { tr(zh: "预估距离", en: "Distance", hant: "預估距離") }
 
@@ -873,42 +901,42 @@ public enum L10n {
         public static var cameraPermissionDenied: String { tr(
             zh: "请在系统设置中允许 OneDeck 访问相机以启用微距显微镜",
             en: "Please allow camera access in Settings to use the microscope",
-            hant: "請在系統設定中允許 OneDeck 訪問相機以啟用微距顯微鏡"
+            hant: "請在系統設定中允許 OneDeck 存取相機以啟用微距顯微鏡"
         ) }
         public static var micPermissionDenied: String { tr(
             zh: "请在系统设置中允许 OneDeck 访问麦克风以启用分贝检测仪",
             en: "Please allow microphone access in Settings to measure sound levels",
-            hant: "請在系統設定中允許 OneDeck 訪問麥克風以啟用分貝檢測儀"
+            hant: "請在系統設定中允許 OneDeck 存取麥克風以啟用分貝檢測儀"
         ) }
         public static var pulseCameraPermissionDenied: String { tr(
             zh: "请在系统设置中允许 OneDeck 访问相机以启用脉搏心率检测",
             en: "Please allow camera access in Settings to measure pulse rate",
-            hant: "請在系統設定中允許 OneDeck 訪問相機以啟用脈搏心率檢測"
+            hant: "請在系統設定中允許 OneDeck 存取相機以啟用脈搏心率檢測"
         ) }
         public static var locationPermissionDenied: String { tr(
             zh: "请在系统设置中允许 OneDeck 访问位置以启用电子罗盘与卫星定位",
             en: "Please allow location access in Settings for compass & GPS positioning",
-            hant: "請在系統設定中允許 OneDeck 訪問位置以啟用電子羅盤與衛星定位"
+            hant: "請在系統設定中允許 OneDeck 存取位置以啟用電子羅盤與衛星定位"
         ) }
         public static var headingHardwareUnavailable: String { tr(
             zh: "当前设备缺少电子罗盘硬件（模拟器或部分 iPad 暂不支持方向测量）",
             en: "Compass hardware is unavailable on this device",
-            hant: "當前設備缺少電子羅盤硬件（模擬器或部分 iPad 暫不支援方向測量）"
+            hant: "目前裝置缺少電子羅盤硬體（模擬器或部分 iPad 暫不支援方向測量）"
         ) }
         public static var barometerHardwareUnavailable: String { tr(
             zh: "当前设备缺少气压计传感器硬件（模拟器或部分 iPad 暂不支持气压高度测量）",
             en: "Barometer altimeter sensor is unavailable on this device",
-            hant: "當前設備缺少氣壓計感測器硬件（模擬器或部分 iPad 暫不支援氣壓高度測量）"
+            hant: "目前裝置缺少氣壓計感測器硬體（模擬器或部分 iPad 暫不支援氣壓高度測量）"
         ) }
         public static var magnetometerHardwareUnavailable: String { tr(
             zh: "当前设备缺少磁力计传感器硬件（模拟器暂不支持金属与磁场探测）",
             en: "Magnetometer sensor is unavailable on this device",
-            hant: "當前設備缺少磁力計感測器硬件（模擬器暫不支援金屬與磁場探測）"
+            hant: "目前裝置缺少磁力計感測器硬體（模擬器暫不支援金屬與磁場探測）"
         ) }
         public static var hapticHardwareUnavailable: String { tr(
             zh: "当前设备缺少触感马达硬件（模拟器或 iPad 暂不支持 Taptic Engine 振动）",
             en: "Taptic Engine haptics hardware is unavailable on this device",
-            hant: "當前設備缺少觸感馬達硬件（模擬器或 iPad 暫不支援 Taptic Engine 震動）"
+            hant: "目前裝置缺少觸感馬達硬體（模擬器或 iPad 暫不支援 Taptic Engine 震動）"
         ) }
         public static var openSettings: String { tr(zh: "前往系统设置", en: "Open Settings", hant: "前往系統設定") }
 
@@ -928,6 +956,7 @@ public enum L10n {
         public static var flatMode: String { tr(zh: "平面模式", en: "Surface", hant: "平面模式") }
 
         // Sonic Water Ejector
+        public static var waterEjectMode: String { tr(zh: "排水模式", en: "Eject Mode", hant: "排水模式") }
         public static var startEject: String { tr(zh: "开始排水", en: "Start Eject", hant: "開始排水") }
         public static var stopEject: String { tr(zh: "停止", en: "Stop", hant: "停止") }
         public static var ejecting: String { tr(zh: "排水中...", en: "Ejecting...", hant: "排水中...") }
@@ -964,7 +993,7 @@ public enum L10n {
         public static var benchmark5JiaoCoin: String { tr(zh: "5角硬币", en: "50¢ Coin", hant: "5角硬幣") }
         public static var benchmarkCreditCard: String { tr(zh: "银行卡长", en: "Credit Card", hant: "銀行卡長") }
         public static var zeroMmBenchmark: String { tr(zh: "0.0 mm 基准", en: "0.0 mm Datum", hant: "0.0 mm 基準") }
-        public static var dataSourceChannel: String { tr(zh: "数据通道", en: "Channel", hant: "數據通道") }
+        public static var dataSourceChannel: String { tr(zh: "数据通道", en: "Channel", hant: "資料通道") }
 
         // Metal & EMF
         public static var ferromagneticProximity: String { tr(zh: "强磁靠近", en: "Strong Magnet", hant: "強磁靠近") }
@@ -988,6 +1017,8 @@ public enum L10n {
         public static var strobeTachometer: String { tr(zh: "转速测定", en: "Tachometer", hant: "轉速測定") }
         public static var sosMorse: String { tr(zh: "求救信标", en: "SOS Beacon", hant: "求救信標") }
         public static var softbox: String { tr(zh: "摄影柔光", en: "Softbox", hant: "攝影柔光") }
+        public static var torchMode: String { tr(zh: "照明模式", en: "Torch Mode", hant: "照明模式") }
+        public static var closeSoftbox: String { tr(zh: "退出柔光", en: "Exit Softbox", hant: "退出柔光") }
         public static var dimMode: String { tr(zh: "微调光", en: "Dimmer", hant: "微調光") }
         public static var turnOn: String { tr(zh: "开启", en: "Turn On", hant: "開啟") }
         public static var turnOff: String { tr(zh: "关闭", en: "Turn Off", hant: "關閉") }
@@ -998,6 +1029,7 @@ public enum L10n {
         public static var jawB: String { tr(zh: "卡爪 B", en: "Jaw B", hant: "卡爪 B") }
 
         // Tone Generator & Hearing Test
+        public static var waveformType: String { tr(zh: "波形", en: "Waveform", hant: "波形") }
         public static var generateTone: String { tr(zh: "发声输出", en: "Play Tone", hant: "發聲輸出") }
         public static var stopTone: String { tr(zh: "停止音频", en: "Stop Audio", hant: "停止音訊") }
         public static var hertzUnit: String { tr(zh: "赫兹 (Hz)", en: "Hertz (Hz)", hant: "赫茲 (Hz)") }
@@ -1018,11 +1050,11 @@ public enum L10n {
         // Haptic Lab
         public static var hapticEngineTitle: String { tr(zh: "触觉马达测试", en: "Taptic Engine Test", hant: "觸覺馬達測試") }
         public static var lastTrigger: String { tr(zh: "上次触发", en: "Last Trigger", hant: "上次觸發") }
-        public static var impactFeedback: String { tr(zh: "冲击反馈", en: "Impact", hant: "衝擊反饋") }
+        public static var impactFeedback: String { tr(zh: "冲击反馈", en: "Impact", hant: "衝擊回饋") }
         public static var impactFeedbackSub: String { tr(zh: "线性致动器物理冲击", en: "Actuator Impact", hant: "線性致動器物理衝擊") }
         public static var notificationFeedback: String { tr(zh: "通知脉冲", en: "Notification", hant: "通知脈衝") }
         public static var notificationFeedbackSub: String { tr(zh: "系统级通知脉冲", en: "Notification Pulses", hant: "系統級通知脈衝") }
-        public static var selectionFeedback: String { tr(zh: "拨轮反馈", en: "Selection", hant: "撥輪反饋") }
+        public static var selectionFeedback: String { tr(zh: "拨轮反馈", en: "Selection", hant: "撥輪回饋") }
         public static var selectionFeedbackSub: String { tr(zh: "机械拨轮阻尼刻度感", en: "Wheel Detents", hant: "機械撥輪阻尼刻度感") }
         public static var lightImpact: String { tr(zh: "微触", en: "Light", hant: "微觸") }
         public static var mediumImpact: String { tr(zh: "中等", en: "Medium", hant: "中等") }
@@ -1054,7 +1086,7 @@ public enum L10n {
         public static var trueNorth: String { tr(zh: "真北", en: "True North", hant: "真北") }
         public static var magneticHeading: String { tr(zh: "磁北航向", en: "Magnetic Heading", hant: "磁北航向") }
         public static var elevation: String { tr(zh: "海拔高度", en: "Elevation", hant: "海拔高度") }
-        public static var gpsPosition: String { tr(zh: "定位坐标", en: "GPS Position", hant: "定位坐標") }
+        public static var gpsPosition: String { tr(zh: "定位坐标", en: "GPS Position", hant: "定位座標") }
         public static var standby: String { tr(zh: "待机", en: "Standby", hant: "待機") }
 
         // Speaker Lab
@@ -1112,6 +1144,41 @@ public enum L10n {
         public static var rollAxis: String { tr(zh: "横滚角 (X)", en: "Roll (X)", hant: "橫滾角 (X)") }
         public static var pitchAxis: String { tr(zh: "俯仰角 (Y)", en: "Pitch (Y)", hant: "俯仰角 (Y)") }
         public static var levelBalanced: String { tr(zh: "水平已校准", en: "Level Balanced", hant: "水平已校準") }
+        public static var luxCameraPermissionDenied: String { tr(
+            zh: "请在系统设置中允许 OneDeck 访问相机以测量环境照度",
+            en: "Please allow camera access in Settings to measure ambient lux",
+            hant: "請在系統設定中允許 OneDeck 存取相機以測量環境照度"
+        ) }
+        public static var bleUnauthorized: String { tr(
+            zh: "请在系统设置中允许 OneDeck 使用蓝牙扫描周边设备",
+            en: "Please allow Bluetooth access in Settings to scan peripherals",
+            hant: "請在系統設定中允許 OneDeck 使用藍牙掃描周邊裝置"
+        ) }
+        public static var blePoweredOff: String { tr(
+            zh: "请开启系统蓝牙以启动低功耗信标雷达",
+            en: "Turn on Bluetooth to start BLE radar scanning",
+            hant: "請開啟系統藍牙以啟動低功耗信標雷達"
+        ) }
+        public static var bleHardwareUnavailable: String { tr(
+            zh: "当前设备不支持低功耗蓝牙扫描",
+            en: "Bluetooth Low Energy is unavailable on this device",
+            hant: "目前裝置不支援低功耗藍牙掃描"
+        ) }
+        public static var motionHardwareUnavailable: String { tr(
+            zh: "当前设备不支持运动姿态传感器（模拟器暂不可用）",
+            en: "Motion sensors are unavailable on this device",
+            hant: "目前裝置不支援運動姿態感測器（模擬器暫無法使用）"
+        ) }
+        public static var microphoneHardwareUnavailable: String { tr(
+            zh: "当前设备或系统暂无法访问麦克风输入",
+            en: "Microphone input is unavailable on this device",
+            hant: "目前裝置或系統暫無法存取麥克風輸入"
+        ) }
+        public static var cameraHardwareUnavailable: String { tr(
+            zh: "当前设备缺少可用的相机硬件（模拟器或部分设备暂不支持）",
+            en: "Camera hardware is unavailable on this device",
+            hant: "目前裝置缺少可用的相機硬體（模擬器或部分裝置暫不支援）"
+        ) }
     }
 
     // MARK: - Settings
@@ -1140,6 +1207,12 @@ public enum L10n {
         public static var prefKeepAwakeDesc: String { tr(zh: "屏幕常亮", en: "Keep awake", hant: "螢幕常亮") }
         public static var prefPowerSaving: String { tr(zh: "传感器节能", en: "Power Saving", hant: "感測器節能") }
         public static var prefPowerSavingDesc: String { tr(zh: "传感器节能", en: "Power saving", hant: "感測器節能") }
+        public static var prefSound: String { tr(zh: "仪表提示音", en: "Sound Effects", hant: "儀表提示音") }
+        public static var prefSoundDesc: String { tr(zh: "水平仪锁定提示音", en: "Level snap sound cues", hant: "水平儀鎖定提示音") }
+        public static var resetCalibration: String { tr(zh: "重置传感器校准", en: "Reset Calibration", hant: "重設感測器校準") }
+        public static var resetCalibrationAction: String { tr(zh: "重置", en: "Reset", hant: "重設") }
+        public static var resetCalibrationDone: String { tr(zh: "已重置", en: "Reset Done", hant: "已重設") }
+        public static var hexInvalidHint: String { tr(zh: "无效 HEX 色值", en: "Invalid HEX", hant: "無效 HEX 色值") }
 
         // MARK: - Signing Settings
         public static var signingSection: String { tr(zh: "证书与签名", en: "Signing & Profile", hant: "憑證與簽名") }
@@ -1235,7 +1308,10 @@ public enum L10n {
         // MARK: - About Settings
         public static var aboutSection: String { tr(zh: "关于", en: "About", hant: "關於") }
         public static var appName: String { tr(zh: "OneDeck", en: "OneDeck", hant: "OneDeck") }
-        public static var build: String { tr(zh: "构建", en: "Build", hant: "構建") }
+        public static var build: String { tr(zh: "构建", en: "Build", hant: "建置") }
+        public static func buildValue(_ build: String) -> String {
+            tr(zh: "构建 \(build)", en: "Build \(build)", hant: "建置 \(build)")
+        }
         public static var architecture: String { tr(zh: "架构", en: "Architecture", hant: "架構") }
         public static var aboutDevice: String { tr(zh: "设备", en: "Device", hant: "裝置") }
         public static var aboutChip: String { tr(zh: "芯片", en: "Processor", hant: "晶片") }

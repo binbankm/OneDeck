@@ -65,6 +65,7 @@ struct ToneGeneratorDetailView: View {
                         .font(IconTheme.badgeInline)
                         .foregroundStyle(appState.accentColor)
                 }
+                .accessibilityLabel(L10n.Tools.hearingAgeChallenge)
             }
         }
         .sheet(isPresented: $showHearingTest) {
@@ -75,7 +76,7 @@ struct ToneGeneratorDetailView: View {
     // MARK: - Waveform Picker
     @ViewBuilder
     private var waveformPickerBar: some View {
-        Picker("", selection: Binding(
+        Picker(L10n.Tools.waveformType, selection: Binding(
             get: { tools.toneGenerator.waveform },
             set: { tools.setToneWaveform($0) }
         )) {
@@ -84,13 +85,16 @@ struct ToneGeneratorDetailView: View {
             }
         }
         .pickerStyle(.segmented)
+        .labelsHidden()
     }
 
     // MARK: - Frequency Center Readout
     @ViewBuilder
     private var frequencyCenterReadout: some View {
+        let safeFreq = tools.toneGenerator.frequencyHz.isFinite ? tools.toneGenerator.frequencyHz : 440.0
+
         VStack(spacing: SpacingTheme.micro) {
-            Text(String(format: tools.toneGenerator.frequencyHz >= 1000 ? "%.0f" : "%.1f", tools.toneGenerator.frequencyHz))
+            Text(String(format: safeFreq >= 1000 ? "%.0f" : "%.1f", safeFreq))
                 .font(Typography.displayHero)
                 .monospacedDigit()
                 .foregroundStyle(tools.toneGenerator.isPlaying ? appState.accentColor : Theme.textTertiary(for: colorScheme))
@@ -99,7 +103,7 @@ struct ToneGeneratorDetailView: View {
                 .font(Typography.badgeTagMono)
                 .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-            Text(L10n.Tools.frequencyBandTitle(tools.toneGenerator.frequencyHz))
+            Text(L10n.Tools.frequencyBandTitle(safeFreq))
                 .font(Typography.caption)
                 .foregroundStyle(appState.accentColor)
                 .padding(.horizontal, SpacingTheme.standard)
@@ -112,10 +116,12 @@ struct ToneGeneratorDetailView: View {
     // MARK: - Frequency Slider
     @ViewBuilder
     private var frequencySliderSection: some View {
+        let safeFreq = tools.toneGenerator.frequencyHz.isFinite ? tools.toneGenerator.frequencyHz : 440.0
+
         VStack(spacing: SpacingTheme.compact) {
             // Logarithmic mapping for smooth acoustic exploration
             Slider(value: Binding(
-                get: { log10(max(20.0, tools.toneGenerator.frequencyHz)) },
+                get: { log10(min(20000.0, max(20.0, safeFreq))) },
                 set: { tools.setToneFrequency(pow(10.0, $0)) }
             ), in: log10(20.0) ... log10(20000.0))
                 .tint(appState.accentColor)
@@ -137,6 +143,8 @@ struct ToneGeneratorDetailView: View {
     // MARK: - Presets Row
     @ViewBuilder
     private var presetsRow: some View {
+        let safeFreq = tools.toneGenerator.frequencyHz.isFinite ? tools.toneGenerator.frequencyHz : 440.0
+
         HStack(spacing: SpacingTheme.compact) {
             ForEach(quickPresets, id: \.self) { freq in
                 Button {
@@ -145,7 +153,7 @@ struct ToneGeneratorDetailView: View {
                 } label: {
                     Text(freq >= 1000 ? "\(Int(freq / 1000))k" : "\(Int(freq))")
                         .font(Typography.badgeTagMonoMedium)
-                        .foregroundStyle(abs(tools.toneGenerator.frequencyHz - freq) < 1.0 ? appState.accentColor : Theme.textSecondary(for: colorScheme))
+                        .foregroundStyle(abs(safeFreq - freq) < 1.0 ? appState.accentColor : Theme.textSecondary(for: colorScheme))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, SpacingTheme.compact)
                         .background(
@@ -176,7 +184,7 @@ struct ToneGeneratorDetailView: View {
                 Text(isPlaying ? L10n.Tools.stopTone : L10n.Tools.generateTone)
                     .font(Typography.headlineValue)
             }
-            .foregroundStyle(Color.white)
+            .foregroundStyle(isPlaying ? Color.white : Theme.contrastingForeground(for: appState.accentColor))
             .frame(maxWidth: .infinity)
             .frame(height: 50)
             .background(
@@ -227,7 +235,7 @@ struct ToneGeneratorDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         if tools.toneGenerator.isPlaying {
-                            tools.toggleToneGenerator()
+                            tools.stopToneGenerator()
                         }
                         showHearingTest = false
                     } label: {
@@ -239,6 +247,11 @@ struct ToneGeneratorDetailView: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .onDisappear {
+            if tools.toneGenerator.isPlaying {
+                tools.stopToneGenerator()
+            }
+        }
     }
 
     @ViewBuilder

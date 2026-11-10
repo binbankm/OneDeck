@@ -94,7 +94,7 @@ public final class SystemViewModel {
 
     private static let bootDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.locale = Locale.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
         return formatter
     }()
@@ -115,12 +115,14 @@ public final class SystemViewModel {
         }
     }
     public var isCleaningCache: Bool = false
+    public var lastCachePurgedAt: Date?
     public var hardwareSpecs: DetailedHardwareSpecs = .init()
 
     // MARK: - Thermal & Real-Time Temperature Telemetry
     public var batteryTemperature: Double = 31.5
     public var socTemperature: Double = 34.2
     public var thermalPressurePercent: Int = 12
+    public var isThermalEstimated: Bool = false
 
     public var batteryTemperatureFormatted: String {
         String(format: "%.1f °C", batteryTemperature)
@@ -136,7 +138,8 @@ public final class SystemViewModel {
 
     public var osVersion: String {
         #if canImport(UIKit)
-        return "iOS " + UIDevice.current.systemVersion
+        let prefix = UIDevice.current.userInterfaceIdiom == .pad ? "iPadOS " : "iOS "
+        return prefix + UIDevice.current.systemVersion
         #else
         return "Darwin"
         #endif
@@ -158,8 +161,8 @@ public final class SystemViewModel {
 
     // MARK: - Private State
     private var previousCoreLoads: [CoreLoad] = []
-    private var previousInBytes: UInt64 = 0
-    private var previousOutBytes: UInt64 = 0
+    private var previousInterfaceCounters: [String: (inBytes: UInt32, outBytes: UInt32)] = [:]
+    private var hasPreviousNetworkSample: Bool = false
     private var previousNetworkTime: Date = .init()
     private var timer: Timer?
     private var isMonitoring: Bool = false
@@ -172,9 +175,9 @@ public final class SystemViewModel {
         self.coreUsages = Array(repeating: 0.0, count: coreCount)
         self.totalPhysicalMemory = ProcessInfo.processInfo.physicalMemory
 
-        let (initialIn, initialOut, iface) = Self.readNetworkInterfaceBytes()
-        self.previousInBytes = initialIn
-        self.previousOutBytes = initialOut
+        let (initialCounters, iface) = Self.readNetworkInterfaceCounters()
+        self.previousInterfaceCounters = initialCounters
+        self.hasPreviousNetworkSample = !initialCounters.isEmpty
         self.previousNetworkTime = Date()
         self.activeInterfaceRaw = iface
 
@@ -189,17 +192,42 @@ public final class SystemViewModel {
         isMonitoring = true
         tickCount = 0
         refreshAll(forceStorage: true)
+        scheduleMonitoringTimer()
+    }
+
+    public func applyPowerSavingPreference() {
+        guard isMonitoring else { return }
+        scheduleMonitoringTimer()
+    }
+
+    private func scheduleMonitoringTimer() {
         timer?.invalidate()
         let interval: TimeInterval = AppState.shared.isSensorPowerSaving ? 3.0 : 1.0
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        let scheduledTimer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             self?.tick()
         }
+        RunLoop.main.add(scheduledTimer, forMode: .common)
+        timer = scheduledTimer
+    }
+
+    @MainActor
+    public func refreshLocalizedStrings() {
+        updateUptime()
+    }
+
+    public func refreshDisplaySpecs() {
+        var updated = hardwareSpecs
+        populateDisplaySpecs(into: &updated)
+        hardwareSpecs = updated
     }
 
     public func stopMonitoring() {
         isMonitoring = false
         timer?.invalidate()
         timer = nil
+        previousCoreLoads = []
+        previousInterfaceCounters = [:]
+        hasPreviousNetworkSample = false
     }
 
     private func tick() {
@@ -249,24 +277,24 @@ public final class SystemViewModel {
 
         let count = Int(processorCount)
         var newUsages: [Double] = []
-        var totalActiveTicks: UInt32 = 0
-        var totalAllTicks: UInt32 = 0
+        var totalActiveTicks: UInt64 = 0
+        var totalAllTicks: UInt64 = 0
 
         for i in 0 ..< count {
             let offset = Int(CPU_STATE_MAX) * i
-            let user = UInt32(info[offset + Int(CPU_STATE_USER)])
-            let system = UInt32(info[offset + Int(CPU_STATE_SYSTEM)])
-            let idle = UInt32(info[offset + Int(CPU_STATE_IDLE)])
-            let nice = UInt32(info[offset + Int(CPU_STATE_NICE)])
+            let user = UInt32(bitPattern: info[offset + Int(CPU_STATE_USER)])
+            let system = UInt32(bitPattern: info[offset + Int(CPU_STATE_SYSTEM)])
+            let idle = UInt32(bitPattern: info[offset + Int(CPU_STATE_IDLE)])
+            let nice = UInt32(bitPattern: info[offset + Int(CPU_STATE_NICE)])
 
             let currentLoad = CoreLoad(user: user, system: system, idle: idle, nice: nice)
 
             if previousCoreLoads.count > i {
                 let prev = previousCoreLoads[i]
-                let userDiff = user >= prev.user ? user - prev.user : 0
-                let systemDiff = system >= prev.system ? system - prev.system : 0
-                let idleDiff = idle >= prev.idle ? idle - prev.idle : 0
-                let niceDiff = nice >= prev.nice ? nice - prev.nice : 0
+                let userDiff = Self.computeCounterDelta(current: user, previous: prev.user)
+                let systemDiff = Self.computeCounterDelta(current: system, previous: prev.system)
+                let idleDiff = Self.computeCounterDelta(current: idle, previous: prev.idle)
+                let niceDiff = Self.computeCounterDelta(current: nice, previous: prev.nice)
 
                 let totalDiff = userDiff + systemDiff + idleDiff + niceDiff
                 let activeDiff = userDiff + systemDiff + niceDiff
@@ -306,13 +334,30 @@ public final class SystemViewModel {
     }
 
     // MARK: - 2. Real-Time Network Bandwidth (getifaddrs)
+    public nonisolated static func computeCounterDelta(current: UInt32, previous: UInt32) -> UInt64 {
+        if current >= previous {
+            return UInt64(current - previous)
+        }
+        let wrappedDelta = (UInt64(UInt32.max) - UInt64(previous)) + 1 + UInt64(current)
+        // Treat wraparound <= 2 GiB as 32-bit unsigned rollover; larger drops indicate counter reset
+        return wrappedDelta <= 2_147_483_648 ? wrappedDelta : UInt64(current)
+    }
+
     private func updateNetworkBandwidth() {
-        let (currentIn, currentOut, iface) = Self.readNetworkInterfaceBytes()
+        let (currentCounters, iface) = Self.readNetworkInterfaceCounters()
         let now = Date()
         let timeDelta = max(0.5, now.timeIntervalSince(previousNetworkTime))
 
-        if previousInBytes > 0 && currentIn >= previousInBytes {
-            let deltaIn = currentIn - previousInBytes
+        if hasPreviousNetworkSample {
+            var deltaIn: UInt64 = 0
+            var deltaOut: UInt64 = 0
+            for (name, cur) in currentCounters {
+                if let prev = previousInterfaceCounters[name] {
+                    deltaIn += Self.computeCounterDelta(current: cur.inBytes, previous: prev.inBytes)
+                    deltaOut += Self.computeCounterDelta(current: cur.outBytes, previous: prev.outBytes)
+                }
+            }
+
             self.sessionTotalInBytes += deltaIn
             let speedDown = UInt64(Double(deltaIn) / timeDelta)
             self.downloadSpeedBytes = speedDown
@@ -323,10 +368,7 @@ public final class SystemViewModel {
             if self.downloadHistory.count > maxHistoryPoints {
                 self.downloadHistory.removeFirst(self.downloadHistory.count - maxHistoryPoints)
             }
-        }
 
-        if previousOutBytes > 0 && currentOut >= previousOutBytes {
-            let deltaOut = currentOut - previousOutBytes
             self.sessionTotalOutBytes += deltaOut
             let speedUp = UInt64(Double(deltaOut) / timeDelta)
             self.uploadSpeedBytes = speedUp
@@ -339,38 +381,51 @@ public final class SystemViewModel {
             }
         }
 
-        self.previousInBytes = currentIn
-        self.previousOutBytes = currentOut
+        self.previousInterfaceCounters = currentCounters
+        self.hasPreviousNetworkSample = !currentCounters.isEmpty
         self.previousNetworkTime = now
         self.activeInterfaceRaw = iface
     }
 
-    private static func readNetworkInterfaceBytes() -> (UInt64, UInt64, String) {
+    private static func readNetworkInterfaceCounters() -> ([String: (inBytes: UInt32, outBytes: UInt32)], String) {
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else {
-            return (0, 0, "en0")
+            return ([:], "en0")
         }
         defer { freeifaddrs(ifaddr) }
 
-        var totalIn: UInt64 = 0
-        var totalOut: UInt64 = 0
+        var counters: [String: (inBytes: UInt32, outBytes: UInt32)] = [:]
         var detectedInterface = "en0"
+        var hasPreferredEn = false
 
         for ptr in sequence(first: firstAddr, next: { $0.pointee.ifa_next }) {
-            let addr = ptr.pointee.ifa_addr.pointee
+            guard let addrPtr = ptr.pointee.ifa_addr else { continue }
+            let flags = Int32(ptr.pointee.ifa_flags)
+            guard (flags & IFF_UP) != 0, (flags & IFF_LOOPBACK) == 0 else { continue }
+
+            let addr = addrPtr.pointee
             if addr.sa_family == UInt8(AF_LINK) {
                 let name = String(cString: ptr.pointee.ifa_name)
                 if name.hasPrefix("en") || name.hasPrefix("pdp_ip") {
                     if let data = ptr.pointee.ifa_data {
                         let networkData = data.assumingMemoryBound(to: if_data.self)
-                        totalIn += UInt64(networkData.pointee.ifi_ibytes)
-                        totalOut += UInt64(networkData.pointee.ifi_obytes)
-                        detectedInterface = name
+                        counters[name] = (networkData.pointee.ifi_ibytes, networkData.pointee.ifi_obytes)
+                        if (flags & IFF_RUNNING) != 0 {
+                            if name == "en0" {
+                                detectedInterface = name
+                                hasPreferredEn = true
+                            } else if name.hasPrefix("en") && !hasPreferredEn {
+                                detectedInterface = name
+                                hasPreferredEn = true
+                            } else if !hasPreferredEn && name.hasPrefix("pdp_ip") {
+                                detectedInterface = name
+                            }
+                        }
                     }
                 }
             }
         }
-        return (totalIn, totalOut, detectedInterface)
+        return (counters, detectedInterface)
     }
 
     public static func formatSpeed(bytesPerSec: UInt64) -> String {
@@ -454,7 +509,7 @@ public final class SystemViewModel {
         guard result == 0 else { return }
 
         let bootDate = Date(timeIntervalSince1970: TimeInterval(bootTime.tv_sec))
-        let uptimeSeconds = Int(Date().timeIntervalSince(bootDate))
+        let uptimeSeconds = max(0, Int(Date().timeIntervalSince(bootDate)))
 
         let days = uptimeSeconds / 86400
         let hours = (uptimeSeconds % 86400) / 3600
@@ -467,17 +522,21 @@ public final class SystemViewModel {
     // MARK: - 6. Device Identification & Full Specs
     private func resolveDeviceIdentity() {
         var size = 0
-        sysctlbyname("hw.machine", nil, &size, nil, 0)
-        var machine = [CChar](repeating: 0, count: size)
-        sysctlbyname("hw.machine", &machine, &size, nil, 0)
-        let identifier = String(cString: machine)
-        self.machineIdentifier = identifier
+        if sysctlbyname("hw.machine", nil, &size, nil, 0) == 0 && size > 0 {
+            var machine = [CChar](repeating: 0, count: size)
+            if sysctlbyname("hw.machine", &machine, &size, nil, 0) == 0 {
+                self.machineIdentifier = String(cString: machine)
+            }
+        }
+        let identifier = self.machineIdentifier
 
         var modelSize = 0
-        sysctlbyname("hw.model", nil, &modelSize, nil, 0)
-        var modelChars = [CChar](repeating: 0, count: modelSize)
-        sysctlbyname("hw.model", &modelChars, &modelSize, nil, 0)
-        self.boardId = String(cString: modelChars)
+        if sysctlbyname("hw.model", nil, &modelSize, nil, 0) == 0 && modelSize > 0 {
+            var modelChars = [CChar](repeating: 0, count: modelSize)
+            if sysctlbyname("hw.model", &modelChars, &modelSize, nil, 0) == 0 {
+                self.boardId = String(cString: modelChars)
+            }
+        }
 
         let (marketing, chip) = Self.lookupDevice(identifier: identifier)
         self.marketingName = marketing
@@ -514,42 +573,72 @@ public final class SystemViewModel {
         }
     }
 
-    private func resolveHardwareInventory() {
-        var specs = DetailedHardwareSpecs()
+    #if canImport(UIKit)
+    public static func activeDisplayScreen() -> UIScreen? {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first(where: { $0.activationState == .foregroundActive })?.screen
+            ?? UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.screen
+    }
+    #endif
 
-        // 1. Display Hardware
+    private func populateDisplaySpecs(into specs: inout DetailedHardwareSpecs) {
         #if canImport(UIKit)
-        let screen = UIScreen.main
-        let nativeBounds = screen.nativeBounds
-        if nativeBounds.width > 0 && nativeBounds.height > 0 {
-            specs.physicalWidth = Int(nativeBounds.width)
-            specs.physicalHeight = Int(nativeBounds.height)
-        } else {
-            let bounds = screen.bounds
-            let scale = screen.scale
-            specs.physicalWidth = Int(bounds.width * scale)
-            specs.physicalHeight = Int(bounds.height * scale)
+        if let screen = Self.activeDisplayScreen() {
+            let nativeBounds = screen.nativeBounds
+            if nativeBounds.width > 0 && nativeBounds.height > 0 {
+                specs.physicalWidth = Int(nativeBounds.width)
+                specs.physicalHeight = Int(nativeBounds.height)
+            } else {
+                let bounds = screen.bounds
+                let scale = screen.scale
+                specs.physicalWidth = Int(bounds.width * scale)
+                specs.physicalHeight = Int(bounds.height * scale)
+            }
+            let rawScale = screen.nativeScale > 0 ? screen.nativeScale : screen.scale
+            specs.scale = Int(round(rawScale))
+            specs.nativeScaleValue = Double(rawScale)
+            specs.maxFps = screen.maximumFramesPerSecond
         }
-        specs.scale = Int(screen.nativeScale > 0 ? screen.nativeScale : screen.scale)
-        specs.maxFps = screen.maximumFramesPerSecond
-        if machineIdentifier.hasPrefix("iPhone11,2") || machineIdentifier.hasPrefix("iPhone11,4") || machineIdentifier.hasPrefix("iPhone11,6") || machineIdentifier.hasPrefix(
-            "iPhone10,3"
-        ) || machineIdentifier.hasPrefix("iPhone10,6") {
+        if machineIdentifier.hasPrefix("iPad16,3") || machineIdentifier.hasPrefix("iPad16,4") ||
+            machineIdentifier.hasPrefix("iPad16,5") || machineIdentifier.hasPrefix("iPad16,6") ||
+            machineIdentifier.hasPrefix("iPad17,") {
+            specs.ppi = 264
+            specs.panelType = .ultraRetinaXDR
+        } else if machineIdentifier.hasPrefix("iPad14,1") || machineIdentifier.hasPrefix("iPad14,2") ||
+            machineIdentifier.hasPrefix("iPad16,1") || machineIdentifier.hasPrefix("iPad16,2") ||
+            machineIdentifier.hasPrefix("iPad11,1") || machineIdentifier.hasPrefix("iPad11,2") {
+            specs.ppi = 326
+            specs.panelType = .liquidRetina
+        } else if machineIdentifier.hasPrefix("iPad") {
+            specs.ppi = 264
+            specs.panelType = .liquidRetina
+        } else if machineIdentifier.hasPrefix("iPhone11,2") || machineIdentifier.hasPrefix("iPhone11,4") ||
+            machineIdentifier.hasPrefix("iPhone11,6") || machineIdentifier.hasPrefix("iPhone10,3") ||
+            machineIdentifier.hasPrefix("iPhone10,6") {
             specs.ppi = 458
             specs.panelType = .superRetinaHD
         } else if machineIdentifier.hasPrefix("iPhone14,4") || machineIdentifier.hasPrefix("iPhone13,1") {
             specs.ppi = 476
             specs.panelType = .superRetinaXDROLED
-        } else if machineIdentifier.hasPrefix("iPad16,3") || machineIdentifier.hasPrefix("iPad16,4") || machineIdentifier.hasPrefix("iPad16,5") || machineIdentifier.hasPrefix(
-            "iPad16,6"
-        ) || machineIdentifier.hasPrefix("iPad17") {
-            specs.ppi = 264
-            specs.panelType = .ultraRetinaXDR
-        } else if machineIdentifier.hasPrefix("iPhone11,8") || machineIdentifier.hasPrefix("iPhone12,1") || machineIdentifier.hasPrefix("iPhone12,8") || machineIdentifier.hasPrefix(
-            "iPhone14,6"
-        ) {
+        } else if machineIdentifier.hasPrefix("iPhone11,8") || machineIdentifier.hasPrefix("iPhone12,1") ||
+            machineIdentifier.hasPrefix("iPhone12,8") || machineIdentifier.hasPrefix("iPhone14,6") ||
+            machineIdentifier.hasPrefix("iPhone10,1") || machineIdentifier.hasPrefix("iPhone10,4") ||
+            machineIdentifier.hasPrefix("iPhone9,1") || machineIdentifier.hasPrefix("iPhone9,3") ||
+            machineIdentifier.hasPrefix("iPhone8,1") || machineIdentifier.hasPrefix("iPhone8,4") {
             specs.ppi = 326
             specs.panelType = .liquidRetina
+        } else if machineIdentifier.hasPrefix("iPhone10,2") || machineIdentifier.hasPrefix("iPhone10,5") ||
+            machineIdentifier.hasPrefix("iPhone9,2") || machineIdentifier.hasPrefix("iPhone9,4") ||
+            machineIdentifier.hasPrefix("iPhone8,2") {
+            specs.ppi = 401
+            specs.panelType = .retina
+        } else if machineIdentifier == "arm64" || machineIdentifier == "x86_64" {
+            let isPad = UIDevice.current.userInterfaceIdiom == .pad
+            specs.ppi = isPad ? 264 : 460
+            specs.panelType = isPad ? .liquidRetina : (specs.maxFps >= 120 ? .superRetinaXDRProMotion : .superRetinaXDROLED)
         } else if specs.maxFps >= 120 {
             specs.ppi = 460
             specs.panelType = .superRetinaXDRProMotion
@@ -558,6 +647,13 @@ public final class SystemViewModel {
             specs.panelType = .superRetinaXDROLED
         }
         #endif
+    }
+
+    private func resolveHardwareInventory() {
+        var specs = DetailedHardwareSpecs()
+
+        // 1. Display Hardware
+        populateDisplaySpecs(into: &specs)
 
         // 2. SoC Microarchitecture & Neural Engine (Direct Sysctl Telemetry)
         let probe = DeviceHardwareProbe.sample()
@@ -583,8 +679,8 @@ public final class SystemViewModel {
             specs.aneTier = .a11
             specs.gpuCores = 3
             specs.metalFeatureSet = "Metal 2 (Family 4)"
-            specs.l1dKb = 64
-            specs.l2Mb = 8
+            if probe.l1dKb == nil { specs.l1dKb = 64 }
+            if probe.l2Mb == nil { specs.l2Mb = 8 }
         } else if chipName.contains("A12") {
             specs.processNodeZh = "7nm (台积电 FinFET)"
             specs.processNodeEn = "7nm (TSMC FinFET)"
@@ -592,8 +688,8 @@ public final class SystemViewModel {
             specs.aneTier = .a12
             specs.gpuCores = chipName.contains("X") || chipName.contains("Z") ? 8 : 4
             specs.metalFeatureSet = "Metal 2 (Family 5)"
-            specs.l1dKb = 128
-            specs.l2Mb = 8
+            if probe.l1dKb == nil { specs.l1dKb = 128 }
+            if probe.l2Mb == nil { specs.l2Mb = 8 }
         } else if chipName.contains("A13") {
             specs.processNodeZh = "7nm (台积电 N7P)"
             specs.processNodeEn = "7nm (TSMC N7P)"
@@ -601,8 +697,8 @@ public final class SystemViewModel {
             specs.aneTier = .a13
             specs.gpuCores = 4
             specs.metalFeatureSet = "Metal 2 (Family 6)"
-            specs.l1dKb = 128
-            specs.l2Mb = 8
+            if probe.l1dKb == nil { specs.l1dKb = 128 }
+            if probe.l2Mb == nil { specs.l2Mb = 8 }
         } else if chipName.contains("A14") {
             specs.processNodeZh = "5nm (台积电 N5)"
             specs.processNodeEn = "5nm (TSMC N5)"
@@ -610,19 +706,19 @@ public final class SystemViewModel {
             specs.aneTier = .a14
             specs.gpuCores = 4
             specs.metalFeatureSet = "Metal 3 (Family 7)"
-            specs.l1dKb = 128
-            specs.l2Mb = 16
+            if probe.l1dKb == nil { specs.l1dKb = 128 }
+            if probe.l2Mb == nil { specs.l2Mb = 16 }
         } else if chipName.contains("A15") {
             specs.processNodeZh = "5nm (台积电 N5P)"
             specs.processNodeEn = "5nm (TSMC N5P)"
             specs.isaTier = .armV86
             specs.aneTier = .a15
-            specs.gpuCores = machineIdentifier.contains("iPhone14,2") || machineIdentifier.contains("iPhone14,3") || machineIdentifier.contains("iPhone14,7") || machineIdentifier.contains(
-                "iPhone14,8"
-            ) ? 5 : 4
+            specs.gpuCores = machineIdentifier.contains("iPhone14,2") || machineIdentifier.contains("iPhone14,3") ||
+                machineIdentifier.contains("iPhone14,7") || machineIdentifier.contains("iPhone14,8") ||
+                machineIdentifier.contains("iPad14,1") || machineIdentifier.contains("iPad14,2") ? 5 : 4
             specs.metalFeatureSet = "Metal 3 (Family 8)"
-            specs.l1dKb = 128
-            specs.l2Mb = 12
+            if probe.l1dKb == nil { specs.l1dKb = 128 }
+            if probe.l2Mb == nil { specs.l2Mb = 12 }
         } else if chipName.contains("A16") {
             specs.processNodeZh = "4nm (台积电 N4P)"
             specs.processNodeEn = "4nm (TSMC N4P)"
@@ -630,8 +726,8 @@ public final class SystemViewModel {
             specs.aneTier = .a16
             specs.gpuCores = 5
             specs.metalFeatureSet = "Metal 3 (Family 8)"
-            specs.l1dKb = 128
-            specs.l2Mb = 16
+            if probe.l1dKb == nil { specs.l1dKb = 128 }
+            if probe.l2Mb == nil { specs.l2Mb = 16 }
         } else if chipName.contains("A17") {
             specs.processNodeZh = "3nm (台积电 N3B)"
             specs.processNodeEn = "3nm (TSMC N3B)"
@@ -639,17 +735,17 @@ public final class SystemViewModel {
             specs.aneTier = .a17Pro
             specs.gpuCores = 6
             specs.metalFeatureSet = "Metal 3 (Family 9)"
-            specs.l1dKb = 128
-            specs.l2Mb = 16
+            if probe.l1dKb == nil { specs.l1dKb = 128 }
+            if probe.l2Mb == nil { specs.l2Mb = 16 }
         } else if chipName.contains("A18") {
             specs.processNodeZh = "3nm (台积电 N3E)"
             specs.processNodeEn = "3nm (TSMC N3E)"
             specs.isaTier = .armV92
             specs.aneTier = .a18Plus
-            specs.gpuCores = chipName.contains("Pro") ? 6 : 5
+            specs.gpuCores = machineIdentifier == "iPhone17,5" ? 4 : (chipName.contains("Pro") ? 6 : 5)
             specs.metalFeatureSet = "Metal 3 (Family 9)"
-            specs.l1dKb = 128
-            specs.l2Mb = 16
+            if probe.l1dKb == nil { specs.l1dKb = 128 }
+            if probe.l2Mb == nil { specs.l2Mb = 16 }
         } else if chipName.contains("A19") || chipName.contains("A20") {
             specs.processNodeZh = chipName.contains("A20") ? "2nm (台积电 N2)" : "3nm (台积电 N3P)"
             specs.processNodeEn = chipName.contains("A20") ? "2nm (TSMC N2)" : "3nm (TSMC N3P)"
@@ -657,17 +753,31 @@ public final class SystemViewModel {
             specs.aneTier = .a18Plus
             specs.gpuCores = 6
             specs.metalFeatureSet = "Metal 3 (Family 10)"
-            specs.l1dKb = 128
-            specs.l2Mb = 24
+            if probe.l1dKb == nil { specs.l1dKb = 128 }
+            if probe.l2Mb == nil { specs.l2Mb = 24 }
         } else if chipName.contains("M") {
             specs.processNodeZh = "Apple Silicon 高性能工艺"
             specs.processNodeEn = "Apple Silicon Process"
             specs.isaTier = .armV85
             specs.aneTier = .appleSiliconM
-            specs.gpuCores = 8
+            if chipName.contains("M1") {
+                specs.gpuCores = 8
+            } else if chipName.contains("M2") {
+                specs.gpuCores = machineIdentifier.hasPrefix("iPad14,8") || machineIdentifier.hasPrefix("iPad14,9") ||
+                    machineIdentifier.hasPrefix("iPad14,10") || machineIdentifier.hasPrefix("iPad14,11") ? 9 : 10
+            } else if chipName.contains("M3") {
+                specs.gpuCores = 9
+            } else if chipName.contains("M4") {
+                specs.gpuCores = machineIdentifier.hasPrefix("iPad16,8") || machineIdentifier.hasPrefix("iPad16,9") ||
+                    machineIdentifier.hasPrefix("iPad16,10") || machineIdentifier.hasPrefix("iPad16,11") ? 9 : 10
+            } else if chipName.contains("M5") {
+                specs.gpuCores = 10
+            } else {
+                specs.gpuCores = 8
+            }
             specs.metalFeatureSet = "Metal 3 (Family 8)"
-            specs.l1dKb = 128
-            specs.l2Mb = 16
+            if probe.l1dKb == nil { specs.l1dKb = 128 }
+            if probe.l2Mb == nil { specs.l2Mb = 16 }
         } else {
             specs.processNodeZh = "台积电先进半导体制程"
             specs.processNodeEn = "Advanced TSMC Process"
@@ -675,8 +785,8 @@ public final class SystemViewModel {
             specs.aneTier = .standard
             specs.gpuCores = 4
             specs.metalFeatureSet = "Metal 2"
-            specs.l1dKb = 128
-            specs.l2Mb = 8
+            if probe.l1dKb == nil { specs.l1dKb = 128 }
+            if probe.l2Mb == nil { specs.l2Mb = 8 }
         }
 
         // 3. Metal GPU Graphics
@@ -701,16 +811,27 @@ public final class SystemViewModel {
         specs.hasLiDAR = discovery.devices.contains { $0.deviceType == .builtInLiDARDepthCamera }
 
         // 6. Physical Port
-        if machineIdentifier.hasPrefix("iPhone16,1") || machineIdentifier.hasPrefix("iPhone16,2") ||
+        if machineIdentifier == "arm64" || machineIdentifier == "x86_64" ||
+            (!machineIdentifier.hasPrefix("iPhone") && !machineIdentifier.hasPrefix("iPad")) {
+            // Simulator or unknown host architecture: leave port flags unset -> "--"
+        } else if machineIdentifier.hasPrefix("iPhone15,2") || machineIdentifier.hasPrefix("iPhone15,3") ||
+            machineIdentifier.hasPrefix("iPad12,") || machineIdentifier.hasPrefix("iPad11,") ||
+            machineIdentifier.hasPrefix("iPad7,") {
+            specs.isLightning = true
+        } else if machineIdentifier.hasPrefix("iPhone16,1") || machineIdentifier.hasPrefix("iPhone16,2") ||
             machineIdentifier.hasPrefix("iPhone17,1") || machineIdentifier.hasPrefix("iPhone17,2") ||
             machineIdentifier.hasPrefix("iPhone18,1") || machineIdentifier.hasPrefix("iPhone18,2") ||
             machineIdentifier.hasPrefix("iPhone19,2") || machineIdentifier.hasPrefix("iPhone19,3") ||
             machineIdentifier.hasPrefix("iPhone19,4") || machineIdentifier.hasPrefix("iPad16") ||
-            machineIdentifier.hasPrefix("iPad17") {
+            machineIdentifier.hasPrefix("iPad17") || machineIdentifier.hasPrefix("iPad14") ||
+            machineIdentifier.hasPrefix("iPad15,3") || machineIdentifier.hasPrefix("iPad15,4") ||
+            machineIdentifier.hasPrefix("iPad15,5") || machineIdentifier.hasPrefix("iPad15,6") ||
+            (machineIdentifier.hasPrefix("iPad13") && !machineIdentifier.hasPrefix("iPad13,18") && !machineIdentifier.hasPrefix("iPad13,19")) {
             specs.isUsbC10G = true
-        } else if machineIdentifier.hasPrefix("iPhone15") || machineIdentifier.hasPrefix("iPhone16") ||
+        } else if machineIdentifier.hasPrefix("iPhone15,4") || machineIdentifier.hasPrefix("iPhone15,5") ||
             machineIdentifier.hasPrefix("iPhone17") || machineIdentifier.hasPrefix("iPhone18") ||
-            machineIdentifier.hasPrefix("iPhone19") || machineIdentifier.hasPrefix("iPad") {
+            machineIdentifier.hasPrefix("iPhone19") || machineIdentifier.hasPrefix("iPad13,18") ||
+            machineIdentifier.hasPrefix("iPad13,19") || machineIdentifier.hasPrefix("iPad15") {
             specs.isUsbC480M = true
         } else {
             specs.isLightning = true
@@ -726,20 +847,22 @@ public final class SystemViewModel {
         isCleaningCache = true
         Haptics.impact(.medium)
 
+        URLCache.shared.removeAllCachedResponses()
+
         await Task.detached(priority: .userInitiated) {
-            let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("onedeck_purge_temp")
-            try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-            let dummyData = Data(repeating: 0xFF, count: 10 * 1024 * 1024)
-            for i in 0 ..< 5 {
-                let file = tempDir.appendingPathComponent("block_\(i).tmp")
-                try? dummyData.write(to: file)
+            let fm = FileManager.default
+            let tempDir = fm.temporaryDirectory
+            if let children = try? fm.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil) {
+                for child in children {
+                    try? fm.removeItem(at: child)
+                }
             }
-            try? FileManager.default.removeItem(at: tempDir)
-            try? await Task.sleep(nanoseconds: 600_000_000)
+            try? await Task.sleep(nanoseconds: 250_000_000)
         }.value
 
         updateStorageUsage()
         updateMemoryUsage()
+        lastCachePurgedAt = Date()
         isCleaningCache = false
         Haptics.success()
     }
@@ -752,7 +875,7 @@ public final class SystemViewModel {
         // Query hardware temperature sensors via HardwareBatteryProbe
         let hw = HardwareBatteryProbe.sample()
 
-        // 2. Base temperature & throttling load baseline
+        // Base temperature & throttling load baseline
         let baseTemp: Double
         let pressure: Int
         switch state {
@@ -773,27 +896,29 @@ public final class SystemViewModel {
             pressure = 15
         }
 
-        // Apply physical reading or realistic smooth thermal model
+        var estimated = false
         if let bTemp = hw.temperatureCelsius {
             self.batteryTemperature = bTemp
         } else {
+            estimated = true
             let target = baseTemp + (Double(totalCpuUsage) / 100.0) * 2.5
             self.batteryTemperature = self.batteryTemperature * 0.85 + target * 0.15
         }
 
-        // Apply physical SoC temperature reading from IOHIDEventSystemClient
         if let sTemp = hw.socTemperatureCelsius {
             self.socTemperature = sTemp
         } else {
+            estimated = true
             let socTarget = self.batteryTemperature + 2.0 + (Double(totalCpuUsage) / 100.0) * 8.5
             self.socTemperature = self.socTemperature * 0.8 + socTarget * 0.2
         }
 
+        self.isThermalEstimated = estimated
         self.thermalPressurePercent = min(100, max(5, pressure + Int(totalCpuUsage * 0.2)))
     }
 
     // MARK: - Device Database Lookup
-    private static func lookupDevice(identifier: String) -> (String, String) {
+    public static func lookupDevice(identifier: String) -> (String, String) {
         switch identifier {
         // iPhone 18 Family (Late 2026)
         case "iPhone19,1": return ("iPhone 18", "Apple A20")
@@ -874,11 +999,16 @@ public final class SystemViewModel {
         case "iPad14,10", "iPad14,11": return ("iPad Air 13-inch (M2)", "Apple M2")
         case "iPad13,16", "iPad13,17": return ("iPad Air (5th gen)", "Apple M1")
         case "iPad13,1", "iPad13,2": return ("iPad Air (4th gen)", "Apple A14 Bionic")
-        // iPad mini 6 & Base iPads
+        // iPad mini 6/5 & Base iPads & iPad Air M3
         case "iPad14,1", "iPad14,2": return ("iPad mini (6th gen)", "Apple A15 Bionic")
-        case "iPad15,1", "iPad15,2": return ("iPad (11th gen)", "Apple A16 Bionic")
+        case "iPad11,1", "iPad11,2": return ("iPad mini (5th gen)", "Apple A12 Bionic")
+        case "iPad11,3", "iPad11,4": return ("iPad Air (3rd gen)", "Apple A12 Bionic")
+        case "iPad15,3", "iPad15,4": return ("iPad Air 11-inch (M3)", "Apple M3")
+        case "iPad15,5", "iPad15,6": return ("iPad Air 13-inch (M3)", "Apple M3")
+        case "iPad15,1", "iPad15,2", "iPad15,7", "iPad15,8": return ("iPad (11th gen)", "Apple A16 Bionic")
         case "iPad13,18", "iPad13,19": return ("iPad (10th gen)", "Apple A14 Bionic")
         case "iPad12,1", "iPad12,2": return ("iPad (9th gen)", "Apple A13 Bionic")
+        case "iPad11,6", "iPad11,7": return ("iPad (8th gen)", "Apple A12 Bionic")
         case "arm64", "x86_64":
             return ("Apple Silicon Simulator", "Apple Silicon Host")
         default:

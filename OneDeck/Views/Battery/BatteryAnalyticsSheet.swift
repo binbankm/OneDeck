@@ -21,6 +21,8 @@ struct BatteryAnalyticsSheet: View {
     @State private var errorMessage: String?
     @State private var successRecord: BatteryAnalyticsRecord?
     @State private var isShowingFilePicker: Bool = false
+    @State private var autoDismissTask: Task<Void, Never>?
+    @FocusState private var isPasteEditorFocused: Bool
 
     // MARK: - Body
     var body: some View {
@@ -35,6 +37,7 @@ struct BatteryAnalyticsSheet: View {
                 }
                 .padding(SpacingTheme.cardStack)
             }
+            .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Battery.guideTitle)
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $isShowingFilePicker) {
@@ -66,6 +69,17 @@ struct BatteryAnalyticsSheet: View {
                     .font(Typography.sectionHeader)
                     .foregroundStyle(appState.accentColor)
                 }
+
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button(L10n.Common.done) {
+                        isPasteEditorFocused = false
+                    }
+                }
+            }
+            .onDisappear {
+                autoDismissTask?.cancel()
+                autoDismissTask = nil
             }
         }
     }
@@ -115,7 +129,7 @@ struct BatteryAnalyticsSheet: View {
             .frame(maxWidth: .infinity)
             .frame(height: 44)
             .background(appState.accentColor)
-            .foregroundStyle(Color.black)
+            .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.button, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -145,6 +159,7 @@ struct BatteryAnalyticsSheet: View {
     private var textPasteSection: some View {
         VStack(alignment: .leading, spacing: SpacingTheme.row) {
             TextEditor(text: $pastedText)
+                .focused($isPasteEditorFocused)
                 .scrollContentBackground(.hidden)
                 .font(Typography.captionMono)
                 .frame(height: 120)
@@ -229,16 +244,19 @@ struct BatteryAnalyticsSheet: View {
 
     // MARK: - Handlers
     private func handleFileImport(url: URL) {
-        Task {
+        isPasteEditorFocused = false
+        autoDismissTask?.cancel()
+        autoDismissTask = Task { @MainActor in
             let parseResult = await battery.parseAnalyticsFile(url: url)
+            guard !Task.isCancelled else { return }
             switch parseResult {
             case let .success(rec):
                 Haptics.success()
                 self.successRecord = rec
                 self.errorMessage = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                    dismiss()
-                }
+                try? await Task.sleep(for: .seconds(1.2))
+                guard !Task.isCancelled else { return }
+                dismiss()
             case let .failure(err):
                 Haptics.error()
                 self.errorMessage = err.localizedDescription
@@ -247,16 +265,20 @@ struct BatteryAnalyticsSheet: View {
     }
 
     private func handlePasteParse() {
+        isPasteEditorFocused = false
         let text = pastedText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
-        let result = battery.parseAnalyticsText(text, sourceName: "Manual Paste")
+        let result = battery.parseAnalyticsText(text, sourceName: L10n.Battery.pasteLogButton)
         switch result {
         case let .success(rec):
             Haptics.success()
             self.successRecord = rec
             self.errorMessage = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            autoDismissTask?.cancel()
+            autoDismissTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.2))
+                guard !Task.isCancelled else { return }
                 dismiss()
             }
         case let .failure(err):

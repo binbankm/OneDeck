@@ -97,7 +97,7 @@ struct ScreenQualityDetailView: View {
                     Text(L10n.Tools.startFullscreenInspection)
                         .font(Typography.calloutBold)
                 }
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
                 .background(appState.accentColor)
@@ -139,7 +139,7 @@ struct ScreenQualityDetailView: View {
 
                 Spacer()
 
-                if let last = touchHistory.last {
+                if let last = touchHistory.last, last.x.isFinite, last.y.isFinite {
                     Text(String(format: "X:%.0f Y:%.0f", last.x, last.y))
                         .font(Typography.badgeTagMono)
                         .foregroundStyle(Theme.textSecondary(for: colorScheme))
@@ -153,6 +153,7 @@ struct ScreenQualityDetailView: View {
                         .font(Typography.badgeTagMono)
                         .foregroundStyle(appState.accentColor)
                 }
+                .buttonStyle(.plain)
             }
 
             // Interactive Drawing Canvas
@@ -184,10 +185,13 @@ struct ScreenQualityDetailView: View {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
             )
+            .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        touchHistory.append(value.location)
+                        let loc = value.location
+                        guard loc.x.isFinite, loc.y.isFinite else { return }
+                        touchHistory.append(loc)
                         if touchHistory.count > 300 {
                             touchHistory.removeFirst()
                         }
@@ -204,8 +208,11 @@ struct ScreenQualityDetailView: View {
     // MARK: - Fullscreen Color Cover
     @ViewBuilder
     private var fullscreenColorCover: some View {
+        let activeFill = testColors.indices.contains(colorIndex) ? testColors[colorIndex] : .black
+        let overlayForeground = Theme.contrastingForeground(for: activeFill)
+
         ZStack {
-            testColors[colorIndex].ignoresSafeArea()
+            activeFill.ignoresSafeArea()
 
             VStack {
                 Spacer()
@@ -213,17 +220,17 @@ struct ScreenQualityDetailView: View {
                 HStack {
                     Text(L10n.Tools.screenColorTitle(index: colorIndex))
                         .font(Typography.badgeTagMono)
-                        .foregroundStyle(colorIndex == 0 ? Color.white.opacity(0.5) : Color.black.opacity(0.5))
+                        .foregroundStyle(overlayForeground.opacity(0.65))
                         .padding(.horizontal, SpacingTheme.standard)
                         .padding(.vertical, SpacingTheme.micro)
-                        .background((colorIndex == 0 ? Color.white : Color.black).opacity(0.12))
+                        .background(overlayForeground.opacity(0.14))
                         .clipShape(Capsule())
 
                     Spacer()
 
                     Text(L10n.Tools.tapToExitFullscreen)
                         .font(Typography.badgeTag)
-                        .foregroundStyle(colorIndex == 0 ? Color.white.opacity(0.5) : Color.black.opacity(0.5))
+                        .foregroundStyle(overlayForeground.opacity(0.65))
                 }
                 .padding()
             }

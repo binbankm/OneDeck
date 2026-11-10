@@ -79,24 +79,28 @@ public final class AppState {
     // MARK: - State Properties
     public var language: AppLanguage {
         didSet {
+            guard oldValue != language else { return }
             UserDefaults.standard.set(language.rawValue, forKey: Keys.language)
         }
     }
 
     public var appearance: AppearanceMode {
         didSet {
+            guard oldValue != appearance else { return }
             UserDefaults.standard.set(appearance.rawValue, forKey: Keys.appearance)
         }
     }
 
     public var themeColorHex: String {
         didSet {
+            guard oldValue != themeColorHex else { return }
             UserDefaults.standard.set(themeColorHex, forKey: Keys.themeHex)
         }
     }
 
     public var isHapticsEnabled: Bool {
         didSet {
+            guard oldValue != isHapticsEnabled else { return }
             UserDefaults.standard.set(isHapticsEnabled, forKey: Keys.haptics)
             if isHapticsEnabled { Haptics.selection() }
         }
@@ -104,6 +108,7 @@ public final class AppState {
 
     public var isSoundEnabled: Bool {
         didSet {
+            guard oldValue != isSoundEnabled else { return }
             UserDefaults.standard.set(isSoundEnabled, forKey: Keys.sound)
             Haptics.selection()
         }
@@ -111,6 +116,7 @@ public final class AppState {
 
     public var isKeepScreenAwake: Bool {
         didSet {
+            guard oldValue != isKeepScreenAwake else { return }
             UserDefaults.standard.set(isKeepScreenAwake, forKey: Keys.keepAwake)
             UIApplication.shared.isIdleTimerDisabled = isKeepScreenAwake
             Haptics.selection()
@@ -119,8 +125,13 @@ public final class AppState {
 
     public var isSensorPowerSaving: Bool {
         didSet {
+            guard oldValue != isSensorPowerSaving else { return }
             UserDefaults.standard.set(isSensorPowerSaving, forKey: Keys.sensorPowerSaving)
             Haptics.selection()
+            SystemViewModel.shared.applyPowerSavingPreference()
+            BatteryViewModel.shared.applyPowerSavingPreference()
+            NetworkViewModel.shared.applyPowerSavingPreference()
+            ToolsViewModel.shared.applyPowerSavingPreference()
         }
     }
 
@@ -142,6 +153,19 @@ public final class AppState {
         }
     }
 
+    public var resolvedLocale: Locale {
+        switch language {
+        case .system:
+            return .autoupdatingCurrent
+        case .zhHans:
+            return Locale(identifier: "zh-Hans")
+        case .en:
+            return Locale(identifier: "en")
+        case .zhHant:
+            return Locale(identifier: "zh-Hant")
+        }
+    }
+
     // MARK: - Initialization
     public init() {
         let savedLangRaw = UserDefaults.standard.string(forKey: Keys.language) ?? AppLanguage.system.rawValue
@@ -150,10 +174,9 @@ public final class AppState {
         let savedAppModeRaw = UserDefaults.standard.string(forKey: Keys.appearance) ?? AppearanceMode.system.rawValue
         self.appearance = AppearanceMode(rawValue: savedAppModeRaw) ?? .system
 
-        let oldDefaultEmerald = "#00DC82"
-        let savedHex = UserDefaults.standard.string(forKey: Keys.themeHex)
-        if let hex = savedHex, hex.caseInsensitiveCompare(oldDefaultEmerald) != .orderedSame {
-            self.themeColorHex = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if let savedHex = UserDefaults.standard.string(forKey: Keys.themeHex),
+           let normalized = Color.normalizedValidHex(savedHex) {
+            self.themeColorHex = normalized
         } else {
             self.themeColorHex = ThemePreset.defaultPreset.hex
         }
@@ -168,26 +191,30 @@ public final class AppState {
 
     // MARK: - Mutators
     public func setThemeHex(_ hex: String) {
-        let normalized = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        guard normalized != themeColorHex else { return }
+        guard let normalized = Color.normalizedValidHex(hex), normalized != themeColorHex else { return }
         self.themeColorHex = normalized
         Haptics.selection()
     }
 
     public func setAppearance(_ mode: AppearanceMode) {
+        guard appearance != mode else { return }
         self.appearance = mode
         Haptics.selection()
     }
 
     public func setLanguage(_ lang: AppLanguage) {
+        guard language != lang else { return }
         self.language = lang
         Haptics.selection()
     }
 
+    @MainActor
     public func resetSensorCalibration() {
-        // Reset spirit level / motion tare bias in UserDefaults
+        // Reset spirit level / motion tare bias and runtime tool calibrations
         UserDefaults.standard.removeObject(forKey: "onedeck_level_tare_roll")
         UserDefaults.standard.removeObject(forKey: "onedeck_level_tare_pitch")
+        UserDefaults.standard.removeObject(forKey: "onedeck_barometer_altitude_tare")
+        ToolsViewModel.shared.resetAllCalibrations(emitHaptic: false)
         Haptics.success()
     }
 }

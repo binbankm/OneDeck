@@ -41,7 +41,10 @@ struct SettingsLanguageCard: View {
             Spacer(minLength: SpacingTheme.standard)
 
             Menu {
-                Picker("", selection: $appState.language) {
+                Picker("", selection: Binding(
+                    get: { appState.language },
+                    set: { appState.setLanguage($0) }
+                )) {
                     ForEach(AppLanguage.allCases) { lang in
                         Text(lang.displayName).tag(lang)
                     }
@@ -63,9 +66,8 @@ struct SettingsLanguageCard: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.compact, style: .continuous))
             }
-            .onChange(of: appState.language) { _, newLang in
-                appState.setLanguage(newLang)
-            }
+            .accessibilityLabel(L10n.Settings.languageSelect)
+            .accessibilityValue(appState.language.displayName)
         }
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.standard)

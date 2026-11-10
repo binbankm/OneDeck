@@ -6,7 +6,6 @@
 //  3D electronic compass and magnetic heading workspace.
 //
 
-import CoreLocation
 import SwiftUI
 
 struct CompassDetailView: View {
@@ -14,47 +13,57 @@ struct CompassDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Bindable private var appState = AppState.shared
     @Bindable private var tools = ToolsViewModel.shared
-
-    private var isHeadingHardwareAvailable: Bool {
-        CLLocationManager.headingAvailable()
-    }
-
-    private var isLocationDenied: Bool {
-        let auth = CLLocationManager().authorizationStatus
-        return auth == .denied || auth == .restricted
-    }
+    @State private var displayHeading: Double = 0.0
 
     // MARK: - Body
     var body: some View {
-        VStack(spacing: SpacingTheme.cardStack) {
-            if !isHeadingHardwareAvailable {
-                hardwareUnavailableBanner
-            } else if isLocationDenied {
-                locationDeniedBanner
+        GeometryReader { geo in
+            let dialSize = max(150, min(250, geo.size.width - 64, geo.size.height * 0.44))
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: SpacingTheme.cardStack) {
+                    if !tools.isHeadingHardwareAvailable {
+                        hardwareUnavailableBanner
+                    } else if tools.isCompassLocationDenied {
+                        locationDeniedBanner
+                    }
+
+                    // Top Degree & Direction Readout
+                    topHeadingHero
+
+                    Spacer(minLength: 0)
+
+                    // Center Rotating Compass Rose
+                    compassRoseDial(size: dialSize)
+
+                    Spacer(minLength: 0)
+
+                    // Bottom Geographic Coordinates HUD
+                    geographicLocationCard
+                }
+                .padding(.horizontal, SpacingTheme.cardStack)
+                .padding(.vertical, SpacingTheme.rowStandard)
+                .frame(maxWidth: .infinity, minHeight: geo.size.height)
             }
-
-            // Top Degree & Direction Readout
-            topHeadingHero
-
-            Spacer()
-
-            // Center Rotating Compass Rose
-            compassRoseDial(size: 250)
-
-            Spacer()
-
-            // Bottom Geographic Coordinates HUD
-            geographicLocationCard
         }
-        .padding(.horizontal, SpacingTheme.cardStack)
-        .padding(.vertical, SpacingTheme.rowStandard)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.background(for: colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.Tools.compass)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            let safeHeading = tools.compass.trueHeading.isFinite ? tools.compass.trueHeading : 0.0
+            displayHeading = safeHeading
             tools.enterDetailView(tool: .compass)
             tools.startCompass(enableGpsLocation: true)
+        }
+        .onChange(of: tools.compass.trueHeading) { _, newValue in
+            guard newValue.isFinite else { return }
+            var delta = (newValue - displayHeading).truncatingRemainder(dividingBy: 360.0)
+            if delta > 180.0 {
+                delta -= 360.0
+            } else if delta < -180.0 {
+                delta += 360.0
+            }
+            displayHeading += delta
         }
         .onDisappear {
             tools.stopCompass()
@@ -96,9 +105,7 @@ struct CompassDetailView: View {
             }
 
             Button {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
+                tools.openAppSettings()
             } label: {
                 Text(L10n.Tools.openSettings)
                     .font(Typography.captionBold)
@@ -108,6 +115,7 @@ struct CompassDetailView: View {
                     .foregroundStyle(Color.white)
                     .clipShape(Capsule())
             }
+            .buttonStyle(.plain)
         }
         .padding(SpacingTheme.cardInternal)
         .background(
@@ -123,9 +131,13 @@ struct CompassDetailView: View {
     // MARK: - Top Heading Hero
     @ViewBuilder
     private var topHeadingHero: some View {
+        let safeTrueHeading = tools.compass.trueHeading.isFinite ? tools.compass.trueHeading : 0.0
+        let safeMagHeading = tools.compass.magneticHeading.isFinite ? tools.compass.magneticHeading : 0.0
+        let safeAccuracy = tools.compass.headingAccuracy.isFinite ? tools.compass.headingAccuracy : 0.0
+
         VStack(spacing: SpacingTheme.micro) {
             HStack(alignment: .firstTextBaseline, spacing: SpacingTheme.tight) {
-                Text(String(format: "%.0f°", tools.compass.trueHeading))
+                Text(String(format: "%.0f°", safeTrueHeading))
                     .font(Typography.displayHero)
                     .foregroundStyle(appState.accentColor)
 
@@ -135,14 +147,14 @@ struct CompassDetailView: View {
             }
 
             HStack(spacing: SpacingTheme.standard) {
-                Text(String(format: "%@: %.1f°", L10n.Tools.magneticHeading, tools.compass.magneticHeading))
+                Text(String(format: "%@: %.1f°", L10n.Tools.magneticHeading, safeMagHeading))
                     .font(Typography.badgeTagMono)
                     .foregroundStyle(Theme.textSecondary(for: colorScheme))
 
-                if tools.compass.headingAccuracy > 0 {
-                    Text(String(format: "±%.0f°", tools.compass.headingAccuracy))
+                if safeAccuracy > 0 {
+                    Text(String(format: "±%.0f°", safeAccuracy))
                         .font(Typography.badgeTagMono)
-                        .foregroundStyle(tools.compass.headingAccuracy < 15 ? Color.green : Color.orange)
+                        .foregroundStyle(safeAccuracy < 15 ? Color.green : Color.orange)
                 }
             }
         }
@@ -191,10 +203,13 @@ struct CompassDetailView: View {
                     .fill(appState.accentColor)
                     .frame(width: 6, height: 6)
             }
-            .rotationEffect(.degrees(-tools.compass.trueHeading))
-            .animation(.easeOut(duration: 0.15), value: tools.compass.trueHeading)
+            .rotationEffect(.degrees(-displayHeading))
+            .animation(.easeOut(duration: 0.15), value: displayHeading)
         }
         .frame(width: size, height: size)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.Tools.compass)
+        .accessibilityValue("\(Int(tools.compass.trueHeading.isFinite ? tools.compass.trueHeading : 0.0))° \(tools.compass.cardinalDirection)")
     }
 
     @ViewBuilder
@@ -209,14 +224,20 @@ struct CompassDetailView: View {
     // MARK: - Geographic Location Card
     @ViewBuilder
     private var geographicLocationCard: some View {
+        let safeLat = tools.compass.latitude.isFinite ? tools.compass.latitude : 0.0
+        let safeLon = tools.compass.longitude.isFinite ? tools.compass.longitude : 0.0
+        let safeAlt = tools.compass.altitudeMeters.isFinite ? tools.compass.altitudeMeters : 0.0
+
         HStack(spacing: SpacingTheme.standard) {
             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
                 Text(L10n.Tools.gpsPosition)
                     .font(Typography.badgeTagMono)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
 
-                if tools.compass.latitude != 0.0 {
-                    Text(String(format: "%.4f° N  %.4f° E", tools.compass.latitude, tools.compass.longitude))
+                if safeLat != 0.0 || safeLon != 0.0 {
+                    let latDir = safeLat >= 0 ? "N" : "S"
+                    let lonDir = safeLon >= 0 ? "E" : "W"
+                    Text(String(format: "%.4f° %@  %.4f° %@", abs(safeLat), latDir, abs(safeLon), lonDir))
                         .font(Typography.captionMono)
                         .foregroundStyle(Theme.textPrimary(for: colorScheme))
                 } else {
@@ -233,7 +254,7 @@ struct CompassDetailView: View {
                     .font(Typography.badgeTagMono)
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
 
-                Text(String(format: "%.0f m MSL", tools.compass.altitudeMeters))
+                Text(String(format: "%.0f m MSL", safeAlt))
                     .font(Typography.captionMono)
                     .foregroundStyle(appState.accentColor)
             }

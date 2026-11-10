@@ -65,20 +65,31 @@ struct SettingsAboutCard: View {
             RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                 .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L10n.Settings.appName)
+        .accessibilityValue("v\(appVersion)")
     }
 
     @ViewBuilder
     private var hardwareSpecTiles: some View {
         // 2. Hardware Environment & Telemetry Specs
-        specTile(icon: "iphone.gen3", label: L10n.Settings.aboutDevice, value: system.marketingName)
+        specTile(
+            icon: UIDevice.current.userInterfaceIdiom == .pad ? "ipad.gen2" : "iphone.gen3",
+            label: L10n.Settings.aboutDevice,
+            value: system.marketingName
+        )
         specTile(icon: "cpu.fill", label: L10n.Settings.aboutChip, value: system.chipName)
         specTile(
             icon: "apple.terminal.fill",
             label: L10n.Settings.aboutSystem,
-            value: "iOS \(UIDevice.current.systemVersion)\(system.osBuildNumber.isEmpty ? "" : " (\(system.osBuildNumber))")"
+            value: system.osVersionWithBuild
         )
-        specTile(icon: "memorychip.fill", label: L10n.Settings.architecture, value: "arm64e · Metal 3")
-        specTile(icon: "hammer.fill", label: L10n.Settings.build, value: "Build \(buildNumber)")
+        specTile(
+            icon: "memorychip.fill",
+            label: L10n.Settings.architecture,
+            value: "\(system.hardwareSpecs.isaArchitecture) · \(system.hardwareSpecs.supportsMeshShaders ? "Metal 3" : "Metal 2")"
+        )
+        specTile(icon: "hammer.fill", label: L10n.Settings.build, value: L10n.Settings.buildValue(buildNumber))
     }
 
     private var repoLinkTile: some View {
@@ -174,10 +185,13 @@ struct SettingsAboutCard: View {
         }
         .padding(.horizontal, SpacingTheme.row)
         .padding(.vertical, SpacingTheme.standard)
-        .background(
-            RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
-        )
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
+            )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(label)
+            .accessibilityValue(value)
     }
 }
 

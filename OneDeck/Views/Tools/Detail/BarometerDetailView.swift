@@ -7,7 +7,6 @@
 //
 
 import Charts
-import CoreMotion
 import SwiftUI
 
 struct BarometerDetailView: View {
@@ -17,7 +16,7 @@ struct BarometerDetailView: View {
     @Bindable private var tools = ToolsViewModel.shared
 
     private var isBarometerAvailable: Bool {
-        CMAltimeter.isRelativeAltitudeAvailable()
+        tools.isBarometerAvailable
     }
 
     // MARK: - Body
@@ -89,6 +88,7 @@ struct BarometerDetailView: View {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
             )
+            .accessibilityElement(children: .combine)
 
             // Relative Altitude Tile
             VStack(alignment: .leading, spacing: SpacingTheme.tight) {
@@ -121,14 +121,16 @@ struct BarometerDetailView: View {
                 RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous)
                     .stroke(Theme.cardBorder(for: colorScheme), lineWidth: 0.8)
             )
+            .accessibilityElement(children: .combine)
         }
     }
 
     // MARK: - Pressure History Chart
     @ViewBuilder
     private var pressureHistoryChart: some View {
-        let history = tools.barometer.history
-        let currentP = tools.barometer.pressureHpa
+        let history = tools.barometer.history.filter { $0.value.isFinite }
+        let rawCurrentP = tools.barometer.pressureHpa
+        let currentP = rawCurrentP.isFinite ? rawCurrentP : 1013.25
         let values = history.isEmpty ? [currentP] : history.map(\.value)
         let minVal = values.min() ?? currentP
         let maxVal = values.max() ?? currentP
@@ -258,7 +260,7 @@ struct BarometerDetailView: View {
                     Text(L10n.Tools.resetAltitude)
                         .font(Typography.captionBold)
                 }
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Theme.contrastingForeground(for: appState.accentColor))
                 .frame(maxWidth: .infinity)
                 .frame(height: 44)
                 .background(appState.accentColor)

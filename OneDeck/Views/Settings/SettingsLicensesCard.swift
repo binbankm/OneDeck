@@ -139,6 +139,7 @@ struct SettingsLicensesCard: View {
                 }
                 .padding(SpacingTheme.cardStack)
             }
+            .background(Theme.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle(L10n.Settings.licensesSection)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

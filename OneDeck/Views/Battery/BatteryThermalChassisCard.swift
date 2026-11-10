@@ -52,6 +52,8 @@ struct BatteryThermalChassisCard: View {
                             .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(mode.title)
+                        .accessibilityAddTraits(viewMode == mode ? [.isSelected] : [])
                     }
                 }
                 .padding(SpacingTheme.micro)
@@ -77,11 +79,21 @@ struct BatteryThermalChassisCard: View {
                         }
                     }
 
-                    // Active Zone Concise Engineering Note (pinned to match 218pt viewport)
+                    // Active Zone Concise Engineering Note (expands cleanly with Dynamic Type)
                     activeZoneNote
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(height: 218)
+                .frame(maxWidth: .infinity, minHeight: 218, alignment: .topLeading)
+            }
+
+            if battery.hardwarePmicTemp == nil || battery.hardwareWirelessTemp == nil {
+                HStack(spacing: SpacingTheme.tight) {
+                    Image(systemName: "info.circle.fill")
+                        .font(IconTheme.badgeInline)
+                    Text(L10n.Battery.thermalZoneEstimatedNote)
+                        .font(Typography.caption)
+                        .lineLimit(2)
+                }
+                .foregroundStyle(Theme.textTertiary(for: colorScheme))
             }
         }
         .bentoCard(accent: thermalColor(for: temperature(of: selectedZone)))
@@ -395,6 +407,9 @@ struct BatteryThermalChassisCard: View {
                 .offset(x: -w * 0.02, y: -h * 0.03)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(ThermalZone.battery.title)
+        .accessibilityValue(String(format: "%.1f °C", temperature(of: .battery)))
+        .accessibilityAddTraits(isBatteryActive ? [.isSelected] : [])
     }
 
     @ViewBuilder
@@ -426,6 +441,9 @@ struct BatteryThermalChassisCard: View {
             .offset(x: 0, y: -h * 0.02)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(ThermalZone.wireless.title)
+        .accessibilityValue(String(format: "%.1f °C", temperature(of: .wireless)))
+        .accessibilityAddTraits(isWirelessActive ? [.isSelected] : [])
     }
 
     @ViewBuilder
@@ -463,6 +481,9 @@ struct BatteryThermalChassisCard: View {
             .offset(x: w * 0.24, y: -h * 0.18)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(ThermalZone.soc.title)
+        .accessibilityValue(String(format: "%.1f °C", temperature(of: .soc)))
+        .accessibilityAddTraits(isSocActive ? [.isSelected] : [])
     }
 
     @ViewBuilder
@@ -498,6 +519,9 @@ struct BatteryThermalChassisCard: View {
             .offset(x: 0, y: h * 0.36)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(ThermalZone.pmic.title)
+        .accessibilityValue(String(format: "%.1f °C", temperature(of: .pmic)))
+        .accessibilityAddTraits(isPmicActive ? [.isSelected] : [])
     }
 
     // MARK: - Layer 4: Thermal Isotherms
@@ -528,19 +552,23 @@ struct BatteryThermalChassisCard: View {
         let isDark = (colorScheme == .dark)
 
         // MAX Hotspot Reticle
-        let (maxX, maxY) = pinCoordinates(for: maxZone, w: w, h: h)
+        let (rawMaxX, rawMaxY) = pinCoordinates(for: maxZone, w: w, h: h)
+        let maxX = min(max(rawMaxX, -w * 0.26), w * 0.26)
+        let maxY = min(max(rawMaxY - 16, -h * 0.33), h * 0.33)
         let maxColor = thermalColor(for: maxTemperature)
 
         flirCrosshairShape(color: maxColor, label: L10n.Battery.maxSpot, isPulse: true)
-            .offset(x: maxX, y: maxY - 16)
+            .offset(x: maxX, y: maxY)
             .allowsHitTesting(false)
 
         // MIN Coldspot Reticle
-        let (minX, minY) = pinCoordinates(for: minZone, w: w, h: h)
+        let (rawMinX, rawMinY) = pinCoordinates(for: minZone, w: w, h: h)
+        let minX = min(max(rawMinX, -w * 0.26), w * 0.26)
+        let minY = min(max(rawMinY + 16, -h * 0.33), h * 0.33)
         let minColor = thermalColor(for: minTemperature)
 
         flirCrosshairShape(color: minColor, label: L10n.Battery.minSpot, isPulse: false)
-            .offset(x: minX, y: minY + 16)
+            .offset(x: minX, y: minY)
             .allowsHitTesting(false)
 
         // Active Zone Selection Pulse Ring
@@ -600,16 +628,19 @@ struct BatteryThermalChassisCard: View {
     private func chassisHudOverlay(w: CGFloat, h: CGFloat) -> some View {
         let isDark = (colorScheme == .dark)
         let hudColor = isDark ? Color.white : Color(hex: "#1E1E24")
+        let hasDirectZones = (battery.hardwarePmicTemp != nil || battery.hardwareWirelessTemp != nil)
 
         VStack {
             HStack {
-                Text("● IR")
+                Text(hasDirectZones ? L10n.Battery.hardwareDirectTag : L10n.Battery.thermalModelBadge)
                     .font(Typography.microAxis)
-                    .foregroundStyle(isDark ? Color.red.opacity(0.85) : Color(hex: "#DC2626"))
+                    .foregroundStyle(hudColor.opacity(isDark ? 0.60 : 0.72))
+                    .lineLimit(1)
                 Spacer()
-                Text("ε:0.95")
+                Text(selectedZone.shortLabel)
                     .font(Typography.microAxis)
-                    .foregroundStyle(hudColor.opacity(isDark ? 0.45 : 0.65))
+                    .foregroundStyle(hudColor.opacity(isDark ? 0.50 : 0.65))
+                    .lineLimit(1)
             }
             .padding(.horizontal, SpacingTheme.standard)
             .padding(.top, SpacingTheme.compact)
@@ -617,9 +648,10 @@ struct BatteryThermalChassisCard: View {
             Spacer()
 
             HStack {
-                Text("FOV 54°")
+                Text(viewMode.title)
                     .font(Typography.microAxis)
-                    .foregroundStyle(hudColor.opacity(isDark ? 0.35 : 0.55))
+                    .foregroundStyle(hudColor.opacity(isDark ? 0.45 : 0.60))
+                    .lineLimit(1)
                 Spacer()
                 Text(L10n.Battery.liveIndicator)
                     .font(Typography.microAxis)
@@ -673,6 +705,7 @@ struct BatteryThermalChassisCard: View {
                     .font(isSelected ? Typography.calloutBold : Typography.calloutLabel)
                     .foregroundStyle(labelColor)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
                 Spacer(minLength: 4)
 
@@ -693,6 +726,9 @@ struct BatteryThermalChassisCard: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(zone.title)
+        .accessibilityValue(String(format: "%.1f °C", temp))
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     // MARK: - Right Column: Active Zone Concise Engineering Note
@@ -746,7 +782,7 @@ struct BatteryThermalChassisCard: View {
                     .foregroundStyle(Theme.textTertiary(for: colorScheme))
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(SpacingTheme.standard)
         .background(isDark ? Color.white.opacity(0.035) : Color.black.opacity(0.025))
         .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
@@ -766,26 +802,28 @@ struct BatteryThermalChassisCard: View {
     }
 
     private func temperature(of zone: ThermalZone) -> Double {
-        let cellBase = battery.batteryTemperature
+        let cellBase = battery.batteryTemperature.isFinite ? battery.batteryTemperature : 25.0
+        let socTemp = system.socTemperature.isFinite ? system.socTemperature : cellBase
+        let wattage = battery.liveWattage.isFinite ? abs(battery.liveWattage) : 0.0
 
         switch zone {
         case .battery:
             return cellBase
         case .soc:
-            return system.socTemperature
+            return socTemp
         case .pmic:
-            if let p = battery.hardwarePmicTemp {
+            if let p = battery.hardwarePmicTemp, p.isFinite {
                 return p
-            } else if battery.batteryState == .charging {
-                let wattBoost = min(5.5, abs(battery.liveWattage) * 0.32)
+            } else if battery.isPluggedIn {
+                let wattBoost = min(5.5, wattage * 0.32)
                 return cellBase + max(1.2, wattBoost)
             } else {
                 return max(24.0, cellBase - 1.4)
             }
         case .wireless:
-            if let w = battery.hardwareWirelessTemp {
+            if let w = battery.hardwareWirelessTemp, w.isFinite {
                 return w
-            } else if battery.batteryState == .charging {
+            } else if battery.isPluggedIn {
                 return cellBase + 0.6
             } else {
                 return max(24.0, cellBase - 0.8)
@@ -845,16 +883,38 @@ struct BatteryThermalChassisCard: View {
 
     // MARK: - Hardware Device Adaptation Helpers
     private var hasDynamicIsland: Bool {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return false
+        }
         let id = system.machineIdentifier
-        if id.hasPrefix("iPhone15,2") || id.hasPrefix("iPhone15,3") { return true } // 14 Pro
-        if id.hasPrefix("iPhone15,4") || id.hasPrefix("iPhone15,5") { return true } // 15
-        if id.hasPrefix("iPhone16") || id.hasPrefix("iPhone17") { return true } // 15 Pro, 16 series
+        if id.hasPrefix("iPhone17,5") { return false } // iPhone 16e uses notch
+        if id.hasPrefix("iPhone15,2") || id.hasPrefix("iPhone15,3") { return true } // 14 Pro / Pro Max
+        if id.hasPrefix("iPhone15,4") || id.hasPrefix("iPhone15,5") { return true } // 15 / 15 Plus
+        if id.hasPrefix("iPhone16") || id.hasPrefix("iPhone17") || id.hasPrefix("iPhone18") || id.hasPrefix("iPhone19") { return true }
+        if id == "arm64" || id == "x86_64" {
+            let topInset = UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .first(where: \.isKeyWindow)?
+                .safeAreaInsets.top ?? 0
+            return topInset >= 59
+        }
         return false
     }
 
     private var isProModel: Bool {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            return false
+        }
         let id = system.machineIdentifier
-        return id.contains("Pro") || system.marketingName.contains("Pro")
+        let proPrefixes = [
+            "iPhone12,3", "iPhone12,5", "iPhone13,3", "iPhone13,4",
+            "iPhone14,2", "iPhone14,3", "iPhone15,2", "iPhone15,3",
+            "iPhone16,1", "iPhone16,2", "iPhone17,1", "iPhone17,2",
+            "iPhone18,1", "iPhone18,2", "iPhone19,1", "iPhone19,2", "iPhone19,3"
+        ]
+        return proPrefixes.contains { id.hasPrefix($0) }
+            || (system.marketingName.contains("iPhone") && system.marketingName.contains("Pro"))
     }
 
     private var chipMarketingShort: String {

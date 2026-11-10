@@ -20,6 +20,8 @@ struct BleRadarDetailView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: SpacingTheme.cardStack) {
+                bleStatusBanner
+
                 // Dual KPI Hero Cards
                 dualMetricsHero
 
@@ -42,6 +44,15 @@ struct BleRadarDetailView: View {
             tools.enterDetailView(tool: .bleRadar)
             tools.startBleRadar()
         }
+        .onChange(of: tools.bleRadar.isScanning) { _, scanning in
+            if !scanning {
+                var transaction = Transaction(animation: nil)
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    radarSweepAngle = 0.0
+                }
+            }
+        }
         .onDisappear {
             var transaction = Transaction(animation: nil)
             transaction.disablesAnimations = true
@@ -51,6 +62,75 @@ struct BleRadarDetailView: View {
             tools.stopBleRadar()
             tools.leaveDetailView()
         }
+    }
+
+    // MARK: - Bluetooth Authorization & Hardware Status
+    @ViewBuilder
+    private var bleStatusBanner: some View {
+        switch tools.bleBannerStatus {
+        case .unauthorized:
+            VStack(spacing: SpacingTheme.compact) {
+                HStack(spacing: SpacingTheme.tight) {
+                    Image(systemName: "hand.raised.fill")
+                        .foregroundStyle(Color.orange)
+                    Text(L10n.Tools.bleUnauthorized)
+                        .font(Typography.caption)
+                        .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                        .multilineTextAlignment(.leading)
+                }
+
+                Button {
+                    tools.openAppSettings()
+                } label: {
+                    Text(L10n.Tools.openSettings)
+                        .font(Typography.captionBold)
+                        .padding(.horizontal, SpacingTheme.standard)
+                        .padding(.vertical, SpacingTheme.tight)
+                        .background(Color.orange)
+                        .foregroundStyle(Color.white)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(SpacingTheme.cardInternal)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                    .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                    .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+            )
+        case .poweredOff:
+            bleNoticeRow(icon: "bluetooth", message: L10n.Tools.blePoweredOff)
+        case .unsupported:
+            bleNoticeRow(icon: "exclamationmark.triangle.fill", message: L10n.Tools.bleHardwareUnavailable)
+        case .normal:
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private func bleNoticeRow(icon: String, message: String) -> some View {
+        HStack(spacing: SpacingTheme.tight) {
+            Image(systemName: icon)
+                .foregroundStyle(Color.orange)
+            Text(message)
+                .font(Typography.caption)
+                .foregroundStyle(Theme.textPrimary(for: colorScheme))
+                .multilineTextAlignment(.leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(SpacingTheme.cardInternal)
+        .background(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .fill(Theme.cardBackground(for: colorScheme).opacity(0.85))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+        )
     }
 
     // MARK: - Dual Metrics Hero
@@ -67,7 +147,7 @@ struct BleRadarDetailView: View {
 
                 Text("\(tools.bleRadar.devices.count)")
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(Color.cyan)
+                    .foregroundStyle(Theme.readableCyan(for: colorScheme))
                     .lineLimit(1)
 
                 Text(tools.bleRadar.nearestDeviceName.isEmpty ? L10n.Tools.noNearbyDevices : tools.bleRadar.nearestDeviceName)
@@ -97,7 +177,7 @@ struct BleRadarDetailView: View {
                 let safeDist = tools.bleRadar.estimatedDistanceMeters.isFinite ? tools.bleRadar.estimatedDistanceMeters : 0.0
                 Text(tools.bleRadar.devices.isEmpty ? "--" : String(format: "~%.1f m", safeDist))
                     .font(Typography.heroSubValueMono)
-                    .foregroundStyle(Color.cyan)
+                    .foregroundStyle(Theme.readableCyan(for: colorScheme))
                     .lineLimit(1)
 
                 Text(tools.bleRadar.devices.isEmpty ? "-- dBm" : "\(tools.bleRadar.nearestDeviceRssi) dBm")
@@ -122,12 +202,13 @@ struct BleRadarDetailView: View {
     @ViewBuilder
     private var radarDialView: some View {
         let size: CGFloat = 220
+        let cyanAccent = Theme.readableCyan(for: colorScheme)
 
         ZStack {
             // Concentric Range Rings (1m, 3m, 5m, 10m)
             ForEach([0.3, 0.55, 0.8, 1.0], id: \.self) { factor in
                 Circle()
-                    .stroke(Color.cyan.opacity(0.2), lineWidth: 1)
+                    .stroke(cyanAccent.opacity(0.22), lineWidth: 1)
                     .frame(width: size * factor, height: size * factor)
             }
 
@@ -138,7 +219,7 @@ struct BleRadarDetailView: View {
                 p.move(to: CGPoint(x: 0, y: size / 2))
                 p.addLine(to: CGPoint(x: size, y: size / 2))
             }
-            .stroke(Color.cyan.opacity(0.12), lineWidth: 1)
+            .stroke(cyanAccent.opacity(0.14), lineWidth: 1)
             .frame(width: size, height: size)
 
             // Radar Rotating Sweep Cone
@@ -146,7 +227,7 @@ struct BleRadarDetailView: View {
                 Circle()
                     .fill(
                         AngularGradient(
-                            colors: [Color.cyan.opacity(0.3), Color.cyan.opacity(0.0)],
+                            colors: [cyanAccent.opacity(0.32), cyanAccent.opacity(0.0)],
                             center: .center,
                             startAngle: .degrees(0),
                             endAngle: .degrees(75)
@@ -163,12 +244,13 @@ struct BleRadarDetailView: View {
 
             // Center Origin (This Device)
             Circle()
-                .fill(Color.cyan)
+                .fill(cyanAccent)
                 .frame(width: 8, height: 8)
 
             // Device Blips
             ForEach(Array(tools.bleRadar.devices.prefix(8).enumerated()), id: \.element.id) { idx, dev in
-                let distNorm = min(1.0, max(0.15, dev.estimatedDistanceMeters / 12.0))
+                let safeDistance = dev.estimatedDistanceMeters.isFinite ? dev.estimatedDistanceMeters : 12.0
+                let distNorm = min(1.0, max(0.15, safeDistance / 12.0))
                 let angle = Double(idx) * (360.0 / Double(max(1, min(8, tools.bleRadar.devices.count))))
                 let radius = (size / 2.0) * distNorm * 0.9
                 let rad = angle * .pi / 180.0
@@ -241,10 +323,12 @@ struct BleRadarDetailView: View {
 
     @ViewBuilder
     private func deviceRow(dev: BleDeviceItem) -> some View {
+        let cyanAccent = Theme.readableCyan(for: colorScheme)
+        let safeDist = dev.estimatedDistanceMeters.isFinite ? dev.estimatedDistanceMeters : 0.0
         HStack(spacing: SpacingTheme.standard) {
             Image(systemName: "sensor.tag.radiowaves.forward.fill")
                 .font(IconTheme.badgeInline)
-                .foregroundStyle(Color.cyan)
+                .foregroundStyle(cyanAccent)
                 .frame(width: 22)
 
             VStack(alignment: .leading, spacing: SpacingTheme.micro) {
@@ -260,9 +344,9 @@ struct BleRadarDetailView: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: SpacingTheme.micro) {
-                Text(String(format: "~%.1f m", dev.estimatedDistanceMeters))
+                Text(String(format: "~%.1f m", safeDist))
                     .font(Typography.captionMono)
-                    .foregroundStyle(Color.cyan)
+                    .foregroundStyle(cyanAccent)
 
                 Text("\(dev.rssi) dBm")
                     .font(Typography.badgeTagMono)
@@ -275,6 +359,10 @@ struct BleRadarDetailView: View {
     // MARK: - Toggle Scan Action Button
     @ViewBuilder
     private var scanActionButton: some View {
+        let cyanAccent = Theme.readableCyan(for: colorScheme)
+        let buttonBg = tools.bleRadar.isScanning ? Color.red : cyanAccent
+        let buttonFg = tools.bleRadar.isScanning ? Color.white : Theme.contrastingForeground(for: cyanAccent)
+
         Button {
             if tools.bleRadar.isScanning {
                 tools.stopBleRadar()
@@ -288,10 +376,10 @@ struct BleRadarDetailView: View {
                 Text(tools.bleRadar.isScanning ? L10n.Tools.stopBleRadarAction : L10n.Tools.startBleRadarAction)
                     .font(Typography.captionBold)
             }
-            .foregroundStyle(Color.black)
+            .foregroundStyle(buttonFg)
             .frame(maxWidth: .infinity)
             .frame(height: 44)
-            .background(tools.bleRadar.isScanning ? Color.red : Color.cyan)
+            .background(buttonBg)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.tile, style: .continuous))
         }
         .buttonStyle(.plain)
