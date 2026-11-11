@@ -14,6 +14,89 @@ import Metal
 import Observation
 import SwiftUI
 
+// MARK: - Telemetry Snapshot Container
+public struct SystemTelemetrySnapshot: Sendable {
+    public let coreUsages: [Double]
+    public let coreCount: Int
+    public let totalCpuUsage: Double
+    public let downloadSpeedBytes: UInt64
+    public let uploadSpeedBytes: UInt64
+    public let downloadSpeedFormatted: String
+    public let uploadSpeedFormatted: String
+    public let activeInterfaceRaw: String
+    public let sessionInDelta: UInt64
+    public let sessionOutDelta: UInt64
+    public let hasNetworkDelta: Bool
+    public let activeMemory: UInt64
+    public let inactiveMemory: UInt64
+    public let wiredMemory: UInt64
+    public let compressedMemory: UInt64
+    public let freeMemory: UInt64
+    public let diskSpace: (total: Int64, available: Int64, purgeable: Int64)?
+    public let bootDate: Date?
+    public let uptimeFormatted: String
+    public let thermalState: ProcessInfo.ThermalState
+    public let batteryTemperature: Double
+    public let socTemperature: Double
+    public let thermalPressurePercent: Int
+    public let isThermalEstimated: Bool
+    public let sampleTimestamp: Date
+
+    public init(
+        coreUsages: [Double],
+        coreCount: Int,
+        totalCpuUsage: Double,
+        downloadSpeedBytes: UInt64,
+        uploadSpeedBytes: UInt64,
+        downloadSpeedFormatted: String,
+        uploadSpeedFormatted: String,
+        activeInterfaceRaw: String,
+        sessionInDelta: UInt64,
+        sessionOutDelta: UInt64,
+        hasNetworkDelta: Bool,
+        activeMemory: UInt64,
+        inactiveMemory: UInt64,
+        wiredMemory: UInt64,
+        compressedMemory: UInt64,
+        freeMemory: UInt64,
+        diskSpace: (total: Int64, available: Int64, purgeable: Int64)?,
+        bootDate: Date?,
+        uptimeFormatted: String,
+        thermalState: ProcessInfo.ThermalState,
+        batteryTemperature: Double,
+        socTemperature: Double,
+        thermalPressurePercent: Int,
+        isThermalEstimated: Bool,
+        sampleTimestamp: Date
+    ) {
+        self.coreUsages = coreUsages
+        self.coreCount = coreCount
+        self.totalCpuUsage = totalCpuUsage
+        self.downloadSpeedBytes = downloadSpeedBytes
+        self.uploadSpeedBytes = uploadSpeedBytes
+        self.downloadSpeedFormatted = downloadSpeedFormatted
+        self.uploadSpeedFormatted = uploadSpeedFormatted
+        self.activeInterfaceRaw = activeInterfaceRaw
+        self.sessionInDelta = sessionInDelta
+        self.sessionOutDelta = sessionOutDelta
+        self.hasNetworkDelta = hasNetworkDelta
+        self.activeMemory = activeMemory
+        self.inactiveMemory = inactiveMemory
+        self.wiredMemory = wiredMemory
+        self.compressedMemory = compressedMemory
+        self.freeMemory = freeMemory
+        self.diskSpace = diskSpace
+        self.bootDate = bootDate
+        self.uptimeFormatted = uptimeFormatted
+        self.thermalState = thermalState
+        self.batteryTemperature = batteryTemperature
+        self.socTemperature = socTemperature
+        self.thermalPressurePercent = thermalPressurePercent
+        self.isThermalEstimated = isThermalEstimated
+        self.sampleTimestamp = sampleTimestamp
+    }
+}
+
 // MARK: - System ViewModel Hub
 @Observable
 public final class SystemViewModel {
@@ -159,11 +242,15 @@ public final class SystemViewModel {
         return L10n.Overview.retailOriginal
     }
 
-    // MARK: - Private State
+    // MARK: - Private State & Telemetry Sampler (Managed on workerQueue)
+    private let workerQueue = DispatchQueue(label: "com.onedeck.system.telemetry", qos: .utility)
+    private var isSamplingInProgress: Bool = false
     private var previousCoreLoads: [CoreLoad] = []
     private var previousInterfaceCounters: [String: (inBytes: UInt32, outBytes: UInt32)] = [:]
     private var hasPreviousNetworkSample: Bool = false
     private var previousNetworkTime: Date = .init()
+    private var lastSampledBatteryTemp: Double = 31.5
+    private var lastSampledSocTemp: Double = 34.2
     private var timer: Timer?
     private var isMonitoring: Bool = false
     private var tickCount: Int = 0
@@ -183,7 +270,7 @@ public final class SystemViewModel {
 
         resolveDeviceIdentity()
         resolveHardwareInventory()
-        refreshAll()
+        refreshAll(forceStorage: true)
     }
 
     // MARK: - Lifecycle Controls
@@ -191,7 +278,7 @@ public final class SystemViewModel {
         guard !isMonitoring else { return }
         isMonitoring = true
         tickCount = 0
-        refreshAll(forceStorage: true)
+        scheduleAsyncTelemetrySnapshot(forceStorage: true)
         scheduleMonitoringTimer()
     }
 
@@ -212,7 +299,9 @@ public final class SystemViewModel {
 
     @MainActor
     public func refreshLocalizedStrings() {
-        updateUptime()
+        let sample = sampleUptime()
+        self.bootDate = sample.bootDate
+        self.uptimeFormatted = sample.uptimeFormatted
     }
 
     public func refreshDisplaySpecs() {
@@ -225,32 +314,145 @@ public final class SystemViewModel {
         isMonitoring = false
         timer?.invalidate()
         timer = nil
-        previousCoreLoads = []
-        previousInterfaceCounters = [:]
-        hasPreviousNetworkSample = false
+        workerQueue.async { [weak self] in
+            guard let self else { return }
+            self.previousCoreLoads = []
+            self.previousInterfaceCounters = [:]
+            self.hasPreviousNetworkSample = false
+            self.isSamplingInProgress = false
+        }
     }
 
     private func tick() {
         guard isMonitoring else { return }
         tickCount += 1
         let shouldRefreshStorage = (tickCount % 30 == 0)
-        refreshAll(forceStorage: shouldRefreshStorage)
+        scheduleAsyncTelemetrySnapshot(forceStorage: shouldRefreshStorage)
     }
 
-    // MARK: - Refresh Trigger
-    public func refreshAll(forceStorage: Bool = true) {
-        updateCpuUsage()
-        updateNetworkBandwidth()
-        updateMemoryUsage()
-        if forceStorage {
-            updateStorageUsage()
+    private func scheduleAsyncTelemetrySnapshot(forceStorage: Bool = false) {
+        guard isMonitoring else { return }
+        workerQueue.async { [weak self] in
+            guard let self, self.isMonitoring else { return }
+            guard !self.isSamplingInProgress else { return }
+            self.isSamplingInProgress = true
+            defer { self.isSamplingInProgress = false }
+
+            let snapshot = self.sampleTelemetry(forceStorage: forceStorage)
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.isMonitoring else { return }
+                self.applyTelemetrySnapshot(snapshot)
+            }
         }
-        updateUptime()
-        updateThermals()
+    }
+
+    // MARK: - Refresh Trigger (Synchronous Baseline)
+    @MainActor
+    public func refreshAll(forceStorage: Bool = true) {
+        let snapshot = sampleTelemetry(forceStorage: forceStorage)
+        applyTelemetrySnapshot(snapshot)
+    }
+
+    @MainActor
+    private func applyTelemetrySnapshot(_ snapshot: SystemTelemetrySnapshot) {
+        self.coreUsages = snapshot.coreUsages
+        self.coreCount = snapshot.coreCount
+        self.totalCpuUsage = snapshot.totalCpuUsage
+
+        let cpuPoint = MetricPoint(timestamp: snapshot.sampleTimestamp, value: snapshot.totalCpuUsage)
+        self.cpuHistory.append(cpuPoint)
+        if self.cpuHistory.count > maxHistoryPoints {
+            self.cpuHistory.removeFirst(self.cpuHistory.count - maxHistoryPoints)
+        }
+
+        self.downloadSpeedBytes = snapshot.downloadSpeedBytes
+        self.uploadSpeedBytes = snapshot.uploadSpeedBytes
+        self.downloadSpeedFormatted = snapshot.downloadSpeedFormatted
+        self.uploadSpeedFormatted = snapshot.uploadSpeedFormatted
+        self.activeInterfaceRaw = snapshot.activeInterfaceRaw
+        self.sessionTotalInBytes += snapshot.sessionInDelta
+        self.sessionTotalOutBytes += snapshot.sessionOutDelta
+
+        if snapshot.hasNetworkDelta {
+            let downPoint = MetricPoint(timestamp: snapshot.sampleTimestamp, value: Double(snapshot.downloadSpeedBytes) / 1024.0)
+            self.downloadHistory.append(downPoint)
+            if self.downloadHistory.count > maxHistoryPoints {
+                self.downloadHistory.removeFirst(self.downloadHistory.count - maxHistoryPoints)
+            }
+
+            let upPoint = MetricPoint(timestamp: snapshot.sampleTimestamp, value: Double(snapshot.uploadSpeedBytes) / 1024.0)
+            self.uploadHistory.append(upPoint)
+            if self.uploadHistory.count > maxHistoryPoints {
+                self.uploadHistory.removeFirst(self.uploadHistory.count - maxHistoryPoints)
+            }
+        }
+
+        self.activeMemory = snapshot.activeMemory
+        self.inactiveMemory = snapshot.inactiveMemory
+        self.wiredMemory = snapshot.wiredMemory
+        self.compressedMemory = snapshot.compressedMemory
+        self.freeMemory = snapshot.freeMemory
+
+        if let disk = snapshot.diskSpace {
+            self.totalDiskSpace = disk.total
+            self.availableDiskSpace = disk.available
+            self.purgeableDiskSpace = disk.purgeable
+        }
+
+        if let boot = snapshot.bootDate {
+            self.bootDate = boot
+        }
+        self.uptimeFormatted = snapshot.uptimeFormatted
+
+        self.thermalState = snapshot.thermalState
+        self.batteryTemperature = snapshot.batteryTemperature
+        self.socTemperature = snapshot.socTemperature
+        self.thermalPressurePercent = snapshot.thermalPressurePercent
+        self.isThermalEstimated = snapshot.isThermalEstimated
+    }
+
+    // MARK: - Background Sampling Pipeline (workerQueue)
+    private func sampleTelemetry(forceStorage: Bool) -> SystemTelemetrySnapshot {
+        let now = Date()
+
+        let (cpuUsages, totalCpu, count) = sampleCpuUsage()
+        let netSample = sampleNetworkBandwidth(now: now)
+        let memSample = sampleMemoryUsage()
+        let diskSample: (total: Int64, available: Int64, purgeable: Int64)? = forceStorage ? sampleStorageUsage() : nil
+        let uptimeSample = sampleUptime()
+        let thermalSample = sampleThermals(totalCpu: totalCpu)
+
+        return SystemTelemetrySnapshot(
+            coreUsages: cpuUsages,
+            coreCount: count,
+            totalCpuUsage: totalCpu,
+            downloadSpeedBytes: netSample.downloadBytes,
+            uploadSpeedBytes: netSample.uploadBytes,
+            downloadSpeedFormatted: netSample.downloadFormatted,
+            uploadSpeedFormatted: netSample.uploadFormatted,
+            activeInterfaceRaw: netSample.activeInterface,
+            sessionInDelta: netSample.deltaIn,
+            sessionOutDelta: netSample.deltaOut,
+            hasNetworkDelta: netSample.hasDelta,
+            activeMemory: memSample.active,
+            inactiveMemory: memSample.inactive,
+            wiredMemory: memSample.wired,
+            compressedMemory: memSample.compressed,
+            freeMemory: memSample.free,
+            diskSpace: diskSample,
+            bootDate: uptimeSample.bootDate,
+            uptimeFormatted: uptimeSample.uptimeFormatted,
+            thermalState: thermalSample.state,
+            batteryTemperature: thermalSample.batteryTemp,
+            socTemperature: thermalSample.socTemp,
+            thermalPressurePercent: thermalSample.pressure,
+            isThermalEstimated: thermalSample.isEstimated,
+            sampleTimestamp: now
+        )
     }
 
     // MARK: - 1. CPU Mach Kernel Telemetry
-    private func updateCpuUsage() {
+    private func sampleCpuUsage() -> ([Double], Double, Int) {
         var processorCount: natural_t = 0
         var processorInfo: processor_info_array_t?
         var processorInfoCount: mach_msg_type_number_t = 0
@@ -266,7 +468,9 @@ public final class SystemViewModel {
             &processorInfoCount
         )
 
-        guard result == KERN_SUCCESS, let info = processorInfo else { return }
+        guard result == KERN_SUCCESS, let info = processorInfo else {
+            return (previousCoreLoads.map { _ in 0.0 }, 0.0, coreCount)
+        }
         defer {
             vm_deallocate(
                 mach_task_self_,
@@ -318,19 +522,15 @@ public final class SystemViewModel {
             }
         }
 
-        self.coreUsages = newUsages
-        self.coreCount = count
+        let clampedTotal: Double
         if totalAllTicks > 0 {
             let calculatedTotal = Double(totalActiveTicks) / Double(totalAllTicks) * 100.0
-            let clampedTotal = min(100.0, max(0.0, calculatedTotal.isFinite ? calculatedTotal : 0.0))
-            self.totalCpuUsage = clampedTotal
-
-            let point = MetricPoint(timestamp: Date(), value: clampedTotal)
-            self.cpuHistory.append(point)
-            if self.cpuHistory.count > maxHistoryPoints {
-                self.cpuHistory.removeFirst(self.cpuHistory.count - maxHistoryPoints)
-            }
+            clampedTotal = min(100.0, max(0.0, calculatedTotal.isFinite ? calculatedTotal : 0.0))
+        } else {
+            clampedTotal = 0.0
         }
+
+        return (newUsages, clampedTotal, count)
     }
 
     // MARK: - 2. Real-Time Network Bandwidth (getifaddrs)
@@ -343,48 +543,40 @@ public final class SystemViewModel {
         return wrappedDelta <= 2_147_483_648 ? wrappedDelta : UInt64(current)
     }
 
-    private func updateNetworkBandwidth() {
+    private func sampleNetworkBandwidth(now: Date) -> (downloadBytes: UInt64, uploadBytes: UInt64, downloadFormatted: String, uploadFormatted: String, activeInterface: String, deltaIn: UInt64, deltaOut: UInt64, hasDelta: Bool) {
         let (currentCounters, iface) = Self.readNetworkInterfaceCounters()
-        let now = Date()
         let timeDelta = max(0.5, now.timeIntervalSince(previousNetworkTime))
+        var speedDown: UInt64 = 0
+        var speedUp: UInt64 = 0
+        var deltaIn: UInt64 = 0
+        var deltaOut: UInt64 = 0
+        let hasDelta = hasPreviousNetworkSample
 
         if hasPreviousNetworkSample {
-            var deltaIn: UInt64 = 0
-            var deltaOut: UInt64 = 0
             for (name, cur) in currentCounters {
                 if let prev = previousInterfaceCounters[name] {
                     deltaIn += Self.computeCounterDelta(current: cur.inBytes, previous: prev.inBytes)
                     deltaOut += Self.computeCounterDelta(current: cur.outBytes, previous: prev.outBytes)
                 }
             }
-
-            self.sessionTotalInBytes += deltaIn
-            let speedDown = UInt64(Double(deltaIn) / timeDelta)
-            self.downloadSpeedBytes = speedDown
-            self.downloadSpeedFormatted = Self.formatSpeed(bytesPerSec: speedDown)
-
-            let downPoint = MetricPoint(timestamp: now, value: Double(speedDown) / 1024.0)
-            self.downloadHistory.append(downPoint)
-            if self.downloadHistory.count > maxHistoryPoints {
-                self.downloadHistory.removeFirst(self.downloadHistory.count - maxHistoryPoints)
-            }
-
-            self.sessionTotalOutBytes += deltaOut
-            let speedUp = UInt64(Double(deltaOut) / timeDelta)
-            self.uploadSpeedBytes = speedUp
-            self.uploadSpeedFormatted = Self.formatSpeed(bytesPerSec: speedUp)
-
-            let upPoint = MetricPoint(timestamp: now, value: Double(speedUp) / 1024.0)
-            self.uploadHistory.append(upPoint)
-            if self.uploadHistory.count > maxHistoryPoints {
-                self.uploadHistory.removeFirst(self.uploadHistory.count - maxHistoryPoints)
-            }
+            speedDown = UInt64(Double(deltaIn) / timeDelta)
+            speedUp = UInt64(Double(deltaOut) / timeDelta)
         }
 
         self.previousInterfaceCounters = currentCounters
         self.hasPreviousNetworkSample = !currentCounters.isEmpty
         self.previousNetworkTime = now
-        self.activeInterfaceRaw = iface
+
+        return (
+            downloadBytes: speedDown,
+            uploadBytes: speedUp,
+            downloadFormatted: Self.formatSpeed(bytesPerSec: speedDown),
+            uploadFormatted: Self.formatSpeed(bytesPerSec: speedUp),
+            activeInterface: iface,
+            deltaIn: deltaIn,
+            deltaOut: deltaOut,
+            hasDelta: hasDelta
+        )
     }
 
     private static func readNetworkInterfaceCounters() -> ([String: (inBytes: UInt32, outBytes: UInt32)], String) {
@@ -449,7 +641,7 @@ public final class SystemViewModel {
     }
 
     // MARK: - 3. Memory Mach Kernel Telemetry
-    private func updateMemoryUsage() {
+    private func sampleMemoryUsage() -> (active: UInt64, inactive: UInt64, wired: UInt64, compressed: UInt64, free: UInt64) {
         var vmStats = vm_statistics64()
         var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
 
@@ -462,18 +654,22 @@ public final class SystemViewModel {
             }
         }
 
-        guard result == KERN_SUCCESS else { return }
+        guard result == KERN_SUCCESS else {
+            return (activeMemory, inactiveMemory, wiredMemory, compressedMemory, freeMemory)
+        }
 
         let pageSize = UInt64(vm_kernel_page_size)
-        self.activeMemory = UInt64(vmStats.active_count) * pageSize
-        self.inactiveMemory = UInt64(vmStats.inactive_count) * pageSize
-        self.wiredMemory = UInt64(vmStats.wire_count) * pageSize
-        self.compressedMemory = UInt64(vmStats.compressor_page_count) * pageSize
-        self.freeMemory = UInt64(vmStats.free_count) * pageSize
+        return (
+            active: UInt64(vmStats.active_count) * pageSize,
+            inactive: UInt64(vmStats.inactive_count) * pageSize,
+            wired: UInt64(vmStats.wire_count) * pageSize,
+            compressed: UInt64(vmStats.compressor_page_count) * pageSize,
+            free: UInt64(vmStats.free_count) * pageSize
+        )
     }
 
     // MARK: - 4. Storage Telemetry
-    private func updateStorageUsage() {
+    private func sampleStorageUsage() -> (total: Int64, available: Int64, purgeable: Int64) {
         let homeURL = URL(fileURLWithPath: NSHomeDirectory() as String)
         do {
             let values = try homeURL.resourceValues(forKeys: [
@@ -481,32 +677,34 @@ public final class SystemViewModel {
                 .volumeAvailableCapacityForImportantUsageKey,
                 .volumeAvailableCapacityForOpportunisticUsageKey
             ])
-            if let total = values.volumeTotalCapacity {
-                self.totalDiskSpace = Int64(total)
-            }
-            if let available = values.volumeAvailableCapacityForImportantUsage {
-                self.availableDiskSpace = available
-            }
+            let total = values.volumeTotalCapacity.map { Int64($0) } ?? self.totalDiskSpace
+            let available = values.volumeAvailableCapacityForImportantUsage ?? self.availableDiskSpace
+            var purgeable: Int64 = 0
             if let opportunistic = values.volumeAvailableCapacityForOpportunisticUsage,
                let important = values.volumeAvailableCapacityForImportantUsage {
-                self.purgeableDiskSpace = max(0, opportunistic - important)
+                purgeable = max(0, opportunistic - important)
             }
+            return (total: total, available: available, purgeable: purgeable)
         } catch {
             var stats = statfs()
             if statfs(homeURL.path, &stats) == 0 {
-                self.totalDiskSpace = Int64(stats.f_blocks) * Int64(stats.f_bsize)
-                self.availableDiskSpace = Int64(stats.f_bavail) * Int64(stats.f_bsize)
+                let total = Int64(stats.f_blocks) * Int64(stats.f_bsize)
+                let available = Int64(stats.f_bavail) * Int64(stats.f_bsize)
+                return (total: total, available: available, purgeable: 0)
             }
+            return (total: self.totalDiskSpace, available: self.availableDiskSpace, purgeable: self.purgeableDiskSpace)
         }
     }
 
     // MARK: - 5. System Uptime via sysctl
-    private func updateUptime() {
+    private func sampleUptime() -> (bootDate: Date?, uptimeFormatted: String) {
         var bootTime = timeval()
         var size = MemoryLayout<timeval>.stride
         var mib = [CTL_KERN, KERN_BOOTTIME]
         let result = sysctl(&mib, u_int(mib.count), &bootTime, &size, nil, 0)
-        guard result == 0 else { return }
+        guard result == 0 else {
+            return (self.bootDate, self.uptimeFormatted)
+        }
 
         let bootDate = Date(timeIntervalSince1970: TimeInterval(bootTime.tv_sec))
         let uptimeSeconds = max(0, Int(Date().timeIntervalSince(bootDate)))
@@ -515,8 +713,7 @@ public final class SystemViewModel {
         let hours = (uptimeSeconds % 86400) / 3600
         let minutes = (uptimeSeconds % 3600) / 60
 
-        self.bootDate = bootDate
-        self.uptimeFormatted = L10n.Overview.uptimeText(days: days, hours: hours, minutes: minutes)
+        return (bootDate: bootDate, uptimeFormatted: L10n.Overview.uptimeText(days: days, hours: hours, minutes: minutes))
     }
 
     // MARK: - 6. Device Identification & Full Specs
@@ -860,22 +1057,26 @@ public final class SystemViewModel {
             try? await Task.sleep(nanoseconds: 250_000_000)
         }.value
 
-        updateStorageUsage()
-        updateMemoryUsage()
+        let disk = sampleStorageUsage()
+        let mem = sampleMemoryUsage()
+        self.totalDiskSpace = disk.total
+        self.availableDiskSpace = disk.available
+        self.purgeableDiskSpace = disk.purgeable
+        self.activeMemory = mem.active
+        self.inactiveMemory = mem.inactive
+        self.wiredMemory = mem.wired
+        self.compressedMemory = mem.compressed
+        self.freeMemory = mem.free
         lastCachePurgedAt = Date()
         isCleaningCache = false
         Haptics.success()
     }
 
     // MARK: - 8. Thermal & Temperature Telemetry
-    private func updateThermals() {
+    private func sampleThermals(totalCpu: Double) -> (state: ProcessInfo.ThermalState, batteryTemp: Double, socTemp: Double, pressure: Int, isEstimated: Bool) {
         let state = ProcessInfo.processInfo.thermalState
-        self.thermalState = state
-
-        // Query hardware temperature sensors via HardwareBatteryProbe
         let hw = HardwareBatteryProbe.sample()
 
-        // Base temperature & throttling load baseline
         let baseTemp: Double
         let pressure: Int
         switch state {
@@ -897,24 +1098,28 @@ public final class SystemViewModel {
         }
 
         var estimated = false
+        let battTemp: Double
         if let bTemp = hw.temperatureCelsius {
-            self.batteryTemperature = bTemp
+            battTemp = bTemp
         } else {
             estimated = true
-            let target = baseTemp + (Double(totalCpuUsage) / 100.0) * 2.5
-            self.batteryTemperature = self.batteryTemperature * 0.85 + target * 0.15
+            let target = baseTemp + (Double(totalCpu) / 100.0) * 2.5
+            battTemp = lastSampledBatteryTemp * 0.85 + target * 0.15
         }
+        lastSampledBatteryTemp = battTemp
 
+        let socTemp: Double
         if let sTemp = hw.socTemperatureCelsius {
-            self.socTemperature = sTemp
+            socTemp = sTemp
         } else {
             estimated = true
-            let socTarget = self.batteryTemperature + 2.0 + (Double(totalCpuUsage) / 100.0) * 8.5
-            self.socTemperature = self.socTemperature * 0.8 + socTarget * 0.2
+            let socTarget = battTemp + 2.0 + (Double(totalCpu) / 100.0) * 8.5
+            socTemp = lastSampledSocTemp * 0.8 + socTarget * 0.2
         }
+        lastSampledSocTemp = socTemp
 
-        self.isThermalEstimated = estimated
-        self.thermalPressurePercent = min(100, max(5, pressure + Int(totalCpuUsage * 0.2)))
+        let thermalPressure = min(100, max(5, pressure + Int(totalCpu * 0.2)))
+        return (state: state, batteryTemp: battTemp, socTemp: socTemp, pressure: thermalPressure, isEstimated: estimated)
     }
 
     // MARK: - Device Database Lookup

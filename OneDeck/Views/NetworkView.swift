@@ -32,7 +32,7 @@ struct NetworkView: View {
     // MARK: - Subviews
     @ViewBuilder
     private var cardStack: some View {
-        VStack(spacing: SpacingTheme.cardStack) {
+        LazyVStack(spacing: SpacingTheme.cardStack) {
             // 1. Hero Link & Network Interface HUD
             NetworkHeroCard()
 

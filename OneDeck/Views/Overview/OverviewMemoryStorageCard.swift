@@ -88,7 +88,7 @@ struct OverviewMemoryStorageCard: View {
             }
             .clipShape(Capsule())
             .frame(height: 8)
-            .animation(.easeInOut(duration: 0.25), value: system.activeMemory)
+            .animation(.linear(duration: 0.15), value: system.activeMemory)
             .accessibilityHidden(true)
 
             // Memory Breakdown Bento Stat Grid

@@ -62,7 +62,7 @@ struct OverviewCpuCard: View {
 
     @ViewBuilder
     private var waveformSection: some View {
-        let validHistory = system.cpuHistory.filter { $0.value.isFinite }
+        let validHistory = system.cpuHistory
 
         VStack(alignment: .leading, spacing: SpacingTheme.compact) {
             HStack {
@@ -156,25 +156,21 @@ struct OverviewCpuCard: View {
     @ViewBuilder
     private var coreLoadSection: some View {
         let cores = Array(system.coreUsages.enumerated())
-        if cores.count > 6 || dynamicTypeSize.isAccessibilitySize {
-            let minColWidth: CGFloat = dynamicTypeSize.isAccessibilitySize ? 52 : 34
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: minColWidth), spacing: SpacingTheme.compact)],
-                spacing: SpacingTheme.compact
-            ) {
-                ForEach(cores, id: \.offset) { index, usage in
-                    coreBarItem(index: index, usage: usage)
-                }
-            }
-            .padding(.top, SpacingTheme.tight)
-        } else {
-            HStack(spacing: SpacingTheme.compact) {
-                ForEach(cores, id: \.offset) { index, usage in
-                    coreBarItem(index: index, usage: usage)
-                }
-            }
-            .padding(.top, SpacingTheme.tight)
+        let columnsCount = dynamicTypeSize.isAccessibilitySize ? 4 : (cores.count > 8 ? (cores.count + 1) / 2 : max(1, cores.count))
+        let rows = stride(from: 0, to: cores.count, by: columnsCount).map {
+            Array(cores[$0 ..< min($0 + columnsCount, cores.count)])
         }
+
+        VStack(spacing: SpacingTheme.compact) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                HStack(spacing: SpacingTheme.compact) {
+                    ForEach(row, id: \.offset) { index, usage in
+                        coreBarItem(index: index, usage: usage)
+                    }
+                }
+            }
+        }
+        .padding(.top, SpacingTheme.tight)
     }
 
     @ViewBuilder
@@ -209,7 +205,7 @@ struct OverviewCpuCard: View {
             }
             .frame(height: 54)
             .clipShape(RoundedRectangle(cornerRadius: CornerRadiusTheme.standard, style: .continuous))
-            .animation(.easeInOut(duration: 0.3), value: clampedUsage)
+            .animation(.linear(duration: 0.15), value: clampedUsage)
 
             Text(coreTag)
                 .font(Typography.badgeTagMono)

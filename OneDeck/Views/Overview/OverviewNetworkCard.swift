@@ -177,7 +177,7 @@ private struct OverviewMetricBentoBox: View {
 
     @ViewBuilder
     private var sparklineArea: some View {
-        let finiteHistory = history.filter { $0.value.isFinite }
+        let finiteHistory = history
 
         ZStack(alignment: .bottom) {
             if finiteHistory.count > 1 {

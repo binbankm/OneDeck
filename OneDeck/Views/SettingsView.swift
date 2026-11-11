@@ -33,7 +33,7 @@ struct SettingsView: View {
     // MARK: - Subviews
     @ViewBuilder
     private var cardStack: some View {
-        VStack(spacing: SpacingTheme.cardStack) {
+        LazyVStack(spacing: SpacingTheme.cardStack) {
             // 1. Appearance settings
             SettingsAppearanceCard()
 

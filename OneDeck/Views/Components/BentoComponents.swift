@@ -25,20 +25,17 @@ struct BentoCapsuleProgressBar: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            let fillWidth = max(0, geo.size.width * clampedProgress)
+        ZStack(alignment: .leading) {
+            Capsule()
+                .fill(trackColor ?? Theme.chipBackground(for: colorScheme))
 
-            ZStack(alignment: .leading) {
+            if clampedProgress > 0 {
                 Capsule()
-                    .fill(trackColor ?? Theme.chipBackground(for: colorScheme))
-
-                if clampedProgress > 0 {
-                    Capsule()
-                        .fill(tint)
-                        .frame(width: max(height, fillWidth))
-                }
+                    .fill(tint)
+                    .scaleEffect(x: clampedProgress, y: 1.0, anchor: .leading)
             }
         }
+        .clipShape(Capsule())
         .frame(height: height)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel ?? "")

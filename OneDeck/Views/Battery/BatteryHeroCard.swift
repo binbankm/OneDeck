@@ -90,34 +90,30 @@ struct BatteryHeroCard: View {
             )
 
             // Non-distorting Smooth Capsule Gauge
-            GeometryReader { geo in
-                let fillWidth = max(0, geo.size.width * clampedLevel)
-                let minVisibleWidth = min(geo.size.width, max(18, fillWidth))
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Theme.chipBackground(for: colorScheme))
 
-                ZStack(alignment: .leading) {
+                if battery.isBatteryLevelAvailable && clampedLevel > 0 {
                     Capsule()
-                        .fill(Theme.chipBackground(for: colorScheme))
-
-                    if battery.isBatteryLevelAvailable && clampedLevel > 0 {
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        activeStatusColor,
-                                        activeStatusColor.opacity(0.78)
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    activeStatusColor,
+                                    activeStatusColor.opacity(0.78)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
                             )
-                            .overlay(
-                                Capsule()
-                                    .stroke(Color.white.opacity(0.18), lineWidth: 0.5)
-                            )
-                            .frame(width: minVisibleWidth)
-                    }
+                        )
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.white.opacity(0.18), lineWidth: 0.5)
+                        )
+                        .scaleEffect(x: clampedLevel, y: 1.0, anchor: .leading)
                 }
             }
+            .clipShape(Capsule())
             .frame(height: 18)
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: battery.batteryLevel)
             .accessibilityHidden(true)

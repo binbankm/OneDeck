@@ -31,7 +31,7 @@ struct OverviewView: View {
     // MARK: - Subviews
     @ViewBuilder
     private var cardStack: some View {
-        VStack(spacing: SpacingTheme.cardStack) {
+        LazyVStack(spacing: SpacingTheme.cardStack) {
             // 1. Hero Device Flagship Deck
             OverviewHeroCard()
 
